@@ -1,0 +1,32 @@
+{
+  "name": "eden-the-lost-world",
+  "version": "0.0.0",
+  "description": "EDEN – The Lost World (Fase 0: arquitectura base)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dokappcode-wq/Proyecto-6-Eden.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dokappcode-wq/Proyecto-6-Eden/issues"
+  },
+  "homepage": "https://github.com/dokappcode-wq/Proyecto-6-Eden#readme",
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  },
+  "private": true,
+  "type": "module"
+}

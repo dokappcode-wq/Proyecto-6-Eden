@@ -1,0 +1,27 @@
+{
+  "title": "EDEN – The Lost World",
+  "loop": {
+    "fixedStepHz": 60,
+    "maxSubSteps": 5,
+    "maxFrameSeconds": 0.25
+  },
+  "render": {
+    "clearColor": "#8fd3f4",
+    "fogColor": "#a9dcef",
+    "fogNear": 40,
+    "fogFar": 220,
+    "maxPixelRatio": 2,
+    "shadows": true
+  },
+  "camera": {
+    "fov": 60,
+    "near": 0.1,
+    "far": 2000,
+    "position": [8, 6, 10],
+    "lookAt": [0, 1, 0]
+  },
+  "debug": {
+    "startVisible": true,
+    "refreshMs": 250
+  }
+}
