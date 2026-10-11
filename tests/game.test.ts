@@ -5,9 +5,6 @@ import type { GameEvents } from '../src/core/events';
 import { World } from '../src/core/ecs/World';
 import { InputManager } from '../src/core/input/InputManager';
 import { loadGameData } from '../src/data';
-import { SpinSystem } from '../src/systems/SpinSystem';
-import { TransformSnapshotSystem } from '../src/systems/TransformSnapshotSystem';
-import { spawnWorld } from '../src/world/spawnWorld';
 
 function makeGame() {
   const data = loadGameData();
@@ -18,6 +15,7 @@ function makeGame() {
     input: new InputManager(new EventTarget(), data.input, bus, null),
     data,
     time: createTimeState(60),
+    session: { mode: 'play' },
   };
   return { game: new Game(ctx), ctx };
 }
@@ -40,7 +38,8 @@ describe('Game loop', () => {
     let steps = 0;
     game.addSystem({ name: 'count', fixedUpdate: () => steps++ });
     game.tick(5);
-    expect(steps).toBe(ctx.data.game.loop.maxSubSteps);
+    expect(steps).toBeLessThanOrEqual(ctx.data.game.loop.maxSubSteps);
+    expect(ctx.time.frameDt).toBe(ctx.data.game.loop.maxFrameSeconds);
   });
 
   it('render recibe alpha y se llama una vez por frame', () => {
@@ -53,19 +52,23 @@ describe('Game loop', () => {
     expect(alphas[0]).toBeCloseTo(0.5);
   });
 
+  it('no pierde una pulsación si el frame no ejecuta ningún paso fijo', () => {
+    const { game, ctx } = makeGame();
+    const target = new EventTarget();
+    const input = new InputManager(target, ctx.data.input, ctx.bus, null);
+    Object.assign(ctx, { input });
+    let seen = false;
+    game.addSystem({ name: 'jump', fixedUpdate: (c) => (seen ||= c.input.wasPressed('jump')) });
+    target.dispatchEvent(Object.assign(new Event('keydown'), { code: 'Space' }));
+    game.tick(1 / 240); // sin paso fijo
+    game.tick(1 / 240);
+    game.tick(1 / 60);
+    expect(seen).toBe(true);
+  });
+
   it('rechaza sistemas duplicados', () => {
     const { game } = makeGame();
     game.addSystem({ name: 'x' });
     expect(() => game.addSystem({ name: 'x' })).toThrow(/duplicado/);
-  });
-
-  it('integra mundo de datos + sistemas: el cubo ancestral gira', () => {
-    const { game, ctx } = makeGame();
-    const [cube] = spawnWorld(ctx.world, ctx.data.world, ctx.bus);
-    game.addSystem(new TransformSnapshotSystem()).addSystem(new SpinSystem());
-    for (let i = 0; i < 60; i++) game.tick(1 / 60 + 1e-6);
-    const t = ctx.world.require(cube, 'transform');
-    expect(t.rotY).toBeCloseTo(ctx.world.require(cube, 'spin').speed, 1);
-    expect(t.prevRotY).toBeLessThan(t.rotY);
   });
 });

@@ -34,6 +34,7 @@ describe('schema', () => {
     const data = loadGameData();
     expect(data.game.loop.fixedStepHz).toBeGreaterThan(0);
     expect(data.input.actions.debug_toggle).toContain('F3');
-    expect(data.world.entities.length).toBeGreaterThan(0);
+    expect(data.valley.inscriptions.length).toBeGreaterThan(0);
+    expect(data.tutorial.steps).toHaveLength(8);
   });
 });

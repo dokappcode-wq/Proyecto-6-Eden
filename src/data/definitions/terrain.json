@@ -1,0 +1,75 @@
+{
+  "seed": 20261011,
+  "worldSize": 8192,
+  "seaLevel": 0,
+  "physicsGrid": 2,
+  "fogDensity": 0.00062,
+  "snowLine": 380,
+  "chunk": {
+    "size": 128,
+    "lodDistances": [260, 520, 820],
+    "lodResolutions": [64, 32, 16],
+    "buildBudgetMs": 5,
+    "lookAheadSeconds": 1.5,
+    "unloadMargin": 96,
+    "skirtDepth": 8,
+    "vegetationDistance": 400
+  },
+  "far": { "resolution": 64, "extent": 9216, "drop": 2 },
+  "continent": { "radius": 3700, "coastNoise": 0.22, "seaFloor": -30 },
+  "plains": { "height": 30, "amplitude": 7, "scale": 0.0018 },
+  "mountains": { "startZ": -900, "fullZ": -2400, "height": 640, "scale": 0.0011 },
+  "desert": { "startX": 1000, "fullX": 2200, "height": 26, "duneAmplitude": 9, "duneScale": 0.012 },
+  "forest": { "startX": -1000, "fullX": -2200, "height": 55, "amplitude": 35, "scale": 0.004 },
+  "valley": {
+    "center": [0, 0],
+    "floorHeight": 61,
+    "floorNoise": 0.9,
+    "innerRadius": 185,
+    "wallRadius": 212,
+    "wallTop": 136,
+    "wallNoise": 14,
+    "edgeNoise": 12,
+    "outerStart": 248,
+    "outerEnd": 282,
+    "corridor": { "halfWidth": 11, "blend": 12, "startZ": 165 },
+    "mounds": [
+      { "center": [110, -100], "radius": 40, "height": 9 },
+      { "center": [-150, 40], "radius": 30, "height": 6 },
+      { "center": [60, 150], "radius": 22, "height": 4 }
+    ]
+  },
+  "rivers": [
+    {
+      "id": "valley_river",
+      "width": 7,
+      "depth": 1.1,
+      "waterLevel": 59.8,
+      "bankWidth": 3,
+      "points": [[-20, -192], [-24, -150], [-12, -95], [-16, -40], [-10, -8], [6, 30], [28, 78], [40, 118]]
+    }
+  ],
+  "lakes": [
+    { "id": "valley_pond", "center": [40, 124], "radius": 15, "waterLevel": 59.8, "depth": 2.4 },
+    { "id": "landing_lake", "center": [0, 352], "radius": 55, "waterLevel": 20, "depth": 7 }
+  ],
+  "paths": [
+    { "width": 2.4, "points": [[-116, -104], [-100, -82], [-84, -60], [-74, -46], [-50, -22], [-22, -8], [6, -12], [34, -32], [70, -62], [100, -92]] },
+    { "width": 2.2, "points": [[34, -32], [48, 4], [58, 36], [82, 70], [108, 96]] },
+    { "width": 2.4, "points": [[108, 96], [80, 132], [36, 150], [8, 160], [0, 190], [0, 268]] }
+  ],
+  "palette": {
+    "grass": "#5f9a3c",
+    "grassDry": "#9aa84c",
+    "grassLush": "#3d7d36",
+    "dirt": "#8f7048",
+    "rock": "#857c70",
+    "rockDark": "#5c564e",
+    "sand": "#d8c38a",
+    "snow": "#eef4fa",
+    "seaFloor": "#3c6f78",
+    "desert": "#d9a35f",
+    "forest": "#2f5f2c",
+    "riverBed": "#6d6a52"
+  }
+}

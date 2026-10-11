@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameConfig, WorldConfig } from '../data/schemas';
+import type { GameConfig } from '../data/schemas';
 
 /** Dueño del WebGLRenderer, la escena y la cámara. Los sistemas añaden objetos a `scene`. */
 export class Renderer {
@@ -17,46 +17,18 @@ export class Renderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, r.maxPixelRatio));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = r.shadows;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.setClearColor(r.clearColor);
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(r.clearColor);
-    this.scene.fog = new THREE.Fog(r.fogColor, r.fogNear, r.fogFar);
-
-    const c = config.camera;
-    this.camera = new THREE.PerspectiveCamera(c.fov, 1, c.near, c.far);
-    this.camera.position.set(c.position[0], c.position[1], c.position[2]);
-    this.camera.lookAt(c.lookAt[0], c.lookAt[1], c.lookAt[2]);
-
+    this.camera = new THREE.PerspectiveCamera(60, 1, r.cameraNear, r.cameraFar);
     window.addEventListener('resize', this.onResize);
     this.resize();
   }
 
-  /** Luces y suelo base definidos en world.json. */
-  buildEnvironment(world: WorldConfig): void {
-    const hemi = new THREE.HemisphereLight(world.ambient.skyColor, world.ambient.groundColor, world.ambient.intensity);
-    this.scene.add(hemi);
-
-    const sun = new THREE.DirectionalLight(world.sun.color, world.sun.intensity);
-    const dir = new THREE.Vector3(...world.sun.direction).normalize();
-    sun.position.copy(dir.multiplyScalar(-60));
-    sun.castShadow = this.renderer.shadowMap.enabled;
-    sun.shadow.mapSize.set(2048, 2048);
-    const s = 30;
-    Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 200 });
-    sun.shadow.bias = -0.0005;
-    this.scene.add(sun);
-
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(world.ground.size, world.ground.size),
-      new THREE.MeshStandardMaterial({ color: world.ground.color, roughness: 0.95 }),
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    ground.name = 'ground';
-    this.scene.add(ground);
+  get canvas(): HTMLCanvasElement {
+    return this.renderer.domElement;
   }
 
   draw(): void {

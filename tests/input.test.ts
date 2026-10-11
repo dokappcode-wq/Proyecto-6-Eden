@@ -82,3 +82,30 @@ describe('InputManager', () => {
     expect(input.isDown('attack')).toBe(true);
   });
 });
+
+describe('InputManager: ratón', () => {
+  const move = (dx: number, dy: number) => Object.assign(new Event('mousemove'), { movementX: dx, movementY: dy });
+
+  it('acumula el movimiento solo con la mirada habilitada y descarta el primer evento y los picos', () => {
+    const target = new EventTarget();
+    let locked = false;
+    const input = new InputManager(target, config, new EventBus<GameEvents>(), null, () => locked);
+    target.dispatchEvent(move(10, 5));
+    expect(input.consumeLook()).toEqual({ dx: 0, dy: 0 });
+    locked = true;
+    target.dispatchEvent(move(-400, 300)); // salto al bloquear el puntero
+    target.dispatchEvent(move(12, -4));
+    target.dispatchEvent(move(900, 0)); // pico anómalo
+    target.dispatchEvent(move(3, 2));
+    expect(input.consumeLook()).toEqual({ dx: 15, dy: -2 });
+    expect(input.consumeLook()).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('cuenta pasos de rueda', () => {
+    const target = new EventTarget();
+    const input = new InputManager(target, config, new EventBus<GameEvents>(), null);
+    target.dispatchEvent(Object.assign(new Event('wheel'), { deltaY: 120 }));
+    target.dispatchEvent(Object.assign(new Event('wheel'), { deltaY: 53 }));
+    expect(input.consumeWheel()).toBe(2);
+  });
+});

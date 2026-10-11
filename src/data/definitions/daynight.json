@@ -1,0 +1,15 @@
+{
+  "dayLengthSeconds": 1440,
+  "startHour": 8.5,
+  "sunTiltDeg": 28,
+  "keyframes": [
+    {"hour": 0, "zenith": "#060b1f", "horizon": "#1a2747", "light": "#8ea6ff", "lightIntensity": 0.55, "ambientSky": "#2c3c70", "ambientGround": "#0d111c", "ambientIntensity": 0.65, "fog": "#16213b", "stars": 1},
+    {"hour": 4.8, "zenith": "#0b1430", "horizon": "#2c3355", "light": "#8ea6ff", "lightIntensity": 0.45, "ambientSky": "#33406e", "ambientGround": "#121522", "ambientIntensity": 0.65, "fog": "#232a48", "stars": 0.9},
+    {"hour": 6, "zenith": "#3a5f9c", "horizon": "#f2a36b", "light": "#ffb27a", "lightIntensity": 0.9, "ambientSky": "#8fa6d6", "ambientGround": "#4a3b33", "ambientIntensity": 0.6, "fog": "#e0a98a", "stars": 0.1},
+    {"hour": 8, "zenith": "#3f8fe0", "horizon": "#bfe3f5", "light": "#fff0d4", "lightIntensity": 2.3, "ambientSky": "#bfe6ff", "ambientGround": "#56603f", "ambientIntensity": 0.85, "fog": "#b9dcef", "stars": 0},
+    {"hour": 13, "zenith": "#2f86e6", "horizon": "#c4e8f8", "light": "#fff7e8", "lightIntensity": 2.7, "ambientSky": "#c8ebff", "ambientGround": "#5a6640", "ambientIntensity": 0.95, "fog": "#bfe2f3", "stars": 0},
+    {"hour": 17, "zenith": "#3a7fd0", "horizon": "#f0d0a0", "light": "#ffe0b0", "lightIntensity": 2.1, "ambientSky": "#b0d0f0", "ambientGround": "#5a5038", "ambientIntensity": 0.8, "fog": "#e3d2b4", "stars": 0},
+    {"hour": 18.8, "zenith": "#35467e", "horizon": "#f07a4a", "light": "#ff9050", "lightIntensity": 1.0, "ambientSky": "#8a7fb8", "ambientGround": "#3a2a26", "ambientIntensity": 0.6, "fog": "#c27a68", "stars": 0.15},
+    {"hour": 20.3, "zenith": "#0c1430", "horizon": "#2a2c50", "light": "#8ea6ff", "lightIntensity": 0.5, "ambientSky": "#2e3a6a", "ambientGround": "#0d111c", "ambientIntensity": 0.65, "fog": "#1b2240", "stars": 0.85}
+  ]
+}

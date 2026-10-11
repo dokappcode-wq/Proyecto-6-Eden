@@ -1,0 +1,13 @@
+{
+  "freeRoamHint": "Explora el valle. La torre azul del este domina el paisaje.",
+  "steps": [
+    { "id": "exit_capsule", "order": 1, "phase": 1, "title": "Despertar", "hint": "Pulsa {interact} para abrir la cápsula", "trigger": { "kind": "interact", "target": "capsule" } },
+    { "id": "move", "order": 2, "phase": 1, "title": "Explorar", "hint": "Muévete con {move} y mira con el ratón. Sigue el camino hacia las ruinas", "trigger": { "kind": "reach", "position": [-84, -58], "radius": 9 } },
+    { "id": "jump", "order": 3, "phase": 1, "title": "Saltar", "hint": "Pulsa {jump} para subir por los bloques hasta el mirador", "trigger": { "kind": "reach", "position": [-65.4, -26.8], "radius": 3.2, "minHeightAboveTerrain": 2.4 } },
+    { "id": "climb", "order": 4, "phase": 2, "title": "Trepar", "hint": "Algunas paredes se pueden trepar. Salta contra un borde para impulsarte", "trigger": { "kind": "climb", "count": 1 } },
+    { "id": "combat", "order": 5, "phase": 3, "title": "Combate básico", "hint": "Ataca con {attack} y esquiva con {dodge}", "trigger": { "kind": "defeat", "target": "slime", "count": 3 } },
+    { "id": "interact", "order": 6, "phase": 1, "title": "Interactuar", "hint": "Lee las inscripciones con {interact}", "trigger": { "kind": "read", "count": 2 } },
+    { "id": "temple", "order": 7, "phase": 2, "title": "Templo de desafío", "hint": "Supera la prueba de la piedra ancestral", "trigger": { "kind": "temple", "target": "temple_valley" } },
+    { "id": "first_flight", "order": 8, "phase": 2, "title": "Primer vuelo", "hint": "Salta desde el acantilado y despliega el planeador con {glider}", "trigger": { "kind": "glide_land", "target": "landing_lake" } }
+  ]
+}

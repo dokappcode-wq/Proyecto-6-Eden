@@ -14,10 +14,18 @@ export interface TimeState {
   stepsThisFrame: number;
   /** Duración del último frame de render (ms, sin recortar). */
   frameMs: number;
+  /** Delta del último frame (s, recortado): para animaciones de render. */
+  frameDt: number;
   /** FPS suavizados (media exponencial). */
   fps: number;
   /** Fracción [0,1) del siguiente paso fijo, para interpolar en el render. */
   alpha: number;
+}
+
+export type SessionMode = 'loading' | 'title' | 'play';
+
+export interface Session {
+  mode: SessionMode;
 }
 
 export interface GameContext {
@@ -26,6 +34,7 @@ export interface GameContext {
   readonly input: InputManager;
   readonly data: GameData;
   readonly time: TimeState;
+  readonly session: Session;
 }
 
 /**
@@ -77,13 +86,14 @@ export class Game {
     const { time, data, input } = this.ctx;
     const loop = data.game.loop;
     time.frameMs = frameSeconds * 1000;
+    time.frameDt = Math.min(frameSeconds, loop.maxFrameSeconds);
     if (frameSeconds > 0) {
       const instant = 1 / frameSeconds;
       time.fps = time.fps === 0 ? instant : time.fps + (instant - time.fps) * 0.1;
     }
 
     // Recorte: tras una pestaña en segundo plano o un tirón no queremos "ponernos al día" a lo bestia.
-    this.accumulator += Math.min(frameSeconds, loop.maxFrameSeconds);
+    this.accumulator += time.frameDt;
 
     let steps = 0;
     while (this.accumulator >= time.fixedDt && steps < loop.maxSubSteps) {
@@ -113,5 +123,5 @@ export class Game {
 }
 
 export function createTimeState(fixedStepHz: number): TimeState {
-  return { fixedDt: 1 / fixedStepHz, elapsed: 0, frame: 0, fixedSteps: 0, stepsThisFrame: 0, frameMs: 0, fps: 0, alpha: 0 };
+  return { fixedDt: 1 / fixedStepHz, elapsed: 0, frame: 0, fixedSteps: 0, stepsThisFrame: 0, frameMs: 0, frameDt: 0, fps: 0, alpha: 0 };
 }

@@ -16,26 +16,26 @@ describe('World (ECS)', () => {
     const a = w.createEntity();
     const b = w.createEntity();
     w.add(a, 'transform', createTransform());
-    w.add(a, 'spin', { speed: 1 });
+    w.add(a, 'name', { value: 'a' });
     w.add(b, 'transform', createTransform());
-    expect(w.query('transform', 'spin')).toEqual([a]);
+    expect(w.query('transform', 'name')).toEqual([a]);
     expect(w.query('transform').sort()).toEqual([a, b].sort());
-    expect(w.query('renderable')).toEqual([]);
+    expect(w.query('interactable')).toEqual([]);
   });
 
   it('destroyEntity elimina todos sus componentes', () => {
     const w = new World();
     const a = w.createEntity();
-    w.add(a, 'spin', { speed: 2 });
+    w.add(a, 'name', { value: 'x' });
     w.destroyEntity(a);
     expect(w.isAlive(a)).toBe(false);
-    expect(w.get(a, 'spin')).toBeUndefined();
-    expect(w.query('spin')).toEqual([]);
+    expect(w.get(a, 'name')).toBeUndefined();
+    expect(w.query('name')).toEqual([]);
   });
 
   it('no permite añadir componentes a entidades inexistentes', () => {
     const w = new World();
-    expect(() => w.add(99, 'spin', { speed: 1 })).toThrow(/no existe/);
+    expect(() => w.add(99, 'name', { value: 'z' })).toThrow(/no existe/);
   });
 
   it('require lanza si falta el componente', () => {

@@ -6,6 +6,7 @@
     "move_right": ["KeyD", "ArrowRight"],
     "jump": ["Space"],
     "sprint": ["ShiftLeft"],
+    "walk": ["CapsLock"],
     "crouch": ["ControlLeft", "KeyC"],
     "interact": ["KeyE"],
     "attack": ["Mouse0"],
@@ -14,6 +15,9 @@
     "glider": ["Space"],
     "map": ["KeyM"],
     "pause": ["Escape"],
-    "debug_toggle": ["F3"]
+    "debug_toggle": ["F3"],
+    "debug_time_fast": ["KeyT"],
+    "debug_open_gate": ["F6"],
+    "debug_respawn": ["F8"]
   }
 }
