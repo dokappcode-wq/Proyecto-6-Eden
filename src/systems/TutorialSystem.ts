@@ -19,6 +19,15 @@ export class TutorialSystem implements System {
     this.tracker = new TutorialTracker(ctx.data.tutorial, ctx.data.game.contentPhase);
     ctx.bus.on('interact', ({ id }) => this.report(ctx, { kind: 'interact', target: id }));
     ctx.bus.on('inscription:open', ({ id }) => this.report(ctx, { kind: 'read', id }));
+    ctx.bus.on('player:climb', ({ phase }) => phase === 'start' && this.report(ctx, { kind: 'climb' }));
+    ctx.bus.on('player:ledge', ({ phase }) => phase === 'exit' && this.report(ctx, { kind: 'climb' }));
+    ctx.bus.on('temple:complete', ({ id }) => this.report(ctx, { kind: 'temple', target: id }));
+    ctx.bus.on('player:glide_land', ({ x, z }) => {
+      // Aterrizar planeando dentro (o en la orilla) de un lago cuenta como "aterrizar en él".
+      for (const lake of ctx.data.terrain.lakes) {
+        if (Math.hypot(x - lake.center[0], z - lake.center[1]) <= lake.radius + 14) this.report(ctx, { kind: 'glide_land', target: lake.id });
+      }
+    });
   }
 
   /** Reinicia el progreso (nueva partida) o lo restaura (continuar). */

@@ -1,7 +1,7 @@
 import { parse, v, type Infer } from '../data/schema';
 import type { BindingStorage } from './input/InputManager';
 
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 
 const saveSchema = v.object({
   version: v.number({ integer: true }),
@@ -12,6 +12,8 @@ const saveSchema = v.object({
   exitedCapsule: v.boolean(),
   gateOpen: v.boolean(),
   player: v.object({ x: v.number(), y: v.number(), z: v.number(), yaw: v.number() }),
+  health: v.object({ fragments: v.number({ min: 0, integer: true }), maxFragments: v.number({ min: 1, integer: true }) }),
+  progress: v.object({ towerActivated: v.boolean(), templeOpened: v.boolean(), templeCompleted: v.boolean(), hasGlider: v.boolean() }),
 });
 
 export type SaveData = Infer<typeof saveSchema>;

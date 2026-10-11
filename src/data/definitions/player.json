@@ -1,5 +1,9 @@
 {
-  "body": { "radius": 0.35, "height": 1.75, "eyeHeight": 1.55 },
+  "body": {
+    "radius": 0.35,
+    "height": 1.75,
+    "eyeHeight": 1.55
+  },
   "movement": {
     "walkSpeed": 2.2,
     "jogSpeed": 5.6,
@@ -20,7 +24,11 @@
     "maxFallSpeed": 55,
     "waterSpeedMultiplier": 0.62,
     "wadeDepth": 0.45,
-    "floatDepth": 1.25
+    "floatDepth": 1.25,
+    "sprintSpeed": 8.6,
+    "swimSpeed": 2.8,
+    "diveSpeed": 1.8,
+    "sinkSpeed": 0.9
   },
   "camera": {
     "distance": 5.6,
@@ -37,10 +45,64 @@
     "collisionPadding": 0.35,
     "recoverSharpness": 3.5,
     "fovBase": 60,
-    "fovSpeedBonus": 5,
+    "fovSpeedBonus": 12,
     "zoomStep": 0.9,
     "autoAlignDelay": 2.5,
-    "autoAlignSharpness": 1.2
+    "autoAlignSharpness": 1.2,
+    "glideDistanceBonus": 2.6,
+    "glideAlignSharpness": 3
   },
-  "respawn": { "killDepthBelowSea": 15 }
+  "respawn": {
+    "killDepthBelowSea": 15
+  },
+  "stamina": {
+    "base": 100,
+    "maxRings": 3,
+    "perRing": 100,
+    "recoverRate": 25,
+    "recoverDelay": 0.8,
+    "exhaustedLockout": 3,
+    "exhaustedRecoverFraction": 0.3,
+    "costs": {
+      "sprint": 15,
+      "climb": 10,
+      "climbSlipperyMultiplier": 1.5,
+      "swim": 8,
+      "climbJump": 15,
+      "dodge": 10,
+      "heavyAttack": 20,
+      "bowCharge": 8,
+      "bowChargeGliding": 4
+    }
+  },
+  "climb": {
+    "speed": 2.1,
+    "jumpDistance": 1.9,
+    "jumpSeconds": 0.32,
+    "startPushSeconds": 0.12,
+    "minWallHeight": 1.2,
+    "maxSurfaceNy": 0.55,
+    "standNy": 0.75,
+    "probeDistance": 0.9,
+    "slipperySlideSpeed": 0.6,
+    "backflipSpeed": 4.5
+  },
+  "swim": {
+    "airSeconds": 15,
+    "airRefillRate": 4,
+    "drownSinkSeconds": 2.5,
+    "currentInfluence": 1
+  },
+  "fall": {
+    "damageThreshold": 7,
+    "lethalHeight": 45,
+    "rollWindow": 0.25,
+    "rollDamageMultiplier": 0.5
+  },
+  "health": {
+    "startHearts": 3,
+    "maxHearts": 20,
+    "fragmentsPerHeart": 4,
+    "drownDamageFragments": 4
+  }
 }

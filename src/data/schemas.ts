@@ -69,6 +69,60 @@ export const playerConfigSchema = v.object({
     waterSpeedMultiplier: v.number({ min: 0, max: 1 }),
     wadeDepth: v.number({ min: 0 }),
     floatDepth: v.number({ min: 0 }),
+    sprintSpeed: v.number({ min: 0 }),
+    swimSpeed: v.number({ min: 0 }),
+    diveSpeed: v.number({ min: 0 }),
+    sinkSpeed: v.number({ min: 0 }),
+  }),
+  stamina: v.object({
+    base: v.number({ min: 1 }),
+    maxRings: v.number({ min: 1, max: 5, integer: true }),
+    perRing: v.number({ min: 1 }),
+    recoverRate: v.number({ min: 0 }),
+    recoverDelay: v.number({ min: 0 }),
+    exhaustedLockout: v.number({ min: 0 }),
+    exhaustedRecoverFraction: v.number({ min: 0, max: 1 }),
+    costs: v.object({
+      sprint: v.number({ min: 0 }),
+      climb: v.number({ min: 0 }),
+      climbSlipperyMultiplier: v.number({ min: 1 }),
+      swim: v.number({ min: 0 }),
+      climbJump: v.number({ min: 0 }),
+      dodge: v.number({ min: 0 }),
+      heavyAttack: v.number({ min: 0 }),
+      bowCharge: v.number({ min: 0 }),
+      bowChargeGliding: v.number({ min: 0 }),
+    }),
+  }),
+  climb: v.object({
+    speed: v.number({ min: 0.1 }),
+    jumpDistance: v.number({ min: 0 }),
+    jumpSeconds: v.number({ min: 0.05 }),
+    startPushSeconds: v.number({ min: 0 }),
+    minWallHeight: v.number({ min: 0 }),
+    maxSurfaceNy: v.number({ min: 0, max: 1 }),
+    standNy: v.number({ min: 0, max: 1 }),
+    probeDistance: v.number({ min: 0.1 }),
+    slipperySlideSpeed: v.number({ min: 0 }),
+    backflipSpeed: v.number({ min: 0 }),
+  }),
+  swim: v.object({
+    airSeconds: v.number({ min: 1 }),
+    airRefillRate: v.number({ min: 0 }),
+    drownSinkSeconds: v.number({ min: 0.1 }),
+    currentInfluence: v.number({ min: 0 }),
+  }),
+  fall: v.object({
+    damageThreshold: v.number({ min: 0 }),
+    lethalHeight: v.number({ min: 1 }),
+    rollWindow: v.number({ min: 0 }),
+    rollDamageMultiplier: v.number({ min: 0, max: 1 }),
+  }),
+  health: v.object({
+    startHearts: v.number({ min: 1, integer: true }),
+    maxHearts: v.number({ min: 1, integer: true }),
+    fragmentsPerHeart: v.number({ min: 1, integer: true }),
+    drownDamageFragments: v.number({ min: 0, integer: true }),
   }),
   camera: v.object({
     distance: v.number({ min: 0.5 }),
@@ -89,6 +143,8 @@ export const playerConfigSchema = v.object({
     zoomStep: v.number({ min: 0 }),
     autoAlignDelay: v.number({ min: 0 }),
     autoAlignSharpness: v.number({ min: 0 }),
+    glideDistanceBonus: v.number({ min: 0 }),
+    glideAlignSharpness: v.number({ min: 0 }),
   }),
   respawn: v.object({ killDepthBelowSea: v.number({ min: 0 }) }),
 });
@@ -121,6 +177,8 @@ const riverSchema = v.object({
   depth: v.number({ min: 0.1 }),
   waterLevel: v.number(),
   bankWidth: v.number({ min: 0 }),
+  /** Velocidad de la corriente (m/s) a lo largo de la polilínea. */
+  current: v.number({ min: 0 }),
   points: polyline,
 });
 
@@ -205,7 +263,7 @@ export const valleyConfigSchema = v.object({
   gate: v.object({ ...placed, width: v.number({ min: 1 }), height: v.number({ min: 1 }), depth: v.number({ min: 0.5 }) }),
   ruins: v.array(
     v.object({
-      kind: v.oneOf(['block', 'pillar', 'arch', 'wall', 'slab'] as const),
+      kind: v.oneOf(['block', 'pillar', 'arch', 'wall', 'slab', 'rockface'] as const),
       ...placed,
       size: vec3,
       /** Desplazamiento vertical de la base respecto al terreno. */
@@ -229,6 +287,134 @@ export const valleyConfigSchema = v.object({
   rocks: v.array(v.object({ ...placed, scale: v.number({ min: 0.1 }) })),
   waterfalls: v.array(v.object({ top: vec3, bottom: vec3, width: v.number({ min: 0.5 }) })),
   floatingIslands: v.array(v.object({ position: vec3, radius: v.number({ min: 5 }), waterfall: v.boolean() })),
+});
+
+// ---------------------------------------------------------------- ledge_boost.json
+export const ledgeBoostConfigSchema = v.object({
+  reachMin: v.number({ min: 0 }),
+  reachMax: v.number({ min: 0.5 }),
+  maxTopSlopeDeg: v.number({ min: 0, max: 89 }),
+  maxApproachAngleDeg: v.number({ min: 0, max: 90 }),
+  maxUpwardSpeed: v.number({ min: 0 }),
+  maxDownwardSpeed: v.number({ min: 0 }),
+  chestHeight: v.number({ min: 0 }),
+  probeDistance: v.number({ min: 0.05 }),
+  inwardOffset: v.number({ min: 0.05 }),
+  contactSeconds: v.number({ min: 0 }),
+  boostSeconds: v.number({ min: 0.05 }),
+  mantleSeconds: v.number({ min: 0.05 }),
+  exitSpeedFraction: v.number({ min: 0, max: 1 }),
+  staminaCost: v.number({ min: 0 }),
+  chainMinSeconds: v.number({ min: 0 }),
+  chainMaxHeight: v.number({ min: 0 }),
+  releaseBackInput: v.number({ min: -1, max: 0 }),
+  grabbableMaterials: v.array(v.string({ minLength: 1 })),
+});
+
+// ---------------------------------------------------------------- glider.json
+export const gliderConfigSchema = v.object({
+  minDeployHeight: v.number({ min: 0 }),
+  deploySeconds: v.number({ min: 0, max: 1 }),
+  forwardSpeed: v.number({ min: 0 }),
+  fallSpeed: v.number({ min: 0 }),
+  turnRate: v.number({ min: 0 }),
+  bankMaxRad: v.number({ min: 0, max: 1.5 }),
+  accel: v.number({ min: 0 }),
+  staminaPerSecond: v.number({ min: 0 }),
+  dive: v.object({ speed: v.number({ min: 0 }), fallSpeed: v.number({ min: 0 }), accel: v.number({ min: 0 }) }),
+  flare: v.object({ speed: v.number({ min: 0 }), fallSpeed: v.number({ min: 0 }), decel: v.number({ min: 0 }) }),
+  pullUpLiftFactor: v.number({ min: 0 }),
+  maxPullUpLift: v.number({ min: 0 }),
+  verticalResponse: v.number({ min: 0.1 }),
+  windInfluence: v.number({ min: 0 }),
+  thermal: v.object({ staminaFree: v.boolean() }),
+  upgrades: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      staminaMultiplier: v.number({ min: 0 }),
+      fallMultiplier: v.number({ min: 0 }),
+      windMultiplier: v.number({ min: 0 }),
+    }),
+  ),
+});
+
+// ---------------------------------------------------------------- airflow.json
+export const airflowConfigSchema = v.object({
+  globalWind: v.object({ direction: vec2, strength: v.number({ min: 0 }) }),
+  windZones: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      center: vec2,
+      radius: v.number({ min: 1 }),
+      direction: vec2,
+      strength: v.number({ min: 0 }),
+      maxHeight: v.number(),
+    }),
+  ),
+  thermals: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      kind: v.oneOf(['ancestral_vent', 'warm_air'] as const),
+      position: vec2,
+      radius: v.number({ min: 0.5 }),
+      height: v.number({ min: 1 }),
+      lift: v.number({ min: 0 }),
+      /** Impulso vertical al saltar dentro (0 = no lanza). */
+      launch: v.number({ min: 0 }),
+    }),
+  ),
+});
+
+// ---------------------------------------------------------------- materials.json
+export const materialsConfigSchema = v.record(v.object({ climbable: v.boolean(), grabbable: v.boolean(), slippery: v.boolean() }));
+
+// ---------------------------------------------------------------- settings.json
+export const settingsConfigSchema = v.object({
+  accessibility: v.object({
+    ledgeBoostRequiresHold: v.boolean(),
+    gliderInput: v.oneOf(['toggle', 'hold'] as const),
+    flightIndicators: v.boolean(),
+  }),
+});
+
+// ---------------------------------------------------------------- temples.json
+export const templesConfigSchema = v.object({
+  temples: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      challenge: v.number({ min: 1, max: 10, integer: true }),
+      challengeName: v.string({ minLength: 1 }),
+      biome: v.string({ minLength: 1 }),
+      difficulty: v.number({ min: 1, max: 5, integer: true }),
+      reward: v.oneOf(['glider', 'heart_fragment', 'stamina_fragment'] as const),
+      instanceOrigin: vec3,
+      atmosphere: v.object({
+        zenith: color,
+        horizon: color,
+        fog: color,
+        fogDensity: v.number({ min: 0 }),
+        ambient: color,
+        light: color,
+      }),
+      killDepth: v.number({ min: 1 }),
+      start: vec3,
+      course: v.array(
+        v.object({
+          position: vec3,
+          size: vec3,
+          material: v.string({ minLength: 1 }),
+          checkpoint: v.optional(v.boolean()),
+          glyph: v.optional(v.boolean()),
+        }),
+        { minLength: 1 },
+      ),
+      altar: vec3,
+      exitPortal: vec3,
+      inscription: v.string({ minLength: 1 }),
+    }),
+  ),
 });
 
 // ---------------------------------------------------------------- tutorial.json
@@ -270,3 +456,14 @@ export type ValleyConfig = Infer<typeof valleyConfigSchema>;
 export type TutorialConfig = Infer<typeof tutorialConfigSchema>;
 export type TutorialStep = Infer<typeof tutorialStepSchema>;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
+export type StaminaConfig = PlayerConfig['stamina'];
+export type ClimbConfig = PlayerConfig['climb'];
+export type LedgeBoostConfig = Infer<typeof ledgeBoostConfigSchema>;
+export type GliderConfig = Infer<typeof gliderConfigSchema>;
+export type GliderUpgrade = GliderConfig['upgrades'][number];
+export type AirflowConfig = Infer<typeof airflowConfigSchema>;
+export type MaterialsConfig = Infer<typeof materialsConfigSchema>;
+export type MaterialDef = MaterialsConfig[string];
+export type SettingsConfig = Infer<typeof settingsConfigSchema>;
+export type TemplesConfig = Infer<typeof templesConfigSchema>;
+export type TempleDef = TemplesConfig['temples'][number];

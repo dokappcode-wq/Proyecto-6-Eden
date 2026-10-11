@@ -1,6 +1,7 @@
 import type { GameContext, System } from '../core/Game';
 import type { Entity } from '../core/ecs/World';
 import type { SaveData, SaveStore } from '../core/save';
+import type { ValleyProgress } from './ValleyProgressSystem';
 
 export const MAIN_SLOT = 'slot1';
 
@@ -9,6 +10,9 @@ export interface SaveSources {
   hour(): number;
   day(): number;
   gateOpen(): boolean;
+  progress(): ValleyProgress;
+  /** No se guarda dentro de un templo (se reanuda siempre en el mundo). */
+  canSave(): boolean;
 }
 
 /**
@@ -32,6 +36,8 @@ export class SaveSystem implements System {
     ctx.bus.on('capsule:exited', () => this.save(ctx, 'auto'));
     ctx.bus.on('tutorial:step_completed', () => this.save(ctx, 'auto'));
     ctx.bus.on('valley:gate_opened', () => this.save(ctx, 'auto'));
+    ctx.bus.on('tower:activated', () => this.save(ctx, 'auto'));
+    ctx.bus.on('temple:exit', () => this.save(ctx, 'auto'));
   }
 
   load(): SaveData | null {
@@ -39,16 +45,19 @@ export class SaveSystem implements System {
   }
 
   save(ctx: GameContext, kind: 'manual' | 'auto'): void {
-    if (ctx.session.mode !== 'play') return;
+    if (ctx.session.mode !== 'play' || !this.sources.canSave()) return;
     const p = ctx.world.require(this.playerEntity, 'player');
     const ch = ctx.world.require(this.playerEntity, 'character');
     const ok = this.store.write(MAIN_SLOT, {
       tutorial: this.sources.tutorialIds(),
       hour: this.sources.hour(),
       day: this.sources.day(),
-      exitedCapsule: p.control === 'free',
+      exitedCapsule: p.control === 'free' || p.control === 'locked',
       gateOpen: this.sources.gateOpen(),
-      player: { x: ch.x, y: ch.y, z: ch.z, yaw: ch.yaw },
+      // Última posición segura en tierra (nunca a media caída, en una pared o en el agua).
+      player: p.control === 'capsule' ? { x: ch.x, y: ch.y, z: ch.z, yaw: ch.yaw } : { x: ch.safeX, y: ch.safeY, z: ch.safeZ, yaw: ch.yaw },
+      health: { fragments: Math.max(1, p.health.fragments), maxFragments: p.health.maxFragments },
+      progress: { ...this.sources.progress() },
     });
     if (ok && kind === 'manual') ctx.bus.emit('game:saved', { slot: MAIN_SLOT });
   }

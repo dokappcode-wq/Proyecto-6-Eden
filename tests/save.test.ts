@@ -8,7 +8,16 @@ function memory() {
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m };
 }
 
-const sample = { tutorial: ['exit_capsule'], hour: 9.5, day: 0, exitedCapsule: true, gateOpen: false, player: { x: 1, y: 61, z: 2, yaw: 0.5 } };
+const sample = {
+  tutorial: ['exit_capsule'],
+  hour: 9.5,
+  day: 0,
+  exitedCapsule: true,
+  gateOpen: false,
+  player: { x: 1, y: 61, z: 2, yaw: 0.5 },
+  health: { fragments: 10, maxFragments: 12 },
+  progress: { towerActivated: true, templeOpened: true, templeCompleted: false, hasGlider: true },
+};
 
 describe('SaveStore', () => {
   it('guarda y recupera una partida', () => {
@@ -19,7 +28,7 @@ describe('SaveStore', () => {
 
   it('ignora partidas corruptas sin lanzar', () => {
     const mem = memory();
-    mem.setItem('eden.save.a', '{"version":1,"hour":"x"}');
+    mem.setItem('eden.save.a', '{"version":2,"hour":"x"}');
     mem.setItem('eden.save.b', 'no-es-json');
     const s = new SaveStore(mem);
     expect(s.read('a')).toBeNull();

@@ -19,6 +19,10 @@ export interface CameraFrameInput {
   speed: number;
   moveYaw: number;
   moving: boolean;
+  /** Planeando: cámara más abierta y alineada con el rumbo. */
+  gliding?: boolean;
+  /** Trepando: algo más alejada para ver la pared. */
+  climbing?: boolean;
 }
 
 /**
@@ -43,6 +47,13 @@ export class CameraController {
   private readonly pivot: Vec3 = { x: 0, y: 0, z: 0 };
   private idleTime = 0;
   private initialized = false;
+  private shake = 0;
+  private fovKick = 0;
+  private baseFov: number;
+  private shakeT = 0;
+  private modeDistance = 0;
+  /** Desplazamiento de sacudida aplicado este frame (lo suma la cámara de Three.js). */
+  readonly shakeOffset: Vec3 = { x: 0, y: 0, z: 0 };
 
   constructor(private readonly cfg: CameraConfig) {
     this.yaw = 0;
@@ -50,6 +61,17 @@ export class CameraController {
     this.distance = cfg.distance;
     this.currentDistance = cfg.distance;
     this.fov = cfg.fovBase;
+    this.baseFov = cfg.fovBase;
+  }
+
+  /** Sacudida breve (0..1): aterrizajes, agarres, golpes. */
+  addShake(amount: number): void {
+    this.shake = Math.min(1, this.shake + amount);
+  }
+
+  /** Apertura momentánea del FOV (grados): impulsos y lanzamientos. */
+  kickFov(degrees: number): void {
+    this.fovKick = Math.max(this.fovKick, degrees);
   }
 
   /** Coloca la cámara detrás de un yaw dado sin transición (al empezar o reaparecer). */
@@ -69,10 +91,17 @@ export class CameraController {
     this.distance = clamp(this.distance + input.zoom * c.zoomStep, c.minDistance, c.maxDistance);
 
     // Auto-alineado detrás del jugador cuando se mueve y no se toca el ratón.
+    // Planeando se alinea antes y con más fuerza (la vista sigue al rumbo del vuelo).
     this.idleTime = looked ? 0 : this.idleTime + dt;
-    if (input.moving && this.idleTime > c.autoAlignDelay) {
+    if (input.gliding && this.idleTime > 0.4) {
+      this.yaw = dampAngle(this.yaw, input.moveYaw + Math.PI, c.glideAlignSharpness, dt);
+      this.pitch = damp(this.pitch, 0.12, 1.5, dt);
+    } else if (input.moving && this.idleTime > c.autoAlignDelay) {
       this.yaw = dampAngle(this.yaw, input.moveYaw + Math.PI, c.autoAlignSharpness, dt);
     }
+    const modeTarget = input.gliding ? c.glideDistanceBonus : input.climbing ? 1.2 : 0;
+    this.modeDistance = damp(this.modeDistance, modeTarget, 2.5, dt);
+    const wanted = this.distance + this.modeDistance;
 
     // Pivote suavizado (sigue al jugador sin tirones al aterrizar).
     const tx = input.target.x;
@@ -103,14 +132,14 @@ export class CameraController {
     const dz = Math.cos(this.yaw) * cp;
 
     const blocked = Math.min(
-      env.raycastColliders(px, py, pz, dx, dy, dz, this.distance + c.collisionPadding),
-      raymarchTerrain(env, px, py, pz, dx, dy, dz, this.distance + c.collisionPadding),
+      env.raycastColliders(px, py, pz, dx, dy, dz, wanted + c.collisionPadding),
+      raymarchTerrain(env, px, py, pz, dx, dy, dz, wanted + c.collisionPadding),
     );
-    const allowed = Math.max(c.minDistance * 0.4, Math.min(this.distance, blocked - c.collisionPadding));
+    const allowed = Math.max(c.minDistance * 0.4, Math.min(wanted, blocked - c.collisionPadding));
     // Acercarse al instante (nunca atravesar), alejarse con suavidad.
     this.currentDistance = allowed < this.currentDistance ? allowed : damp(this.currentDistance, allowed, c.recoverSharpness, dt);
     // El zoom manual se aplica con su propia suavidad cuando no hay obstáculo.
-    if (allowed >= this.distance) this.currentDistance = damp(this.currentDistance, this.distance, c.zoomSharpness, dt);
+    if (allowed >= wanted) this.currentDistance = damp(this.currentDistance, wanted, c.zoomSharpness, dt);
 
     this.position.x = px + dx * this.currentDistance;
     this.position.y = py + dy * this.currentDistance;
@@ -122,8 +151,18 @@ export class CameraController {
     this.lookAt.y = py;
     this.lookAt.z = pz;
 
-    const speedK = clamp((input.speed - 4) / 10, 0, 1);
-    this.fov = damp(this.fov, c.fovBase + c.fovSpeedBonus * speedK, 4, dt);
+    const speedK = clamp((input.speed - 5) / 15, 0, 1);
+    this.fovKick = damp(this.fovKick, 0, 5, dt);
+    this.baseFov = damp(this.baseFov, c.fovBase + c.fovSpeedBonus * speedK, 4, dt);
+    this.fov = this.baseFov + this.fovKick;
+
+    // Sacudida: ruido suave que se apaga rápido.
+    this.shake = damp(this.shake, 0, 6, dt);
+    this.shakeT += dt * 40;
+    const a = this.shake * this.shake * 0.25;
+    this.shakeOffset.x = Math.sin(this.shakeT * 1.3) * a;
+    this.shakeOffset.y = Math.sin(this.shakeT * 1.7 + 1) * a;
+    this.shakeOffset.z = Math.sin(this.shakeT * 1.1 + 2) * a;
   }
 
   /** Dirección "adelante" de la cámara en el plano XZ. */

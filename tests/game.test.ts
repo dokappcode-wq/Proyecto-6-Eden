@@ -72,3 +72,18 @@ describe('Game loop', () => {
     expect(() => game.addSystem({ name: 'x' })).toThrow(/duplicado/);
   });
 });
+
+describe('Game loop: entrada por paso', () => {
+  it('una pulsación solo se ve en un paso fijo aunque el frame ejecute varios', () => {
+    const data = loadGameData();
+    const bus = new EventBus<GameEvents>();
+    const target = new EventTarget();
+    const ctx: GameContext = { world: new World(), bus, input: new InputManager(target, data.input, bus, null), data, time: createTimeState(60), session: { mode: 'play' } };
+    const game = new Game(ctx);
+    let seen = 0;
+    game.addSystem({ name: 'j', fixedUpdate: (c) => void (c.input.wasPressed('jump') && seen++) });
+    target.dispatchEvent(Object.assign(new Event('keydown'), { code: 'Space' }));
+    game.tick(3 / 60 + 1e-6);
+    expect(seen).toBe(1);
+  });
+});

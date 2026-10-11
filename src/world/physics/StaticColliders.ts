@@ -27,6 +27,14 @@ export interface CylinderCollider {
 
 export type Collider = BoxCollider | CylinderCollider;
 
+export interface RayHit {
+  t: number;
+  nx: number;
+  ny: number;
+  nz: number;
+  material: string;
+}
+
 export interface PushResult {
   /** Normal horizontal acumulada del contacto (para recortar la velocidad). */
   nx: number;
@@ -188,14 +196,38 @@ export class StaticColliders {
 
   /** Distancia al primer impacto del rayo (dirección normalizada) o Infinity. Ignora colisionadores que contienen el origen. */
   raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxDist: number): number {
+    return this.raycastHit(ox, oy, oz, dx, dy, dz, maxDist)?.t ?? Infinity;
+  }
+
+  /** Primer impacto con normal y material, o null. */
+  raycastHit(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxDist: number): RayHit | null {
     const ex = ox + dx * maxDist;
     const ez = oz + dz * maxDist;
-    let best = Infinity;
+    let best: RayHit | null = null;
+    const n = { x: 0, y: 0, z: 0 };
     for (const c of this.query(Math.min(ox, ex), Math.min(oz, ez), Math.max(ox, ex), Math.max(oz, ez), this.scratch)) {
-      const t = c.kind === 'box' ? rayBox(c, ox, oy, oz, dx, dy, dz) : rayCylinder(c, ox, oy, oz, dx, dy, dz);
-      if (t >= 0 && t < best && t <= maxDist) best = t;
+      const t = c.kind === 'box' ? rayBox(c, ox, oy, oz, dx, dy, dz, n) : rayCylinder(c, ox, oy, oz, dx, dy, dz, n);
+      if (t >= 0 && t <= maxDist && (!best || t < best.t)) best = { t, nx: n.x, ny: n.y, nz: n.z, material: c.material };
     }
     return best;
+  }
+
+  /** ¿Un cilindro vertical (pies, radio, altura) solapa algún colisionador? */
+  overlaps(x: number, y: number, z: number, radius: number, height: number): boolean {
+    for (const c of this.query(x - radius, z - radius, x + radius, z + radius, this.scratch)) {
+      const bottom = c.kind === 'box' ? c.y - c.hy : c.yMin;
+      const top = c.kind === 'box' ? c.y + c.hy : c.yMax;
+      if (y + height <= bottom || y >= top - 0.02) continue;
+      if (c.kind === 'cylinder') {
+        if (Math.hypot(x - c.x, z - c.z) < c.radius + radius) return true;
+      } else {
+        const { lx, lz } = toLocal(c, x, z);
+        const qx = clamp(lx, -c.hx, c.hx);
+        const qz = clamp(lz, -c.hz, c.hz);
+        if (Math.hypot(lx - qx, lz - qz) < radius) return true;
+      }
+    }
+    return false;
   }
 
   private readonly scratch: Collider[] = [];
@@ -248,7 +280,7 @@ function accumulate(res: PushResult, nx: number, nz: number): void {
   }
 }
 
-function rayBox(c: BoxCollider, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number): number {
+function rayBox(c: BoxCollider, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, n: { x: number; y: number; z: number }): number {
   const { lx: olx, lz: olz } = toLocal(c, ox, oz);
   const dlx = c.cos * dx - c.sin * dz;
   const dlz = c.sin * dx + c.cos * dz;
@@ -257,6 +289,8 @@ function rayBox(c: BoxCollider, ox: number, oy: number, oz: number, dx: number, 
   const h = [c.hx, c.hy, c.hz];
   let tmin = -Infinity;
   let tmax = Infinity;
+  let axis = 0;
+  let sign = 1;
   for (let i = 0; i < 3; i++) {
     if (Math.abs(d[i]) < 1e-9) {
       if (o[i] < -h[i] || o[i] > h[i]) return -1;
@@ -264,17 +298,36 @@ function rayBox(c: BoxCollider, ox: number, oy: number, oz: number, dx: number, 
     }
     let t1 = (-h[i] - o[i]) / d[i];
     let t2 = (h[i] - o[i]) / d[i];
-    if (t1 > t2) [t1, t2] = [t2, t1];
-    tmin = Math.max(tmin, t1);
+    let s1 = -1;
+    if (t1 > t2) {
+      [t1, t2] = [t2, t1];
+      s1 = 1;
+    }
+    if (t1 > tmin) {
+      tmin = t1;
+      axis = i;
+      sign = s1;
+    }
     tmax = Math.min(tmax, t2);
     if (tmin > tmax) return -1;
   }
   // Rayo que nace dentro de la caja: se ignora (la cámara no debe quedar atrapada en lo que la rodea).
   if (tmax < 0 || tmin < 0) return -1;
+  // Normal local de la cara impactada -> mundo.
+  if (axis === 1) {
+    n.x = 0;
+    n.y = sign;
+    n.z = 0;
+  } else {
+    const w = toWorldDir(c, axis === 0 ? sign : 0, axis === 2 ? sign : 0);
+    n.x = w.x;
+    n.y = 0;
+    n.z = w.z;
+  }
   return tmin;
 }
 
-function rayCylinder(c: CylinderCollider, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number): number {
+function rayCylinder(c: CylinderCollider, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, n: { x: number; y: number; z: number }): number {
   const px = ox - c.x;
   const pz = oz - c.z;
   const inside = px * px + pz * pz <= c.radius * c.radius && oy >= c.yMin && oy <= c.yMax;
@@ -288,7 +341,12 @@ function rayCylinder(c: CylinderCollider, ox: number, oy: number, oz: number, dx
     if (disc >= 0) {
       const t = (-b - Math.sqrt(disc)) / (2 * a);
       const y = oy + dy * t;
-      if (t >= 0 && y >= c.yMin && y <= c.yMax) best = t;
+      if (t >= 0 && y >= c.yMin && y <= c.yMax) {
+        best = t;
+        n.x = (px + dx * t) / c.radius;
+        n.y = 0;
+        n.z = (pz + dz * t) / c.radius;
+      }
     }
   }
   // Tapas superior e inferior.
@@ -298,7 +356,12 @@ function rayCylinder(c: CylinderCollider, ox: number, oy: number, oz: number, dx
       if (t < 0) continue;
       const hx = px + dx * t;
       const hz = pz + dz * t;
-      if (hx * hx + hz * hz <= c.radius * c.radius && (best < 0 || t < best)) best = t;
+      if (hx * hx + hz * hz <= c.radius * c.radius && (best < 0 || t < best)) {
+        best = t;
+        n.x = 0;
+        n.y = yc === c.yMax ? 1 : -1;
+        n.z = 0;
+      }
     }
   }
   return best;

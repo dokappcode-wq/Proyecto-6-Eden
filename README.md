@@ -17,7 +17,12 @@ npm run build      # typecheck + build de producción
 |---|---|
 | Mover | WASD / flechas |
 | Mirar | Ratón (clic en la pantalla para capturarlo) · rueda = zoom |
-| Saltar | Espacio |
+| Saltar · Impulso de Borde | Espacio (salta contra un borde) |
+| Planeador | Espacio en el aire · W picado · S frenar · A/D girar |
+| Sprint | Shift izq. |
+| Trepar | Camina contra la roca (o E junto a la pared) · Espacio salta entre agarres · S+Espacio se suelta hacia atrás · Ctrl se deja caer |
+| Bucear | Ctrl en el agua |
+| Rodar al aterrizar | Ctrl o Alt justo antes de tocar el suelo (mitad de daño) |
 | Andar / agacharse | Bloq Mayús / Ctrl o C |
 | Interactuar | E |
 | Debug | F3 · T (mantener) acelera el tiempo · F6 abre la salida del valle · F8 reaparecer |

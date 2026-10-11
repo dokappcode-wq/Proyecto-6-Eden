@@ -1,0 +1,7 @@
+{
+  "accessibility": {
+    "ledgeBoostRequiresHold": false,
+    "gliderInput": "toggle",
+    "flightIndicators": true
+  }
+}

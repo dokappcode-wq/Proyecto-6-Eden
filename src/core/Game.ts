@@ -98,6 +98,8 @@ export class Game {
     let steps = 0;
     while (this.accumulator >= time.fixedDt && steps < loop.maxSubSteps) {
       for (const s of this.systems) s.fixedUpdate?.(this.ctx, time.fixedDt);
+      // Cada pulsación se ve en UN solo paso fijo (si no, un frame con dos pasos la duplicaría).
+      input.endFrame();
       this.accumulator -= time.fixedDt;
       time.elapsed += time.fixedDt;
       time.fixedSteps++;
@@ -105,7 +107,6 @@ export class Game {
     }
     // Espiral de la muerte: si ni con maxSubSteps alcanzamos, descartamos el retraso.
     if (steps === loop.maxSubSteps && this.accumulator >= time.fixedDt) this.accumulator = 0;
-    if (steps > 0) input.endFrame();
 
     time.stepsThisFrame = steps;
     time.alpha = this.accumulator / time.fixedDt;

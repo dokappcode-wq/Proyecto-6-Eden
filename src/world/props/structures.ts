@@ -207,7 +207,14 @@ function createSmokeColumn(x: number, y: number, z: number): { object: THREE.Gro
 
 // ------------------------------------------------------------------ torre de reconocimiento
 
-export function buildTower(height: number, beamHeight: number): PropResult {
+export interface TowerProp extends PropResult {
+  /** Plataforma de activación (local). */
+  activation: THREE.Vector3;
+  /** Activación: el haz se intensifica y una onda recorre el valle (el escaneo completo llega en la Fase 8). */
+  setActivated(on: boolean): void;
+}
+
+export function buildTower(height: number, beamHeight: number): TowerProp {
   const root = new THREE.Group();
   root.name = 'recon_tower';
   const colliders: LocalCollider[] = [];
@@ -257,6 +264,7 @@ export function buildTower(height: number, beamHeight: number): PropResult {
 
   // Antena de escaneo con anillo giratorio y cristal.
   root.add(mesh(new THREE.CylinderGeometry(0.25, 0.5, height - platformY + 1, 8), materials.ancestral, 0, platformY + (height - platformY + 1) / 2 + 1, 0));
+  colliders.push({ kind: 'cylinder', x: 0, z: 0, radius: 0.55, yMin: platformY + 1.2, yMax: height + 1, material: 'ancestral' });
   const ring = mesh(new THREE.TorusGeometry(2.4, 0.18, 8, 40), materials.ancestral, 0, height - 1.5, 0);
   ring.rotation.x = Math.PI / 2;
   root.add(ring);
@@ -265,7 +273,7 @@ export function buildTower(height: number, beamHeight: number): PropResult {
 
   // Haz azul visible desde muy lejos: indica "esto es importante".
   const beamMat = new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uColor: { value: ANCESTRAL_CYAN.clone() } },
+    uniforms: { uTime: { value: 0 }, uColor: { value: ANCESTRAL_CYAN.clone() }, uBoost: { value: 0 } },
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -275,12 +283,12 @@ export function buildTower(height: number, beamHeight: number): PropResult {
       varying vec2 vUv;
       void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: /* glsl */ `
-      uniform float uTime; uniform vec3 uColor; varying vec2 vUv;
+      uniform float uTime; uniform vec3 uColor; uniform float uBoost; varying vec2 vUv;
       void main() {
-        float fade = pow(1.0 - vUv.y, 1.6);
-        float bands = 0.75 + 0.25 * sin(vUv.y * 160.0 - uTime * 3.0);
+        float fade = pow(1.0 - vUv.y, 1.6 - uBoost * 0.6);
+        float bands = 0.75 + 0.25 * sin(vUv.y * 160.0 - uTime * (3.0 + uBoost * 6.0));
         float core = 0.55 + 0.45 * sin(vUv.x * 6.2831 * 3.0 + uTime * 0.5);
-        gl_FragColor = vec4(uColor * 1.4, fade * bands * core * 0.42);
+        gl_FragColor = vec4(uColor * (1.4 + uBoost), fade * bands * core * (0.42 + uBoost * 0.3));
       }`,
   });
   if (beamHeight > 0) {
@@ -291,11 +299,37 @@ export function buildTower(height: number, beamHeight: number): PropResult {
     root.add(beam);
   }
 
+  // Onda de activación (anillo que se expande sobre el terreno).
+  const waveMat = new THREE.MeshBasicMaterial({ color: ANCESTRAL_CYAN, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
+  const wave = new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 96).rotateX(-Math.PI / 2), waveMat);
+  wave.position.y = platformY;
+  wave.visible = false;
+  root.add(wave);
+  let activated = false;
+  let waveT = -1;
+
   return {
     object: root,
     colliders,
-    update(time) {
-      ring.rotation.z = time * 0.5;
+    activation: new THREE.Vector3(0, platformY + 1.2, 0),
+    setActivated(on: boolean) {
+      if (on && !activated) waveT = 0;
+      activated = on;
+      beamMat.uniforms.uBoost.value = on ? 1 : 0;
+    },
+    update(time, dt) {
+      if (waveT >= 0) {
+        waveT += dt;
+        const k = Math.min(1, waveT / 4);
+        wave.visible = true;
+        wave.scale.setScalar(5 + k * 420);
+        waveMat.opacity = (1 - k) * 0.8;
+        if (k >= 1) {
+          waveT = -1;
+          wave.visible = false;
+        }
+      }
+      ring.rotation.z = time * (activated ? 1.6 : 0.5);
       crystal.rotation.y = time * 0.8;
       crystal.position.y = height + 1.4 + Math.sin(time * 1.3) * 0.25;
       beamMat.uniforms.uTime.value = time;
@@ -308,40 +342,82 @@ export function buildTower(height: number, beamHeight: number): PropResult {
 
 // ------------------------------------------------------------------ templo (piedra ancestral)
 
-export function buildTemple(): PropResult {
+export interface TempleProp extends PropResult {
+  /** Apertura 0..1: las mitades se separan y aparece el portal. */
+  setOpen(t: number): void;
+  /** Completado: el símbolo queda encendido de forma permanente. */
+  setCompleted(done: boolean): void;
+  /** Punto delante de la piedra (local) donde se deja al jugador al salir. */
+  front: THREE.Vector3;
+}
+
+export function buildTemple(): TempleProp {
   const root = new THREE.Group();
   root.name = 'ancestral_temple';
   const colliders: LocalCollider[] = [];
   root.add(mesh(box(11, 0.4, 9), materials.stoneDark, 0, 0.0, 0));
   colliders.push({ kind: 'box', x: 0, y: 0, z: 0, hx: 5.5, hy: 0.2, hz: 4.5, material: 'stone' });
 
-  // Dos mitades que en la Fase 9 se separarán para revelar el portal.
+  // Dos mitades que se separan para revelar el portal.
+  const halves: THREE.Group[] = [];
   for (const side of [-1, 1]) {
-    const half = mesh(box(3, 7.5, 4), materials.ancestral, side * 1.75, 3.95, 0);
-    root.add(half);
+    const g = new THREE.Group();
+    g.position.x = side * 1.75;
+    g.add(mesh(box(3, 7.5, 4), materials.ancestral, 0, 3.95, 0));
+    g.add(mesh(box(0.12, 6.4, 0.12), materials.rune, -side * 1.43, 3.6, 2.02, false));
+    halves.push(g);
+    root.add(g);
     colliders.push({ kind: 'box', x: side * 1.75, y: 3.95, z: 0, hx: 1.5, hy: 3.75, hz: 2, material: 'ancestral' });
-    root.add(mesh(box(0.12, 6.4, 0.12), materials.rune, side * 0.32, 3.6, 2.02, false));
   }
   root.add(mesh(box(7.2, 1, 4.6), materials.stone, 0, 8.2, 0));
-  // Entrada tallada (oscura) y símbolo brillante.
   const door = mesh(box(0.5, 4.2, 0.2), new THREE.MeshBasicMaterial({ color: '#04121a' }), 0, 2.3, 2.0, false);
   root.add(door);
-  const symbol = mesh(new THREE.TorusGeometry(0.9, 0.1, 8, 32), materials.rune, 0, 6.2, 2.05, false);
+  const symbolMat = materials.rune.clone();
+  const symbol = mesh(new THREE.TorusGeometry(0.9, 0.1, 8, 32), symbolMat, 0, 6.2, 2.25, false);
   root.add(symbol);
-  const eye = mesh(new THREE.CircleGeometry(0.3, 16), materials.glow, 0, 6.2, 2.06, false);
+  const eye = mesh(new THREE.CircleGeometry(0.3, 16), materials.glow, 0, 6.2, 2.26, false);
   root.add(eye);
   for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
-    const tick = mesh(box(0.08, 0.5, 0.05), materials.rune, Math.sin(a) * 1.25, 6.2 + Math.cos(a) * 1.25, 2.05, false);
+    const tick = mesh(box(0.08, 0.5, 0.05), materials.rune, Math.sin(a) * 1.25, 6.2 + Math.cos(a) * 1.25, 2.25, false);
     tick.rotation.z = -a;
     root.add(tick);
   }
+  // Portal: disco cian que gira (visible al abrirse).
+  const portalMat = new THREE.MeshBasicMaterial({ color: ANCESTRAL_CYAN, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+  const portal = new THREE.Mesh(new THREE.CircleGeometry(1.5, 40), portalMat);
+  portal.position.set(0, 2.6, 0.4);
+  portal.scale.set(0.01, 1.6, 1);
+  root.add(portal);
+  const swirl = new THREE.Mesh(new THREE.RingGeometry(0.5, 1.45, 40, 1, 0, Math.PI * 1.2), portalMat);
+  swirl.position.copy(portal.position).add(new THREE.Vector3(0, 0, 0.02));
+  portal.add(swirl);
+  swirl.position.set(0, 0, 0.02);
+
+  let open = 0;
+  let completed = false;
   return {
     object: root,
     colliders,
+    front: new THREE.Vector3(0, 0.3, 6),
+    setOpen(t: number) {
+      open = t;
+      const e = t * t * (3 - 2 * t);
+      halves[0].position.x = -1.75 - e * 1.6;
+      halves[1].position.x = 1.75 + e * 1.6;
+      door.visible = t < 0.05;
+      portal.scale.x = Math.max(0.01, e);
+    },
+    setCompleted(done: boolean) {
+      completed = done;
+      symbolMat.emissive.set(done ? '#7dffb0' : ANCESTRAL_CYAN);
+    },
     update(time) {
       const k = 0.5 + 0.5 * Math.sin(time * 0.9);
       symbol.scale.setScalar(1 + k * 0.06);
       eye.scale.setScalar(0.8 + k * 0.4);
+      portalMat.opacity = open > 0.05 && !completed ? 0.55 + Math.sin(time * 4) * 0.15 : 0;
+      portal.visible = portalMat.opacity > 0;
+      swirl.rotation.z = -time * 2.5;
     },
   };
 }
@@ -351,6 +427,8 @@ export function buildTemple(): PropResult {
 export interface GateProp extends PropResult {
   /** Progreso de apertura 0..1 (las rocas se hunden). */
   setOpen(t: number): void;
+  /** Enciende las runas: la de la torre (izquierda) y la de la piedra (derecha). */
+  setRunes(tower: boolean, stone: boolean): void;
 }
 
 export function buildGate(width: number, height: number, depth: number): GateProp {
@@ -386,14 +464,18 @@ export function buildGate(width: number, height: number, depth: number): GatePro
     setOpen(t: number) {
       const e = t * t * (3 - 2 * t);
       for (const m of movers) m.obj.position.y = m.baseY - e * (height + 6);
-      for (const r of runes) r.material = t > 0 ? materials.rune : materials.stoneDark;
+      if (t > 0) for (const r of runes) r.material = materials.rune;
+    },
+    setRunes(tower: boolean, stone: boolean) {
+      runes[0].material = tower ? materials.rune : materials.stoneDark;
+      runes[1].material = stone ? materials.rune : materials.stoneDark;
     },
   };
 }
 
 // ------------------------------------------------------------------ ruinas
 
-export function buildRuin(kind: 'block' | 'pillar' | 'arch' | 'wall' | 'slab', size: readonly number[], runes: boolean): PropResult {
+export function buildRuin(kind: 'block' | 'pillar' | 'arch' | 'wall' | 'slab' | 'rockface', size: readonly number[], runes: boolean): PropResult {
   const [w, h, d] = size;
   const root = new THREE.Group();
   root.name = `ruin_${kind}`;
@@ -407,6 +489,20 @@ export function buildRuin(kind: 'block' | 'pillar' | 'arch' | 'wall' | 'slab', s
       target.add(mesh(box(0.08, hh * 0.4, 0.04), materials.rune, ww * 0.18, y, s * (dd / 2 + 0.02), false));
     }
   };
+
+  if (kind === 'rockface') {
+    // Roca escalable: caja facetada con musgo arriba (material "rock").
+    const rock = mesh(box(w, h, d), materials.rock, 0, h / 2, 0);
+    root.add(rock);
+    const cap = mesh(box(w * 0.94, 0.1, d * 0.94), materials.moss, 0, h + 0.03, 0, false);
+    root.add(cap);
+    for (let i = 0; i < 3; i++) {
+      const ledge = mesh(box(w * (0.3 + i * 0.15), 0.18, 0.25), materials.rockDark, (i - 1) * w * 0.2, h * (0.3 + i * 0.22), d / 2 + 0.1);
+      root.add(ledge);
+    }
+    colliders.push({ kind: 'box', x: 0, y: h / 2, z: 0, hx: w / 2, hy: h / 2, hz: d / 2, material: 'rock' });
+    return { object: root, colliders };
+  }
 
   if (kind === 'pillar') {
     const r = w / 2;

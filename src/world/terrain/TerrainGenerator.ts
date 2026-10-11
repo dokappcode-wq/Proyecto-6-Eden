@@ -1,4 +1,4 @@
-import { clamp, distToPolyline, hexToRgb, lerp, smoothstep, type Vec3 } from '../../core/math';
+import { clamp, distToPolyline, distToSegment, hexToRgb, lerp, smoothstep, type Vec3 } from '../../core/math';
 import type { TerrainConfig } from '../../data/schemas';
 import { Noise2D } from '../noise';
 
@@ -111,6 +111,45 @@ export class TerrainGenerator {
       if (Math.hypot(x - l.def.center[0], z - l.def.center[1]) < l.def.radius + 10) level = Math.max(level ?? -Infinity, l.level);
     }
     return level ?? this.cfg.seaLevel;
+  }
+
+  /** Corriente del río en un punto (m/s, dirección aguas abajo) o (0,0). */
+  waterCurrentAt(x: number, z: number, out: { x: number; z: number } = { x: 0, z: 0 }): { x: number; z: number } {
+    out.x = 0;
+    out.z = 0;
+    for (const r of this.rivers) {
+      if (x < r.minX || x > r.maxX || z < r.minZ || z > r.maxZ || r.def.current <= 0) continue;
+      const pts = r.def.points;
+      let best = Infinity;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const { dist } = distToSegment(x, z, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+        if (dist < best && dist < r.def.width / 2 + 1) {
+          best = dist;
+          const dx = pts[i + 1][0] - pts[i][0];
+          const dz = pts[i + 1][1] - pts[i][1];
+          const l = Math.hypot(dx, dz) || 1;
+          // Más fuerte en el centro del cauce.
+          const k = r.def.current * (1 - dist / (r.def.width / 2 + 1));
+          out.x = (dx / l) * k;
+          out.z = (dz / l) * k;
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Material del terreno: los muros del valle son "valley_wall" (no escalables, excepción
+   * del tutorial); arena en el desierto; hielo en la nieve empinada; roca en pendientes; hierba en llano.
+   */
+  materialAt(x: number, z: number, normalY: number): string {
+    const v = this.cfg.valley;
+    const d = this.valleyDistance(x, z);
+    if (d > v.innerRadius - 4 && d < v.outerEnd + v.edgeNoise + 6) return normalY < 0.9 ? 'valley_wall' : 'grass';
+    const steep = normalY < 0.8;
+    if (smoothstep(this.cfg.desert.startX, this.cfg.desert.fullX, x) > 0.5) return 'sand';
+    if (steep && this.rawHeight(x, z) > this.cfg.snowLine) return 'ice';
+    return steep ? 'rock' : 'grass';
   }
 
   /** Distancia "squircle" al centro del valle (útil para saber si estamos dentro). */

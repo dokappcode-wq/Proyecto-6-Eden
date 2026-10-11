@@ -1,0 +1,20 @@
+{
+  "reachMin": 1.0,
+  "reachMax": 2.6,
+  "maxTopSlopeDeg": 40,
+  "maxApproachAngleDeg": 60,
+  "maxUpwardSpeed": 8,
+  "maxDownwardSpeed": 6,
+  "chestHeight": 1.2,
+  "probeDistance": 0.6,
+  "inwardOffset": 0.35,
+  "contactSeconds": 0.07,
+  "boostSeconds": 0.3,
+  "mantleSeconds": 0.9,
+  "exitSpeedFraction": 0.6,
+  "staminaCost": 10,
+  "chainMinSeconds": 0.15,
+  "chainMaxHeight": 2.4,
+  "releaseBackInput": -0.5,
+  "grabbableMaterials": ["rock", "wood", "stone", "ancestral", "metal"]
+}

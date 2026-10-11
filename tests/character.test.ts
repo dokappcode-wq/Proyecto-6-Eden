@@ -122,13 +122,34 @@ describe('CharacterController', () => {
     expect(s.onCollider || s.x > 4).toBe(true);
   });
 
-  it('flota en agua profunda y avanza más lento en agua', () => {
+  it('nada en agua profunda a la velocidad de natación', () => {
     const env = flatEnv({ water: { level: 3, minX: -100 } });
     const s = createCharacterState(0, 0, 0);
-    run(60, () => stepCharacter(s, idle({ moveX: 1 }), cfg, body, env, DT));
-    expect(s.floating).toBe(true);
-    expect(s.y).toBeCloseTo(3 - cfg.floatDepth, 3);
-    expect(Math.abs(s.vx)).toBeCloseTo(cfg.jogSpeed * cfg.waterSpeedMultiplier, 2);
+    run(90, () => stepCharacter(s, idle({ moveX: 1 }), cfg, body, env, DT));
+    expect(s.swimming).toBe(true);
+    expect(s.y).toBeCloseTo(3 - cfg.floatDepth, 2);
+    expect(Math.abs(s.vx)).toBeCloseTo(cfg.swimSpeed, 2);
+  });
+
+  it('bucea al agacharse y se hunde agotado', () => {
+    const env = flatEnv({ water: { level: 6, minX: -100 } });
+    const s = createCharacterState(0, 6 - cfg.floatDepth, 0);
+    s.swimming = true;
+    s.grounded = false;
+    run(60, () => stepCharacter(s, idle({ dive: true }), cfg, body, env, DT));
+    expect(s.y).toBeLessThan(6 - cfg.floatDepth - 1);
+    expect(s.underwater).toBe(true);
+    s.y = 6 - cfg.floatDepth;
+    s.stamina.exhausted = true;
+    run(60, () => stepCharacter(s, idle(), cfg, body, env, DT));
+    expect(s.y).toBeLessThan(6 - cfg.floatDepth - 0.5);
+  });
+
+  it('sprint más rápido que trotar', () => {
+    const env = flatEnv();
+    const s = createCharacterState(0, 0, 0);
+    run(60, () => stepCharacter(s, idle({ moveX: 1, sprint: true }), cfg, body, env, DT));
+    expect(s.vx).toBeCloseTo(cfg.sprintSpeed, 3);
   });
 
   it('la velocidad de salto deriva de gravedad y altura', () => {

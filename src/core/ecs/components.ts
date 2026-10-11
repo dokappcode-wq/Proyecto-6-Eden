@@ -1,4 +1,5 @@
 import type { CharacterState } from '../../player/CharacterController';
+import type { HealthState } from '../../player/movement/Stamina';
 
 /**
  * Componentes = datos puros (sin referencias a Three.js ni al DOM),
@@ -21,7 +22,7 @@ export interface Name {
   value: string;
 }
 
-export type InteractableKind = 'capsule' | 'inscription';
+export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower';
 
 export interface Interactable {
   id: string;
@@ -35,7 +36,8 @@ export interface Interactable {
   text?: string;
 }
 
-export type PlayerControl = 'capsule' | 'exiting' | 'free';
+/** capsule/exiting: tutorial inicial · free: jugable · locked: cinemática, portal o muerte. */
+export type PlayerControl = 'capsule' | 'exiting' | 'free' | 'locked';
 
 export interface Player {
   control: PlayerControl;
@@ -43,6 +45,7 @@ export interface Player {
   scriptTime: number;
   /** Yaw de la cámara (lo escribe el sistema de cámara; define "adelante"). */
   cameraYaw: number;
+  health: HealthState;
 }
 
 /** Registro de todos los componentes. Cada fase amplía este mapa. */

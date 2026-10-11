@@ -1,0 +1,50 @@
+{
+  "minDeployHeight": 1.5,
+  "deploySeconds": 0.22,
+  "forwardSpeed": 9,
+  "fallSpeed": 2.2,
+  "turnRate": 1.7,
+  "bankMaxRad": 0.55,
+  "accel": 4,
+  "staminaPerSecond": 5,
+  "dive": {
+    "speed": 22,
+    "fallSpeed": 9,
+    "accel": 9
+  },
+  "flare": {
+    "speed": 2,
+    "fallSpeed": 3,
+    "decel": 16
+  },
+  "pullUpLiftFactor": 0.35,
+  "maxPullUpLift": 4,
+  "verticalResponse": 8,
+  "windInfluence": 1,
+  "thermal": {
+    "staminaFree": true
+  },
+  "upgrades": [
+    {
+      "id": "reinforced_cloth",
+      "name": "Tela reforzada",
+      "staminaMultiplier": 0.7,
+      "fallMultiplier": 1,
+      "windMultiplier": 1
+    },
+    {
+      "id": "wide_wings",
+      "name": "Alas amplias",
+      "staminaMultiplier": 1,
+      "fallMultiplier": 0.8,
+      "windMultiplier": 1
+    },
+    {
+      "id": "storm_frame",
+      "name": "Armazón de tormenta",
+      "staminaMultiplier": 1,
+      "fallMultiplier": 1,
+      "windMultiplier": 0.5
+    }
+  ]
+}

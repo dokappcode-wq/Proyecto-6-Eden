@@ -16,6 +16,8 @@ import {
   type GateProp,
   type LocalCollider,
   type PropResult,
+  type TempleProp,
+  type TowerProp,
 } from '../props/structures';
 import type { Collider, StaticColliders } from '../physics/StaticColliders';
 import type { TerrainGenerator } from '../terrain/TerrainGenerator';
@@ -34,10 +36,26 @@ export interface GateHandle {
   colliders: Collider[];
 }
 
+export interface TowerHandle {
+  id: string;
+  prop: TowerProp;
+  activationWorld: THREE.Vector3;
+}
+
+export interface TempleHandle {
+  id: string;
+  prop: TempleProp;
+  frontWorld: THREE.Vector3;
+  /** Yaw para quedar mirando hacia fuera de la piedra al salir. */
+  frontYaw: number;
+}
+
 export interface ValleyHandles {
   group: THREE.Group;
   capsule: CapsuleHandle;
   gate: GateHandle;
+  tower: TowerHandle;
+  temple: TempleHandle;
   towerTop: THREE.Vector3;
   /** Animaciones ambientales de los props. */
   updaters: Array<(time: number, dt: number) => void>;
@@ -65,6 +83,7 @@ export function buildValley(cfg: ValleyConfig, terrain: TerrainGenerator, collid
   const cap = buildCapsule();
   const [cx, cz] = cfg.capsule.position;
   place(cap, cx, cz, cfg.capsule.rotationY);
+  cap.object.updateMatrixWorld(true);
   const capsule: CapsuleHandle = {
     prop: cap,
     origin: cap.object.position.clone(),
@@ -84,8 +103,24 @@ export function buildValley(cfg: ValleyConfig, terrain: TerrainGenerator, collid
   // --- torre y templo
   const tower = buildTower(cfg.tower.height, cfg.tower.beamHeight);
   place(tower, cfg.tower.position[0], cfg.tower.position[1], cfg.tower.rotationY);
+  tower.object.updateMatrixWorld(true);
   const towerTop = tower.object.position.clone().add(new THREE.Vector3(0, cfg.tower.height, 0));
-  place(buildTemple(), cfg.temple.position[0], cfg.temple.position[1], cfg.temple.rotationY);
+  const activationWorld = tower.object.localToWorld(tower.activation.clone());
+  const towerEntity = world.createEntity();
+  world.add(towerEntity, 'name', { value: cfg.tower.id });
+  world.add(towerEntity, 'transform', createTransform(activationWorld.x, activationWorld.y, activationWorld.z));
+  world.add(towerEntity, 'interactable', { id: cfg.tower.id, kind: 'tower', prompt: 'Activar torre', radius: 2.2, enabled: true });
+
+  const temple = buildTemple();
+  place(temple, cfg.temple.position[0], cfg.temple.position[1], cfg.temple.rotationY);
+  temple.object.updateMatrixWorld(true);
+  const frontWorld = temple.object.localToWorld(temple.front.clone());
+  frontWorld.y = terrain.height(frontWorld.x, frontWorld.z);
+  const templeDoor = temple.object.localToWorld(new THREE.Vector3(0, 0, 3.2));
+  const templeEntity = world.createEntity();
+  world.add(templeEntity, 'name', { value: cfg.temple.id });
+  world.add(templeEntity, 'transform', createTransform(templeDoor.x, templeDoor.y, templeDoor.z));
+  world.add(templeEntity, 'interactable', { id: cfg.temple.id, kind: 'temple', prompt: 'Tocar la piedra', radius: 2.8, enabled: true });
 
   // --- muro sellado de la salida
   const gateProp = buildGate(cfg.gate.width, cfg.gate.height, cfg.gate.depth);
@@ -151,7 +186,15 @@ export function buildValley(cfg: ValleyConfig, terrain: TerrainGenerator, collid
     group.add(p.object);
   });
 
-  return { group, capsule, gate: { prop: gateProp, colliders: gateColliders }, towerTop, updaters };
+  return {
+    group,
+    capsule,
+    gate: { prop: gateProp, colliders: gateColliders },
+    tower: { id: cfg.tower.id, prop: tower, activationWorld },
+    temple: { id: cfg.temple.id, prop: temple, frontWorld, frontYaw: cfg.temple.rotationY },
+    towerTop,
+    updaters,
+  };
 }
 
 function addCollider(colliders: StaticColliders, c: LocalCollider, x: number, y: number, z: number, rotY: number): Collider {

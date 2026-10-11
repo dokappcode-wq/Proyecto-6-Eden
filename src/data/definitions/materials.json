@@ -1,0 +1,12 @@
+{
+  "rock": { "climbable": true, "grabbable": true, "slippery": false },
+  "stone": { "climbable": true, "grabbable": true, "slippery": false },
+  "ancestral": { "climbable": true, "grabbable": true, "slippery": false },
+  "wood": { "climbable": true, "grabbable": true, "slippery": false },
+  "metal": { "climbable": false, "grabbable": true, "slippery": false },
+  "ice": { "climbable": true, "grabbable": false, "slippery": true },
+  "sand": { "climbable": false, "grabbable": false, "slippery": false },
+  "grass": { "climbable": true, "grabbable": true, "slippery": false },
+  "valley_wall": { "climbable": false, "grabbable": false, "slippery": false },
+  "lava": { "climbable": false, "grabbable": false, "slippery": false }
+}

@@ -87,3 +87,18 @@ describe('streaming de chunks', () => {
     expect(distanceToChunk(-10, 64, 0, 0, 128)).toBe(10);
   });
 });
+
+describe('materiales y corrientes', () => {
+  it('los muros del valle no son escalables; la roca exterior sí', () => {
+    expect(terrain.materialAt(0, -200, 0.3)).toBe('valley_wall');
+    expect(terrain.materialAt(0, 2600, 0.3)).toBe('rock');
+    expect(terrain.materialAt(2600, 0, 0.3)).toBe('sand');
+  });
+
+  it('el río empuja aguas abajo', () => {
+    const r = data.terrain.rivers[0];
+    const [a, b] = [r.points[2], r.points[3]];
+    const c = terrain.waterCurrentAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+    expect(c.x * (b[0] - a[0]) + c.z * (b[1] - a[1])).toBeGreaterThan(0);
+  });
+});

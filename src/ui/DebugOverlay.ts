@@ -16,6 +16,7 @@ export class DebugOverlay implements System {
   private readonly providers: Array<{ label: string; fn: (ctx: GameContext) => string }> = [];
   private readonly recentEvents: string[] = [];
   private readonly hitboxes: HitboxView;
+  private readonly rays = new RayView();
 
   constructor(
     ctx: GameContext,
@@ -26,7 +27,7 @@ export class DebugOverlay implements System {
   ) {
     this.visible = ctx.data.game.debug.startVisible;
     this.hitboxes = new HitboxView(colliders);
-    renderer.scene.add(this.hitboxes.group);
+    renderer.scene.add(this.hitboxes.group, this.rays.lines);
     this.el = document.createElement('div');
     Object.assign(this.el.style, {
       position: 'fixed',
@@ -60,10 +61,24 @@ export class DebugOverlay implements System {
     ctx.bus.on('tutorial:step_completed', ({ id }) => this.logEvent(`tutorial:${id}`));
     ctx.bus.on('input:rebound', ({ action, codes }) => this.logEvent(`rebind ${action} → ${codes.join(',')}`));
     ctx.bus.on('valley:gate_opened', () => this.logEvent('salida abierta'));
+    ctx.bus.on('player:ledge', ({ phase, mantle }) => this.logEvent(`borde:${phase}${mantle ? ' (mantle)' : ''}`));
+    ctx.bus.on('player:glider', ({ phase, reason }) => this.logEvent(`planeador:${phase}${reason ? ` (${reason})` : ''}`));
+    ctx.bus.on('player:climb', ({ phase }) => this.logEvent(`trepar:${phase}`));
+    ctx.bus.on('player:damaged', ({ amount, cause }) => this.logEvent(`daño ${amount}/4 (${cause})`));
   }
 
   get isVisible(): boolean {
     return this.visible;
+  }
+
+  /** Empieza un nuevo lote de rayos (cada paso de física). */
+  beginRays(): void {
+    this.rays.begin();
+  }
+
+  /** Registra un rayo de sondeo (verde = impacto, rojo = libre). Solo con el overlay visible. */
+  ray(ax: number, ay: number, az: number, bx: number, by: number, bz: number, hit: boolean): void {
+    if (this.visible) this.rays.add(ax, ay, az, bx, by, bz, hit);
   }
 
   addProvider(label: string, fn: (ctx: GameContext) => string): void {
@@ -72,6 +87,7 @@ export class DebugOverlay implements System {
 
   render(ctx: GameContext): void {
     if (!this.visible) return;
+    this.rays.flush();
     const now = performance.now();
     if (now - this.lastRefresh < ctx.data.game.debug.refreshMs) return;
     this.lastRefresh = now;
@@ -97,6 +113,7 @@ export class DebugOverlay implements System {
   private applyVisibility(): void {
     this.el.style.display = this.visible ? 'block' : 'none';
     this.hitboxes.group.visible = this.visible;
+    this.rays.lines.visible = this.visible;
   }
 }
 
@@ -144,5 +161,50 @@ class HitboxView {
     }
     for (let i = bi; i < this.boxes.length; i++) this.boxes[i].visible = false;
     for (let i = ci; i < this.cylinders.length; i++) this.cylinders[i].visible = false;
+  }
+}
+
+/** Rayos de sondeo del último paso de física (máx. 48). */
+class RayView {
+  readonly lines: THREE.LineSegments;
+  private readonly pos: Float32Array;
+  private readonly col: Float32Array;
+  private count = 0;
+  private readonly max = 48;
+  private dirty = false;
+
+  constructor() {
+    this.pos = new Float32Array(this.max * 6);
+    this.col = new Float32Array(this.max * 6);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    this.lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, depthTest: false, transparent: true }));
+    this.lines.frustumCulled = false;
+    this.lines.renderOrder = 1000;
+    this.lines.name = 'debug-rays';
+  }
+
+  begin(): void {
+    this.count = 0;
+    this.dirty = true;
+  }
+
+  add(ax: number, ay: number, az: number, bx: number, by: number, bz: number, hit: boolean): void {
+    if (this.count >= this.max) return;
+    const i = this.count * 6;
+    this.pos.set([ax, ay, az, bx, by, bz], i);
+    const c = hit ? [0.3, 1, 0.45] : [1, 0.3, 0.3];
+    this.col.set([...c, ...c], i);
+    this.count++;
+    this.dirty = true;
+  }
+
+  flush(): void {
+    if (!this.dirty) return;
+    this.dirty = false;
+    this.lines.geometry.setDrawRange(0, this.count * 2);
+    this.lines.geometry.getAttribute('position').needsUpdate = true;
+    this.lines.geometry.getAttribute('color').needsUpdate = true;
   }
 }

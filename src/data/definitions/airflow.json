@@ -1,0 +1,51 @@
+{
+  "globalWind": {
+    "direction": [
+      0.6,
+      0.8
+    ],
+    "strength": 0.8
+  },
+  "windZones": [
+    {
+      "id": "cliff_breeze",
+      "center": [
+        0,
+        320
+      ],
+      "radius": 80,
+      "direction": [
+        0,
+        1
+      ],
+      "strength": 1.0,
+      "maxHeight": 160
+    }
+  ],
+  "thermals": [
+    {
+      "id": "valley_vent",
+      "kind": "ancestral_vent",
+      "position": [
+        72,
+        -116
+      ],
+      "radius": 4.5,
+      "height": 78,
+      "lift": 7,
+      "launch": 15
+    },
+    {
+      "id": "ruins_heat",
+      "kind": "warm_air",
+      "position": [
+        57,
+        35.5
+      ],
+      "radius": 6,
+      "height": 34,
+      "lift": 4.5,
+      "launch": 0
+    }
+  ]
+}

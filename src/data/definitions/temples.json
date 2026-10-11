@@ -1,0 +1,154 @@
+{
+  "temples": [
+    {
+      "id": "temple_valley",
+      "name": "Piedra del Primer Vuelo",
+      "challenge": 1,
+      "challengeName": "Carrera",
+      "biome": "plains",
+      "difficulty": 1,
+      "reward": "glider",
+      "instanceOrigin": [
+        6200,
+        420,
+        6200
+      ],
+      "atmosphere": {
+        "zenith": "#071a2c",
+        "horizon": "#0f4660",
+        "fog": "#0b3048",
+        "fogDensity": 0.006,
+        "ambient": "#6fbfe0",
+        "light": "#bff4ff"
+      },
+      "killDepth": 25,
+      "start": [
+        0,
+        0,
+        0
+      ],
+      "course": [
+        {
+          "position": [
+            0,
+            -3.0,
+            0
+          ],
+          "size": [
+            9,
+            6,
+            9
+          ],
+          "material": "ancestral"
+        },
+        {
+          "position": [
+            0,
+            -2.45,
+            -6.5
+          ],
+          "size": [
+            5,
+            7.1,
+            4
+          ],
+          "material": "ancestral"
+        },
+        {
+          "position": [
+            0,
+            -1.4,
+            -10
+          ],
+          "size": [
+            5,
+            9.2,
+            3
+          ],
+          "material": "ancestral",
+          "glyph": true
+        },
+        {
+          "position": [
+            0,
+            -0.3,
+            -13
+          ],
+          "size": [
+            5,
+            11.4,
+            3
+          ],
+          "material": "ancestral"
+        },
+        {
+          "position": [
+            0,
+            0.8,
+            -16
+          ],
+          "size": [
+            5,
+            13.6,
+            3
+          ],
+          "material": "ancestral",
+          "checkpoint": true
+        },
+        {
+          "position": [
+            0,
+            0.8,
+            -22.5
+          ],
+          "size": [
+            5,
+            13.6,
+            4
+          ],
+          "material": "ancestral",
+          "glyph": true
+        },
+        {
+          "position": [
+            0,
+            5.3,
+            -25.5
+          ],
+          "size": [
+            6,
+            22.6,
+            2
+          ],
+          "material": "stone",
+          "glyph": true
+        },
+        {
+          "position": [
+            0,
+            16.1,
+            -31.5
+          ],
+          "size": [
+            10,
+            1,
+            10
+          ],
+          "material": "ancestral",
+          "checkpoint": true
+        }
+      ],
+      "altar": [
+        0,
+        16.6,
+        -33.5
+      ],
+      "exitPortal": [
+        0,
+        16.6,
+        -29.2
+      ],
+      "inscription": "«Sube sin miedo. Lo que pesa abajo se aligera arriba.»"
+    }
+  ]
+}

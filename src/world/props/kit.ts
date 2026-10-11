@@ -22,6 +22,7 @@ export const materials = {
   leaves: new THREE.MeshStandardMaterial({ color: '#4f8e3c', roughness: 0.85, flatShading: true }),
   pine: new THREE.MeshStandardMaterial({ color: '#2f6b40', roughness: 0.9, flatShading: true }),
   rock: new THREE.MeshStandardMaterial({ color: '#857c70', roughness: 0.95, flatShading: true }),
+  rockDark: new THREE.MeshStandardMaterial({ color: '#5f574d', roughness: 1, flatShading: true }),
   moss: new THREE.MeshStandardMaterial({ color: '#7ba352', roughness: 1, flatShading: true }),
 };
 

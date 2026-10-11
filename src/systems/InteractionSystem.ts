@@ -1,4 +1,5 @@
 import type { GameContext, System } from '../core/Game';
+import type { InteractableKind } from '../core/ecs/components';
 import type { Entity } from '../core/ecs/World';
 
 /**
@@ -23,6 +24,11 @@ export class InteractionSystem implements System {
     });
   }
 
+  /** ¿Hay algo interactuable delante? (si no, "Interactuar" sirve para agarrarse a una pared). */
+  get hasFocus(): boolean {
+    return this.focusId !== null;
+  }
+
   /** Restablece avisos tras cargar partida. */
   syncCapsulePrompt(ctx: GameContext, exited: boolean): void {
     for (const e of ctx.world.query('interactable')) {
@@ -35,7 +41,7 @@ export class InteractionSystem implements System {
     if (ctx.session.mode !== 'play') return;
     const { world, input, bus } = ctx;
     const player = world.require(this.playerEntity, 'player');
-    if (player.control === 'exiting') {
+    if (player.control === 'exiting' || player.control === 'locked') {
       this.setFocus(ctx, null, '');
       return;
     }
@@ -44,7 +50,7 @@ export class InteractionSystem implements System {
     // Cerrar la lectura al alejarse.
     if (this.reading && Math.hypot(pt.x - this.reading.x, pt.z - this.reading.z) > this.reading.radius + 1.5) this.closeReading(ctx);
 
-    let best: { id: string; prompt: string; kind: 'capsule' | 'inscription'; title?: string; text?: string; x: number; z: number; radius: number } | null = null;
+    let best: { id: string; prompt: string; kind: InteractableKind; title?: string; text?: string; x: number; z: number; radius: number } | null = null;
     let bestD = Infinity;
     for (const e of world.query('interactable', 'transform')) {
       const it = world.require(e, 'interactable');

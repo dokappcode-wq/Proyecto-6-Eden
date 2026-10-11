@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { GameContext, System } from '../core/Game';
 import type { Renderer } from '../core/Renderer';
 import type { Entity } from '../core/ecs/World';
-import type { TerrainConfig } from '../data/schemas';
+import { hexToRgb } from '../core/math';
+import type { TempleDef, TerrainConfig } from '../data/schemas';
 import { DayNightClock, type SkyState } from '../world/sky/DayNight';
 import { Sky } from '../world/sky/Sky';
 import type { ChunkManager } from '../world/terrain/ChunkManager';
@@ -24,6 +25,8 @@ export class EnvironmentSystem implements System {
   private readonly focus = new THREE.Vector3();
   private readonly lastFocus = new THREE.Vector3(Number.NaN, 0, 0);
   private readonly focusVel = new THREE.Vector2();
+  private interior: SkyState | null = null;
+  private interiorFog = 0;
 
   constructor(
     private readonly renderer: Renderer,
@@ -49,6 +52,32 @@ export class EnvironmentSystem implements System {
     this.sun.shadow.camera.updateProjectionMatrix();
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.04;
+  }
+
+  /** Atmósfera fija para interiores (templos); null vuelve al cielo con ciclo día/noche. */
+  setInterior(atm: TempleDef['atmosphere'] | null): void {
+    if (!atm) {
+      this.interior = null;
+      this.fog.density = this.terrainCfg.fogDensity;
+      return;
+    }
+    const amb = hexToRgb(atm.ambient);
+    this.interior = {
+      hour: 0,
+      zenith: hexToRgb(atm.zenith),
+      horizon: hexToRgb(atm.horizon),
+      light: hexToRgb(atm.light),
+      lightIntensity: 1.6,
+      ambientSky: amb,
+      ambientGround: [amb[0] * 0.3, amb[1] * 0.3, amb[2] * 0.3],
+      ambientIntensity: 1.1,
+      fog: hexToRgb(atm.fog),
+      stars: 0.7,
+      sunDir: { x: 0.3, y: 0.9, z: 0.3 },
+      lightDir: { x: 0.35, y: 0.88, z: 0.3 },
+      isNight: false,
+    };
+    this.interiorFog = atm.fogDensity;
   }
 
   fixedUpdate(ctx: GameContext, dt: number): void {
@@ -78,7 +107,8 @@ export class EnvironmentSystem implements System {
     this.far.setCoverage(cc.x, cc.y, this.terrainCfg.chunk.lodDistances[2] - 8);
 
     // Atmósfera.
-    const st = this.clock.sample(this.skyState);
+    const st = this.interior ?? this.clock.sample(this.skyState);
+    this.fog.density = this.interior ? this.interiorFog : this.terrainCfg.fogDensity;
     this.sky.apply(st, cam.position, time);
     this.hemi.color.setRGB(...st.ambientSky, THREE.SRGBColorSpace);
     this.hemi.groundColor.setRGB(...st.ambientGround, THREE.SRGBColorSpace);

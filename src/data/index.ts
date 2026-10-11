@@ -1,20 +1,38 @@
+import airflowJson from './definitions/airflow.json';
 import dayNightJson from './definitions/daynight.json';
 import gameJson from './definitions/game.json';
+import gliderJson from './definitions/glider.json';
 import inputJson from './definitions/input.json';
+import ledgeBoostJson from './definitions/ledge_boost.json';
+import materialsJson from './definitions/materials.json';
 import playerJson from './definitions/player.json';
+import settingsJson from './definitions/settings.json';
+import templesJson from './definitions/temples.json';
 import terrainJson from './definitions/terrain.json';
 import tutorialJson from './definitions/tutorial.json';
 import valleyJson from './definitions/valley.json';
 import { DataValidationError, parse, type Issue } from './schema';
 import {
+  airflowConfigSchema,
   dayNightConfigSchema,
+  gliderConfigSchema,
+  ledgeBoostConfigSchema,
+  materialsConfigSchema,
+  settingsConfigSchema,
+  templesConfigSchema,
   gameConfigSchema,
   inputConfigSchema,
   playerConfigSchema,
   terrainConfigSchema,
   tutorialConfigSchema,
   valleyConfigSchema,
+  type AirflowConfig,
   type DayNightConfig,
+  type GliderConfig,
+  type LedgeBoostConfig,
+  type MaterialsConfig,
+  type SettingsConfig,
+  type TemplesConfig,
   type GameConfig,
   type InputConfig,
   type PlayerConfig,
@@ -31,6 +49,12 @@ export interface GameData {
   terrain: TerrainConfig;
   valley: ValleyConfig;
   tutorial: TutorialConfig;
+  ledgeBoost: LedgeBoostConfig;
+  glider: GliderConfig;
+  airflow: AirflowConfig;
+  materials: MaterialsConfig;
+  settings: SettingsConfig;
+  temples: TemplesConfig;
 }
 
 /** Fuentes crudas (inyectables en tests para probar datos rotos). */
@@ -42,6 +66,12 @@ export interface RawGameData {
   terrain: unknown;
   valley: unknown;
   tutorial: unknown;
+  ledgeBoost: unknown;
+  glider: unknown;
+  airflow: unknown;
+  materials: unknown;
+  settings: unknown;
+  temples: unknown;
 }
 
 export const BUNDLED_DATA: RawGameData = {
@@ -52,6 +82,12 @@ export const BUNDLED_DATA: RawGameData = {
   terrain: terrainJson,
   valley: valleyJson,
   tutorial: tutorialJson,
+  ledgeBoost: ledgeBoostJson,
+  glider: gliderJson,
+  airflow: airflowJson,
+  materials: materialsJson,
+  settings: settingsJson,
+  temples: templesJson,
 };
 
 /**
@@ -67,6 +103,12 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     terrain: parse(terrainConfigSchema, raw.terrain, 'terrain.json'),
     valley: parse(valleyConfigSchema, raw.valley, 'valley.json'),
     tutorial: parse(tutorialConfigSchema, raw.tutorial, 'tutorial.json'),
+    ledgeBoost: parse(ledgeBoostConfigSchema, raw.ledgeBoost, 'ledge_boost.json'),
+    glider: parse(gliderConfigSchema, raw.glider, 'glider.json'),
+    airflow: parse(airflowConfigSchema, raw.airflow, 'airflow.json'),
+    materials: parse(materialsConfigSchema, raw.materials, 'materials.json'),
+    settings: parse(settingsConfigSchema, raw.settings, 'settings.json'),
+    temples: parse(templesConfigSchema, raw.temples, 'temples.json'),
   };
   checkConsistency(data);
   return data;
@@ -113,6 +155,20 @@ function checkConsistency(d: GameData): void {
     }
   });
   ascending(d.tutorial.steps.map((s) => s.order), 'tutorial.steps[].order');
+
+  // Materiales referenciados deben existir.
+  const mat = (m: string, path: string) => {
+    if (!(m in d.materials)) issues.push({ path, message: `material "${m}" no definido en materials.json` });
+  };
+  d.ledgeBoost.grabbableMaterials.forEach((m, i) => mat(m, `ledge_boost.grabbableMaterials[${i}]`));
+  for (const req of ['rock', 'stone', 'ancestral', 'wood', 'metal', 'ice', 'sand', 'grass', 'valley_wall']) mat(req, `materials (requerido por el terreno/props)`);
+  d.temples.temples.forEach((t, ti) => t.course.forEach((c, ci) => mat(c.material, `temples[${ti}].course[${ci}].material`)));
+  if (!d.temples.temples.some((t) => t.id === d.valley.temple.id)) {
+    issues.push({ path: 'valley.temple.id', message: `no existe en temples.json: "${d.valley.temple.id}"` });
+  }
+  const lb = d.ledgeBoost;
+  if (lb.reachMin >= lb.reachMax) issues.push({ path: 'ledge_boost.reachMin', message: 'debe ser menor que reachMax' });
+  if (lb.contactSeconds + lb.boostSeconds > 0.4 + 1e-9) issues.push({ path: 'ledge_boost', message: 'contacto + impulso no puede superar 0.4 s (requisito de diseño)' });
 
   if (issues.length > 0) throw new DataValidationError('coherencia entre datos', issues);
 }
