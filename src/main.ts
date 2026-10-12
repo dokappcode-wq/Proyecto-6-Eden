@@ -19,6 +19,7 @@ import { createHealth } from './player/movement/Stamina';
 import { DustPool, PlayerVisual } from './player/PlayerVisual';
 import { CameraSystem } from './systems/CameraSystem';
 import { CombatSystem, createCombatState } from './systems/CombatSystem';
+import { EncounterSystem } from './systems/EncounterSystem';
 import { EnemySystem } from './systems/EnemySystem';
 import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
@@ -38,6 +39,7 @@ import { PlayerHud } from './ui/PlayerHud';
 import { Airflow, emptyAir } from './world/airflow/Airflow';
 import { AirflowVisuals } from './world/airflow/AirflowVisuals';
 import { StaticColliders } from './world/physics/StaticColliders';
+import { buildEncounterProps } from './world/camps/EncounterProps';
 import { buildTempleCourse } from './world/temple/TempleCourse';
 import { ChunkManager } from './world/terrain/ChunkManager';
 import { FarTerrain } from './world/terrain/FarTerrain';
@@ -109,6 +111,13 @@ async function boot(): Promise<void> {
   if (!templeDef) throw new Error(`Templo "${data.valley.temple.id}" no definido en temples.json`);
   const course = buildTempleCourse(templeDef, colliders, world);
   renderer.scene.add(course.group);
+  // Campamentos y arenas (sus colisionadores deben existir antes de colocar enemigos).
+  const encounterProps = buildEncounterProps(
+    data.encounters.camps,
+    data.encounters.bosses.map((b) => ({ position: b.position, radius: data.enemies.enemies.find((e) => e.id === b.enemy)?.boss?.arenaRadius ?? 30 })),
+    terrain,
+    colliders,
+  );
 
   const visual = new PlayerVisual();
   const dust = new DustPool();
@@ -183,6 +192,8 @@ async function boot(): Promise<void> {
       canSave: () => !progress.isInTemple,
       equipment: () => world.require(playerEntity, 'combat').equipment,
       collected: () => [...pickups.collected],
+      chestsOpened: () => [...encounters.chestsOpened],
+      bossesDefeated: () => [...enemies.defeatedBosses],
     },
     ctx,
   );
@@ -191,8 +202,32 @@ async function boot(): Promise<void> {
   const fx = new HitFx();
   const projectiles = new ProjectileManager();
   renderer.scene.add(fx.group, projectiles.group);
-  const enemies = new EnemySystem(data.enemies.enemies, playerEntity, terrain, colliders, renderSystem, renderer.camera);
+  const sky = environment.clock.sample();
+  const enemies = new EnemySystem(
+    {
+      defs: data.enemies.enemies,
+      encounters: data.encounters,
+      playerEntity,
+      terrain,
+      colliders,
+      renderSystem,
+      projectiles,
+      fx,
+      scene: renderer.scene,
+      combat: data.player.combat,
+      movement: data.player.movement,
+      skyLight: () => {
+        environment.clock.sample(sky);
+        // Luz por la altura del sol (la luna deja algo de visibilidad).
+        return Math.min(1, Math.max(0, (sky.sunDir.y + 0.08) / 0.3));
+      },
+      hour: () => environment.clock.hour,
+      shake: (a) => cameraCtl.addShake(a),
+    },
+    ctx,
+  );
   const pickups = new PickupSystem(playerEntity, catalog, data.loot, data.player.combat.inventory, terrain, (x, z, y) => enemies.groundAt(x, z, y), renderer.scene, ctx);
+  const encounters = new EncounterSystem(data.encounters, encounterProps, enemies, pickups, playerSystem, terrain, () => environment.clock.sample(sky).isNight, renderer.scene, ctx);
   const combat = new CombatSystem(
     { playerEntity, cfg: data.player.combat, stamina: data.player.stamina, catalog, player: playerSystem, enemies, pickups, camera: cameraCtl, threeCamera: renderer.camera, colliders, terrain, fx, projectiles },
     ctx,
@@ -241,11 +276,35 @@ async function boot(): Promise<void> {
   });
 
   const projectPoint = new THREE.Vector3();
-  const combatHud = new CombatHud(ctx, playerEntity, combat, catalog, (x, y, z) => {
-    projectPoint.set(x, y, z).project(renderer.camera);
-    if (projectPoint.z > 1) return null;
-    return { x: ((projectPoint.x + 1) / 2) * renderer.canvas.clientWidth, y: ((1 - projectPoint.y) / 2) * renderer.canvas.clientHeight };
-  });
+  const combatHud = new CombatHud(
+    ctx,
+    playerEntity,
+    combat,
+    catalog,
+    (x, y, z) => {
+      projectPoint.set(x, y, z).project(renderer.camera);
+      if (projectPoint.z > 1) return null;
+      return { x: ((projectPoint.x + 1) / 2) * renderer.canvas.clientWidth, y: ((1 - projectPoint.y) / 2) * renderer.canvas.clientHeight };
+    },
+    {
+      boss: () => {
+        const b = enemies.activeBoss(ctx);
+        const phases = b ? data.enemies.enemies.find((e) => e.name === b.name)?.boss?.phases ?? [] : [];
+        return b ? { ...b, phases } : null;
+      },
+      stealth: () => {
+        const ch = world.require(playerEntity, 'character');
+        if (!input.isDown('crouch') || !ch.grounded || ch.swimming) return null;
+        const t = world.require(playerEntity, 'transform');
+        let seen = false;
+        for (const e of world.query('enemy')) {
+          const b = world.require(e, 'enemy').brain;
+          if ((b.state === 'suspicious' || b.state === 'combat') && Math.hypot(b.x - t.x, b.z - t.z) < 40) seen = true;
+        }
+        return { level: enemies.currentNoise(ctx) / data.player.combat.noise.jog, seen };
+      },
+    },
+  );
 
   const game = new Game(ctx);
   game
@@ -257,8 +316,10 @@ async function boot(): Promise<void> {
     .addSystem(combat.pre)
     .addSystem(playerSystem)
     .addSystem(enemies)
+    .addSystem({ name: 'ai-debug', fixedUpdate: (c) => debug.isVisible && enemies.debugCones(c, (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit)) })
     .addSystem(combat.post)
     .addSystem(pickups)
+    .addSystem(encounters)
     .addSystem(progress)
     .addSystem(gate)
     .addSystem(tutorial)
@@ -307,22 +368,7 @@ async function boot(): Promise<void> {
     const m = c.melee;
     return `${combat.meleeDef(c).name}  ${m.phase}${m.phase !== 'idle' ? ` (${m.kind} ${m.comboIndex + 1})` : ''}  ${c.aiming ? `apuntando ${c.drawT.toFixed(2)}s` : ''}${c.defense.guarding ? 'guardia' : ''}${c.plunging ? 'PICADO' : ''}${c.flurryT > 0 ? ' RÁFAGA' : ''}  fijado ${c.lockTarget ?? '—'}  tiempo ×${ctx.time.worldScale.toFixed(2)}/${ctx.time.playerScale.toFixed(2)}`;
   });
-  debug.addProvider('enemigos', () => {
-    const t = world.require(playerEntity, 'transform');
-    let near = '';
-    let nd = Infinity;
-    let n = 0;
-    for (const e of world.query('enemy')) {
-      const b = world.require(e, 'enemy').brain;
-      n++;
-      const d = Math.hypot(b.x - t.x, b.z - t.z);
-      if (d < nd) {
-        nd = d;
-        near = `${b.mode} hp ${b.hp} ${b.aware ? 'alerta' : 'desprevenido'} a ${d.toFixed(1)} m`;
-      }
-    }
-    return `${n} vivos  más cercano: ${near || '—'}  proyectiles ${projectiles.list.length}`;
-  });
+  debug.addProvider('IA', () => `${enemies.debugLabel(ctx)}  proyectiles ${projectiles.list.length}`);
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
     return `${done}/${total}  actual: ${tutorial.tracker.current()?.id ?? 'libre'}`;
@@ -379,7 +425,9 @@ async function boot(): Promise<void> {
     world.require(playerEntity, 'combat').equipment = createEquipment();
     pickups.spawnValley(ctx, data.valley.pickups, []);
   }
-  enemies.spawnAll(ctx, data.valley.enemySpawns);
+  const worldSave = choice === 'continue' && save ? save.world : undefined;
+  enemies.spawnAll(ctx, data.valley.enemySpawns, worldSave?.bossesDefeated ?? []);
+  encounters.restore(ctx, worldSave?.chestsOpened ?? []);
   const pt = world.require(playerEntity, 'transform');
   cameraCtl.snapBehind(pt.rotY, pt);
   ctx.session.mode = 'play';
@@ -388,7 +436,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters } });
   }
 }
 

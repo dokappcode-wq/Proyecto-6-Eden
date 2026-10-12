@@ -1,4 +1,8 @@
-export type ProjectileKind = 'arrow' | 'thrown';
+import type { Element, PROJECTILE_LOOKS } from '../data/schemas';
+
+export type ProjectileLook = (typeof PROJECTILE_LOOKS)[number];
+/** arrow: flecha · thrown: arma lanzada · missile: roca, gelatina o chispa enemiga. */
+export type ProjectileKind = 'arrow' | 'thrown' | 'missile';
 
 export interface Projectile {
   id: number;
@@ -23,6 +27,15 @@ export interface Projectile {
   alive: boolean;
   /** Ya reflejada (un parry solo la devuelve una vez). */
   reflected: boolean;
+  /** Proyectiles enemigos: elemento, aspecto, tamaño y empuje. */
+  element?: Element;
+  look?: ProjectileLook;
+  size?: number;
+  knockback?: number;
+  /** Radio del área de daño al estallar contra el suelo (rocas grandes). */
+  splash?: number;
+  /** Entidad que lo lanzó (los reflejados vuelven a ella). */
+  source?: number;
 }
 
 export interface ProjectileWorld {
@@ -74,6 +87,7 @@ export function stepProjectile(p: Projectile, world: ProjectileWorld, dt: number
     p.vx = p.vy = p.vz = 0;
     // Las flechas quedan clavadas un rato; las armas lanzadas caen al suelo (las recoge el sistema).
     p.maxAge = p.kind === 'arrow' ? p.age + 6 : p.age;
+    if (p.kind === 'missile') p.alive = false;
     return { type: 'scene', x: p.x, y: p.y, z: p.z };
   }
   p.x = bx;

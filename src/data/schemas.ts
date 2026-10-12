@@ -141,6 +141,23 @@ export const playerConfigSchema = v.object({
     lockOnRange: v.number({ min: 1 }),
     aimCamera: v.object({ distance: v.number({ min: 0.5 }), shoulder: v.number(), fov: v.number({ min: 20, max: 120 }) }),
     inventory: v.object({ weapons: v.number({ min: 1, integer: true }), bows: v.number({ min: 1, integer: true }), shields: v.number({ min: 1, integer: true }) }),
+    status: v.object({
+      poison: v.object({ seconds: v.number({ min: 0 }), tickSeconds: v.number({ min: 0.1 }), damagePerTick: v.number({ min: 0, integer: true }) }),
+      shock: v.object({ seconds: v.number({ min: 0 }), dropsWeapon: v.boolean(), waterMultiplier: v.number({ min: 1 }) }),
+    }),
+    /** Radio de ruido (m) que oyen los enemigos según lo que hace el jugador. */
+    noise: v.object({
+      walk: v.number({ min: 0 }),
+      jog: v.number({ min: 0 }),
+      sprint: v.number({ min: 0 }),
+      crouch: v.number({ min: 0 }),
+      land: v.number({ min: 0 }),
+      attack: v.number({ min: 0 }),
+      hit: v.number({ min: 0 }),
+      swim: v.number({ min: 0 }),
+    }),
+    /** Multiplicador de visibilidad en el aire y planeando. */
+    airVisibility: v.number({ min: 1 }),
   }),
   health: v.object({
     startHearts: v.number({ min: 1, integer: true }),
@@ -495,34 +512,138 @@ export const weaponsConfigSchema = v.object({ weapons: v.array(weaponSchema, { m
 // ---------------------------------------------------------------- enemies.json
 export const ENEMY_FAMILIES = ['golem', 'goblin', 'slime', 'fauna', 'automaton', 'biome_special'] as const;
 
+export const ATTACK_KINDS = ['lunge', 'swing', 'thrust', 'slam', 'shockwave', 'projectile', 'dive', 'discharge', 'rockfall', 'summon'] as const;
+export const ELEMENTS = ['physical', 'poison', 'shock'] as const;
+export const PROJECTILE_LOOKS = ['arrow', 'rock', 'goo', 'spark'] as const;
+
+const attackSchema = v.object({
+  id: v.string({ minLength: 1 }),
+  kind: v.oneOf(ATTACK_KINDS),
+  /** Rango (distancia horizontal al jugador) en el que se elige este ataque. */
+  minRange: v.number({ min: 0 }),
+  maxRange: v.number({ min: 0 }),
+  windup: v.number({ min: 0 }),
+  active: v.number({ min: 0.01 }),
+  recovery: v.number({ min: 0 }),
+  cooldown: v.number({ min: 0 }),
+  /** Daño en fragmentos de corazón. */
+  damage: v.number({ min: 0, integer: true }),
+  knockback: v.number({ min: 0 }),
+  element: v.oneOf(ELEMENTS),
+  /** Alcance del golpe (swing/thrust/lunge) o desplazamiento del centro (slam). */
+  reach: v.number({ min: 0 }),
+  /** Arco en grados (swing/thrust). */
+  arc: v.number({ min: 0, max: 360 }),
+  /** Radio del área (slam, discharge, dive, rockfall). */
+  radius: v.number({ min: 0 }),
+  /** Velocidad (embestida, onda, proyectil, picado). */
+  speed: v.number({ min: 0 }),
+  weight: v.number({ min: 0 }),
+  /** Fase mínima del jefe para usarlo (1 si no es jefe). */
+  phase: v.number({ min: 1, max: 3, integer: true }),
+  /** Solo contra un jugador en el aire / planeando. */
+  airOnly: v.boolean(),
+  /** Muestra marca de aviso en el suelo durante la preparación. */
+  telegraph: v.boolean(),
+  /** Número de proyectiles, rocas o invocados. */
+  count: v.number({ min: 1, integer: true }),
+  projectile: v.optional(v.object({ look: v.oneOf(PROJECTILE_LOOKS), gravity: v.number({ min: 0 }), size: v.number({ min: 0.02 }), lead: v.boolean() })),
+  summon: v.optional(v.string({ minLength: 1 })),
+});
+
+const sensesSchema = v.object({
+  /** Distancia de visión de día (m). */
+  sight: v.number({ min: 0 }),
+  /** Cono de visión (grados). */
+  fov: v.number({ min: 0, max: 360 }),
+  /** Multiplicador del radio de ruido del jugador. */
+  hearing: v.number({ min: 0 }),
+  /** Radio en el que nota al jugador aunque no lo vea (de pie). */
+  nearSense: v.number({ min: 0 }),
+  /** Segundos para pasar de tranquilo a combate viendo al jugador a media distancia. */
+  notice: v.number({ min: 0.05 }),
+  /** Segundos sin verlo antes de pasar a búsqueda. */
+  forget: v.number({ min: 0 }),
+  /** Segundos que busca antes de volver a su rutina. */
+  search: v.number({ min: 0 }),
+});
+
 const enemySchema = v.object({
   id: v.string({ minLength: 1 }),
   name: v.string({ minLength: 1 }),
   family: v.oneOf(ENEMY_FAMILIES),
   variant: v.string({ minLength: 1 }),
   hp: v.number({ min: 1 }),
-  damage: v.number({ min: 0, integer: true }),
   moveSpeed: v.number({ min: 0 }),
-  hopInterval: v.number({ min: 0.05 }),
-  hopHeight: v.number({ min: 0 }),
-  aggroRadius: v.number({ min: 0 }),
-  viewAngle: v.number({ min: 0, max: 360 }),
-  rearSense: v.number({ min: 0, max: 1 }),
+  runSpeed: v.number({ min: 0 }),
+  turnSpeed: v.number({ min: 0 }),
+  senses: sensesSchema,
   loseRadius: v.number({ min: 0 }),
-  attackRange: v.number({ min: 0 }),
-  attackWindup: v.number({ min: 0 }),
-  attackCooldown: v.number({ min: 0 }),
-  lungeSpeed: v.number({ min: 0 }),
-  lungeTime: v.number({ min: 0.05 }),
+  attacks: v.array(attackSchema, { minLength: 1 }),
   radius: v.number({ min: 0.1 }),
   height: v.number({ min: 0.1 }),
   weakPointBonus: v.number({ min: 1 }),
   stunTime: v.number({ min: 0 }),
+  /** Daño de un solo golpe que lo hace tambalearse (interrumpe su ataque). */
+  poise: v.number({ min: 0 }),
   knockbackResist: v.number({ min: 0, max: 1 }),
   tags: v.array(v.string({ minLength: 1 })),
   color,
   loot: v.string({ minLength: 1 }),
   stompable: v.boolean(),
+  slime: v.optional(
+    v.object({
+      hopInterval: v.number({ min: 0.05 }),
+      hopHeight: v.number({ min: 0 }),
+      splitInto: v.optional(v.object({ enemy: v.string({ minLength: 1 }), count: v.number({ min: 1, integer: true }) })),
+      /** Aura eléctrica: periodo y duración de la carga (s). */
+      aura: v.optional(v.object({ period: v.number({ min: 0.5 }), duration: v.number({ min: 0.1 }) })),
+    }),
+  ),
+  goblin: v.optional(
+    v.object({
+      weapon: v.object({ kind: v.string({ minLength: 1 }), length: v.number({ min: 0 }), color }),
+      /** Distancia que intenta mantener en combate [mín, máx]. */
+      keepRange: vec2,
+      /** Fracción de vida por debajo de la cual puede huir. */
+      fleeHp: v.number({ min: 0, max: 1 }),
+      /** Arma que suelta al morir (además del botín). */
+      drop: v.optional(v.string({ minLength: 1 })),
+      dropChance: v.number({ min: 0, max: 1 }),
+    }),
+  ),
+  golem: v.optional(
+    v.object({
+      /** Altura del cristal (fracción de la altura) y si está en el pecho o en la espalda. */
+      crystalHeight: v.number({ min: 0, max: 1.2 }),
+      crystalSide: v.oneOf(['front', 'back', 'top'] as const),
+      crystalRadius: v.number({ min: 0.05 }),
+      /** Segundos de rodillas tras un flechazo en el cristal. */
+      crystalStun: v.number({ min: 0 }),
+      /** Empieza dormido como un montón de rocas. */
+      dormant: v.boolean(),
+      wakeSeconds: v.number({ min: 0 }),
+    }),
+  ),
+  hawk: v.optional(
+    v.object({
+      altitude: v.number({ min: 2 }),
+      circleRadius: v.number({ min: 2 }),
+      flySpeed: v.number({ min: 1 }),
+      /** Altura mínima del jugador sobre el suelo para considerarlo presa. */
+      preyHeight: v.number({ min: 0 }),
+      huntRadius: v.number({ min: 1 }),
+    }),
+  ),
+  boss: v.optional(
+    v.object({
+      title: v.string({ minLength: 1 }),
+      /** Umbrales de vida (fracción) que abren la fase 2 y 3. */
+      phases: v.array(v.number({ min: 0, max: 1 }), { length: 2 }),
+      arenaRadius: v.number({ min: 5 }),
+      enrageSpeed: v.number({ min: 1 }),
+    }),
+  ),
 });
 
 export const enemiesConfigSchema = v.object({ enemies: v.array(enemySchema, { minLength: 1 }) });
@@ -534,6 +655,67 @@ export const itemsConfigSchema = v.object({
 
 export const lootTablesConfigSchema = v.object({
   tables: v.record(v.array(v.object({ item: v.string({ minLength: 1 }), chance: v.number({ min: 0, max: 1 }), min: v.number({ min: 0, integer: true }), max: v.number({ min: 0, integer: true }) }))),
+});
+
+// ---------------------------------------------------------------- encounters.json
+export const CAMP_ROLES = ['leader', 'guard', 'cook', 'sleeper', 'lookout', 'patrol'] as const;
+
+const campSchema = v.object({
+  id: v.string({ minLength: 1 }),
+  name: v.string({ minLength: 1 }),
+  center: vec2,
+  radius: v.number({ min: 4 }),
+  fire: vec2,
+  horn: v.optional(vec2),
+  regroup: vec2,
+  tents: v.array(v.object({ position: vec2, yaw: v.number() })),
+  lookout: v.optional(v.object({ position: vec2, height: v.number({ min: 1 }) })),
+  chest: v.object({ position: vec2, yaw: v.number(), loot: v.string({ minLength: 1 }) }),
+  members: v.array(
+    v.object({
+      enemy: v.string({ minLength: 1 }),
+      role: v.oneOf(CAMP_ROLES),
+      position: vec2,
+      /** Punto de guardia (mira hacia fuera del campamento). */
+      post: v.optional(vec2),
+    }),
+    { minLength: 1 },
+  ),
+  patrol: v.array(vec2),
+  reinforcements: v.optional(v.object({ from: vec2, members: v.array(v.string({ minLength: 1 }), { minLength: 1 }) })),
+});
+
+export const encountersConfigSchema = v.object({
+  schedule: v.object({
+    sleepFrom: v.number({ min: 0, max: 24 }),
+    sleepTo: v.number({ min: 0, max: 24 }),
+    meals: v.array(vec2),
+    /** Radio iluminado por la hoguera de noche (m). */
+    fireLightRadius: v.number({ min: 0 }),
+  }),
+  camps: v.array(campSchema),
+  groups: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      enemy: v.string({ minLength: 1 }),
+      position: vec2,
+      count: v.number({ min: 1, integer: true }),
+      radius: v.number({ min: 0 }),
+      route: v.array(vec2),
+    }),
+  ),
+  bosses: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      enemy: v.string({ minLength: 1 }),
+      position: vec2,
+      yaw: v.number(),
+      reward: v.string({ minLength: 1 }),
+    }),
+  ),
+  roosts: v.array(v.object({ id: v.string({ minLength: 1 }), enemy: v.string({ minLength: 1 }), center: vec2, count: v.number({ min: 1, integer: true }) })),
+  /** Puntos de teletransporte de depuración (F7). */
+  teleports: v.array(v.object({ name: v.string({ minLength: 1 }), position: vec2 })),
 });
 
 // ---------------------------------------------------------------- tutorial.json
@@ -597,3 +779,10 @@ export type EnemiesConfig = Infer<typeof enemiesConfigSchema>;
 export type EnemyDef = Infer<typeof enemySchema>;
 export type ItemsConfig = Infer<typeof itemsConfigSchema>;
 export type LootTablesConfig = Infer<typeof lootTablesConfigSchema>;
+export type AttackDef = Infer<typeof attackSchema>;
+export type AttackKind = (typeof ATTACK_KINDS)[number];
+export type Element = (typeof ELEMENTS)[number];
+export type SensesDef = Infer<typeof sensesSchema>;
+export type EncountersConfig = Infer<typeof encountersConfigSchema>;
+export type CampDef = Infer<typeof campSchema>;
+export type CampRole = (typeof CAMP_ROLES)[number];

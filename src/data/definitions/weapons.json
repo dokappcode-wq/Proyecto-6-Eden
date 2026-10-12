@@ -417,6 +417,152 @@
         "length": 1.1,
         "color": "#8b5e34"
       }
+    },
+    {
+      "id": "goblin_club",
+      "name": "Garrote goblin",
+      "category": "club",
+      "rarity": "common",
+      "damage": 6,
+      "durability": 16,
+      "reach": 1.7,
+      "arc": 110,
+      "combo": [
+        {
+          "windup": 0.12,
+          "active": 0.1,
+          "recovery": 0.2,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.12,
+          "active": 0.1,
+          "recovery": 0.2,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.16,
+          "active": 0.12,
+          "recovery": 0.32,
+          "damage": 1.4,
+          "knockback": 4
+        }
+      ],
+      "heavy": {
+        "stamina": 20,
+        "chargeTime": 0.55,
+        "damageMultiplier": 2,
+        "special": "none"
+      },
+      "throwable": true,
+      "tags": [
+        "wood",
+        "spiked"
+      ],
+      "model": {
+        "kind": "club",
+        "length": 0.95,
+        "color": "#6b4b2e"
+      }
+    },
+    {
+      "id": "goblin_spear",
+      "name": "Lanza goblin",
+      "category": "spear",
+      "rarity": "common",
+      "damage": 6,
+      "durability": 18,
+      "reach": 3.0,
+      "arc": 40,
+      "combo": [
+        {
+          "windup": 0.1,
+          "active": 0.1,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 3
+        },
+        {
+          "windup": 0.1,
+          "active": 0.1,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 3
+        },
+        {
+          "windup": 0.14,
+          "active": 0.12,
+          "recovery": 0.26,
+          "damage": 1.4,
+          "knockback": 5
+        }
+      ],
+      "heavy": {
+        "stamina": 22,
+        "chargeTime": 0.55,
+        "damageMultiplier": 1.5,
+        "special": "line_charge"
+      },
+      "throwable": true,
+      "tags": [
+        "wood"
+      ],
+      "model": {
+        "kind": "spear",
+        "length": 1.9,
+        "color": "#7a6450"
+      }
+    },
+    {
+      "id": "colossus_maul",
+      "name": "Puño del Coloso",
+      "category": "hammer",
+      "rarity": "legendary",
+      "damage": 30,
+      "durability": 60,
+      "reach": 2.2,
+      "arc": 120,
+      "combo": [
+        {
+          "windup": 0.42,
+          "active": 0.16,
+          "recovery": 0.48,
+          "damage": 1,
+          "knockback": 7
+        },
+        {
+          "windup": 0.4,
+          "active": 0.16,
+          "recovery": 0.48,
+          "damage": 1,
+          "knockback": 7
+        },
+        {
+          "windup": 0.46,
+          "active": 0.18,
+          "recovery": 0.6,
+          "damage": 1.5,
+          "knockback": 10
+        }
+      ],
+      "heavy": {
+        "stamina": 30,
+        "chargeTime": 0.9,
+        "damageMultiplier": 1.8,
+        "special": "shockwave"
+      },
+      "throwable": true,
+      "tags": [
+        "stone",
+        "ancestral"
+      ],
+      "model": {
+        "kind": "hammer",
+        "length": 1.6,
+        "color": "#5ff0ff"
+      }
     }
   ],
   "shields": [

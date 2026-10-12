@@ -16,6 +16,8 @@ export interface SaveSources {
   canSave(): boolean;
   equipment(): Equipment;
   collected(): string[];
+  chestsOpened(): string[];
+  bossesDefeated(): string[];
 }
 
 /**
@@ -42,6 +44,8 @@ export class SaveSystem implements System {
     ctx.bus.on('tower:activated', () => this.save(ctx, 'auto'));
     ctx.bus.on('temple:exit', () => this.save(ctx, 'auto'));
     ctx.bus.on('item:picked', () => this.save(ctx, 'auto'));
+    ctx.bus.on('chest:opened', () => this.save(ctx, 'auto'));
+    ctx.bus.on('boss:defeated', () => this.save(ctx, 'auto'));
   }
 
   load(): SaveData | null {
@@ -64,6 +68,7 @@ export class SaveSystem implements System {
       progress: { ...this.sources.progress() },
       equipment: serializeEquipment(this.sources.equipment()),
       collected: this.sources.collected(),
+      world: { chestsOpened: this.sources.chestsOpened(), bossesDefeated: this.sources.bossesDefeated() },
     });
     if (ok && kind === 'manual') ctx.bus.emit('game:saved', { slot: MAIN_SLOT });
   }

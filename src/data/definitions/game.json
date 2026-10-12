@@ -1,6 +1,6 @@
 {
   "title": "EDEN – The Lost World",
-  "contentPhase": 3,
+  "contentPhase": 4,
   "loop": {
     "fixedStepHz": 60,
     "maxSubSteps": 5,

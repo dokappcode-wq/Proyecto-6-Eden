@@ -197,7 +197,7 @@ export function buildValley(cfg: ValleyConfig, terrain: TerrainGenerator, collid
   };
 }
 
-function addCollider(colliders: StaticColliders, c: LocalCollider, x: number, y: number, z: number, rotY: number): Collider {
+export function addCollider(colliders: StaticColliders, c: LocalCollider, x: number, y: number, z: number, rotY: number): Collider {
   // Local -> mundo con la rotación Y del prop (misma convención que Three.js).
   const cos = Math.cos(rotY);
   const sin = Math.sin(rotY);

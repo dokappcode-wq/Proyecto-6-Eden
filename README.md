@@ -31,9 +31,16 @@ npm run build      # typecheck + build de producción
 | Lanzar arma | R |
 | Rueda de armas | Tab o Q (mantener; ratón o A/D para elegir) |
 | Fijar objetivo | Z o clic central |
-| Debug | F3 · T (mantener) acelera el tiempo · F6 abre la salida del valle · F8 reaparecer |
+| Sigilo | Agachado (Ctrl/C): te ven desde menos lejos y casi no haces ruido; atacar a un enemigo desprevenido o dormido = crítico ×3 (dagas ×4) |
+| Debug | F3 (incluye conos de visión de la IA) · T (mantener) acelera el tiempo · F6 abre la salida del valle · F7 viaja al siguiente encuentro · F8 reaparecer |
 
 Remapeo en caliente (modo dev, consola): `eden.ctx.input.rebind('jump', ['KeyJ'])`; se guarda en el navegador.
+
+## Enemigos (Fase 4)
+
+Fuera del valle (sur): dos campamentos goblin (rutinas de día y noche, cuerno de alarma, refuerzos, cofre al despejarlos),
+slimes tóxicos, eléctricos y gigante, un campo de golems dormidos, un golem grande, el Coloso de Musgo (jefe con 3 fases)
+y halcones cazadores que atacan a quien planea cerca del acantilado este. Todo se define en `enemies.json` y `encounters.json`.
 
 ## Estructura
 
@@ -45,7 +52,7 @@ src/
   systems/   sistemas ECS (jugador, cámara, entorno, interacción, tutorial, guardado...)
   world/     terreno por chunks, colisiones, agua, cielo, props y el Valle de la Cápsula
   combat/    inventario, daño, defensa, combos, arco, proyectiles, modelos de armas y efectos
-  ai/        IA de enemigos (slimes)
+  ai/        IA de enemigos: percepción, estados, campamentos, slimes, goblins, golems, halcones y sus visuales
   ui/        HUD, HUD de combate y overlay de debug
 tests/       tests de lógica pura
 ```

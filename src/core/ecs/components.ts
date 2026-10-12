@@ -1,4 +1,4 @@
-import type { SlimeState } from '../../ai/slime';
+import type { Brain } from '../../ai/brain';
 import type { DefenseState } from '../../combat/defense';
 import type { Equipment } from '../../combat/inventory';
 import type { MeleeState } from '../../combat/melee';
@@ -26,7 +26,7 @@ export interface Name {
   value: string;
 }
 
-export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower' | 'pickup';
+export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower' | 'pickup' | 'chest';
 
 export interface Interactable {
   id: string;
@@ -75,12 +75,17 @@ export interface CombatState {
   moveMultiplier: number;
   faceYaw: number | null;
   lunge: number;
+  /** Envenenado: segundos restantes y temporizador del siguiente daño. */
+  poisonT: number;
+  poisonTick: number;
+  /** Electrocutado: no puede actuar (s). */
+  shockT: number;
 }
 
 /** Enemigo vivo: definición + cerebro (estado de IA y física propia). */
 export interface Enemy {
   defId: string;
-  brain: SlimeState;
+  brain: Brain;
   spawnId: string;
   /** Tiempo desde la muerte (animación de desaparición); -1 si vive. */
   deadT: number;

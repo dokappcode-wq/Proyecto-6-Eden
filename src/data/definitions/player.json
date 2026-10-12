@@ -154,6 +154,29 @@
       "weapons": 10,
       "bows": 4,
       "shields": 4
-    }
+    },
+    "status": {
+      "poison": {
+        "seconds": 8,
+        "tickSeconds": 2,
+        "damagePerTick": 1
+      },
+      "shock": {
+        "seconds": 0.9,
+        "dropsWeapon": true,
+        "waterMultiplier": 2
+      }
+    },
+    "noise": {
+      "walk": 3,
+      "jog": 6,
+      "sprint": 11,
+      "crouch": 0.8,
+      "land": 9,
+      "attack": 7,
+      "hit": 12,
+      "swim": 4
+    },
+    "airVisibility": 1.7
   }
 }

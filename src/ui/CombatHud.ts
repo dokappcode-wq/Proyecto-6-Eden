@@ -4,6 +4,13 @@ import type { GameContext, System } from '../core/Game';
 import type { Entity } from '../core/ecs/World';
 import type { CombatSystem } from '../systems/CombatSystem';
 
+/** Datos de mundo que el HUD de combate necesita (jefe activo, sigilo). */
+export interface CombatHudSources {
+  boss(): { name: string; title: string; hp: number; maxHp: number; phase: number; phases: number[] } | null;
+  /** Agachado: ruido actual relativo (0..1) y si algún enemigo cercano sospecha o le ha visto. */
+  stealth(): { level: number; seen: boolean } | null;
+}
+
 const CSS = /* css */ `
 #chud { position: fixed; inset: 0; pointer-events: none; z-index: 7; font-family: 'Segoe UI', system-ui, sans-serif; color: #eaf7ff; }
 #chud .cross { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; display: none; }
@@ -30,6 +37,26 @@ const CSS = /* css */ `
 #chud .notes div { padding: 4px 10px; border-radius: 5px; background: rgba(5,18,28,.65); font-size: 13px; animation: chud-in .25s ease-out; }
 #chud .notes div.bad { border-left: 3px solid #ff5b4b; }
 #chud .notes div.good { border-left: 3px solid #7ee36b; }
+#chud .boss { position: absolute; left: 50%; top: 58px; width: min(620px, 80vw); transform: translateX(-50%); display: none; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+#chud .boss.on { display: block; animation: chud-in .4s ease-out; }
+#chud .boss .title { font-size: 11px; letter-spacing: .25em; color: #ffd27a; text-transform: uppercase; }
+#chud .boss .bname { font-size: 20px; font-weight: 600; margin: 2px 0 6px; }
+#chud .boss .track { height: 10px; border-radius: 5px; background: rgba(20,8,8,.75); box-shadow: 0 0 0 1px rgba(255,210,122,.45); overflow: hidden; position: relative; }
+#chud .boss .track i { display: block; height: 100%; background: linear-gradient(90deg, #ff7a3a, #ffb43a); transition: width .15s; }
+#chud .boss .track b { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.6); }
+#chud .stealth { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); display: none; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 14px; background: rgba(5,18,28,.5); font-size: 12px; }
+#chud .stealth.on { display: flex; }
+#chud .stealth .waves { display: flex; gap: 3px; align-items: flex-end; height: 16px; }
+#chud .stealth .waves i { width: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
+#chud .stealth .waves i.lit { background: #8fe9ff; }
+#chud .stealth.seen .waves i.lit { background: #ff5b4b; }
+#chud .status { position: absolute; left: 18px; top: 64px; display: flex; gap: 6px; }
+#chud .status span { padding: 3px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+#chud .status .poison { background: rgba(140,60,200,.75); }
+#chud .status .shock { background: rgba(230,200,40,.85); color: #201a00; }
+#chud .tint { position: absolute; inset: 0; opacity: 0; transition: opacity .3s; }
+#chud .tint.poison { opacity: 1; background: radial-gradient(ellipse at center, transparent 55%, rgba(130,40,200,.28)); }
+#chud .tint.shock { opacity: 1; background: radial-gradient(ellipse at center, transparent 50%, rgba(255,240,90,.35)); }
 @keyframes chud-in { from { transform: translateX(20px); opacity: 0 } to { transform: none; opacity: 1 } }
 `;
 
@@ -45,6 +72,13 @@ export class CombatHud implements System {
   private readonly lock: HTMLDivElement;
   private readonly flurry: HTMLDivElement;
   private readonly notes: HTMLDivElement;
+  private readonly boss: HTMLDivElement;
+  private readonly stealth: HTMLDivElement;
+  private readonly status: HTMLDivElement;
+  private readonly tint: HTMLDivElement;
+  private lastBoss = '';
+  private lastStealth = '';
+  private lastStatus = '';
   private lastGear = '';
   private lastWheel = '';
 
@@ -54,6 +88,7 @@ export class CombatHud implements System {
     private readonly combat: CombatSystem,
     private readonly catalog: Catalog,
     private readonly project: (x: number, y: number, z: number) => { x: number; y: number } | null,
+    private readonly sources: CombatHudSources,
   ) {
     const style = document.createElement('style');
     style.textContent = CSS;
@@ -67,12 +102,16 @@ export class CombatHud implements System {
       root.appendChild(d);
       return d;
     };
+    this.tint = mk('tint');
     this.flurry = mk('flurry');
     this.cross = mk('cross');
     this.gear = mk('gear');
     this.wheel = mk('wheel');
     this.lock = mk('lock');
     this.notes = mk('notes');
+    this.boss = mk('boss');
+    this.stealth = mk('stealth');
+    this.status = mk('status');
 
     ctx.bus.on('item:picked', ({ name, count }) => this.note(`+ ${count > 1 ? `${count} ` : ''}${name}`, 'good'));
     ctx.bus.on('item:inventory_full', ({ name }) => this.note(`Inventario lleno: no cabe ${name}`, 'bad'));
@@ -81,6 +120,15 @@ export class CombatHud implements System {
     ctx.bus.on('combat:no_arrows', () => this.note('No te quedan flechas', 'bad'));
     ctx.bus.on('combat:equipped', ({ name }) => this.note(`Equipado: ${name}`, 'good'));
     ctx.bus.on('combat:flurry', ({ active }) => this.flurry.classList.toggle('on', active));
+    ctx.bus.on('enemy:alarm', ({ name, horn }) => this.note(horn ? `¡Han tocado el cuerno en el ${name}!` : `Te han descubierto (${name})`, 'bad'));
+    ctx.bus.on('enemy:reinforcements', ({ count }) => this.note(`Llegan ${count} refuerzos`, 'bad'));
+    ctx.bus.on('camp:cleared', ({ name }) => this.note(`${name} despejado: el cofre ya se puede abrir`, 'good'));
+    ctx.bus.on('boss:phase', ({ phase }) => this.note(phase === 3 ? 'El Coloso entra en furia' : 'El Coloso cambia de táctica', 'bad'));
+    ctx.bus.on('boss:defeated', ({ name }) => this.note(`¡${name} derrotado!`, 'good'));
+    ctx.bus.on('player:status', ({ kind, active }) => {
+      if (active) this.note(kind === 'poison' ? 'Envenenado' : '¡Descarga eléctrica!', 'bad');
+    });
+    ctx.bus.on('debug:teleport', ({ name }) => this.note(`Teletransporte: ${name}`, 'good'));
     ctx.bus.on('combat:defended', ({ result }) => {
       if (result === 'parried') this.note('¡Parry!', 'good');
       if (result === 'perfect') this.note('¡Esquiva perfecta!', 'good');
@@ -93,6 +141,43 @@ export class CombatHud implements System {
     if (!play) return;
     const c = ctx.world.require(this.playerEntity, 'combat');
     const eq = c.equipment;
+
+    // Barra del jefe con marcas de fase.
+    const boss = this.sources.boss();
+    this.boss.classList.toggle('on', boss !== null);
+    if (boss) {
+      const key = `${boss.name}|${Math.ceil(boss.hp)}|${boss.phase}`;
+      if (key !== this.lastBoss) {
+        this.lastBoss = key;
+        const marks = boss.phases.map((p) => `<b style="left:${(p * 100).toFixed(1)}%"></b>`).join('');
+        this.boss.innerHTML = `<div class="title">${boss.title}</div><div class="bname">${boss.name}</div><div class="track"><i style="width:${((boss.hp / boss.maxHp) * 100).toFixed(1)}%"></i>${marks}</div>`;
+      }
+    }
+
+    // Medidor de sigilo (agachado): ondas de ruido; en rojo si alguien sospecha.
+    const st = this.sources.stealth();
+    this.stealth.classList.toggle('on', st !== null);
+    if (st) {
+      const lit = Math.round(Math.min(1, st.level) * 6);
+      const key = `${lit}|${st.seen}`;
+      if (key !== this.lastStealth) {
+        this.lastStealth = key;
+        this.stealth.classList.toggle('seen', st.seen);
+        let waves = '';
+        for (let i = 0; i < 6; i++) waves += `<i class="${i < lit ? 'lit' : ''}" style="height:${4 + i * 2}px"></i>`;
+        this.stealth.innerHTML = `<span>${st.seen ? 'Te han oído' : 'Sigilo'}</span><span class="waves">${waves}</span>`;
+      }
+    }
+
+    // Estados alterados.
+    const poisoned = c.poisonT > 0;
+    const shocked = c.shockT > 0;
+    const sk = `${poisoned}|${shocked}`;
+    if (sk !== this.lastStatus) {
+      this.lastStatus = sk;
+      this.status.innerHTML = (poisoned ? '<span class="poison">Veneno</span>' : '') + (shocked ? '<span class="shock">Electrocutado</span>' : '');
+      this.tint.className = `tint${shocked ? ' shock' : poisoned ? ' poison' : ''}`;
+    }
 
     // Panel de equipo.
     const slot = (label: string, id: string | null, dur: number) => {

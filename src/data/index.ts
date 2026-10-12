@@ -1,6 +1,7 @@
 import airflowJson from './definitions/airflow.json';
 import dayNightJson from './definitions/daynight.json';
 import enemiesJson from './definitions/enemies.json';
+import encountersJson from './definitions/encounters.json';
 import gameJson from './definitions/game.json';
 import gliderJson from './definitions/glider.json';
 import inputJson from './definitions/input.json';
@@ -20,6 +21,7 @@ import {
   airflowConfigSchema,
   dayNightConfigSchema,
   enemiesConfigSchema,
+  encountersConfigSchema,
   itemsConfigSchema,
   lootTablesConfigSchema,
   weaponsConfigSchema,
@@ -37,6 +39,7 @@ import {
   type AirflowConfig,
   type DayNightConfig,
   type EnemiesConfig,
+  type EncountersConfig,
   type ItemsConfig,
   type LootTablesConfig,
   type WeaponsConfig,
@@ -69,6 +72,7 @@ export interface GameData {
   temples: TemplesConfig;
   weapons: WeaponsConfig;
   enemies: EnemiesConfig;
+  encounters: EncountersConfig;
   items: ItemsConfig;
   loot: LootTablesConfig;
 }
@@ -90,6 +94,7 @@ export interface RawGameData {
   temples: unknown;
   weapons: unknown;
   enemies: unknown;
+  encounters: unknown;
   items: unknown;
   loot: unknown;
 }
@@ -110,6 +115,7 @@ export const BUNDLED_DATA: RawGameData = {
   temples: templesJson,
   weapons: weaponsJson,
   enemies: enemiesJson,
+  encounters: encountersJson,
   items: itemsJson,
   loot: lootTablesJson,
 };
@@ -135,6 +141,7 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     temples: parse(templesConfigSchema, raw.temples, 'temples.json'),
     weapons: parse(weaponsConfigSchema, raw.weapons, 'weapons.json'),
     enemies: parse(enemiesConfigSchema, raw.enemies, 'enemies.json'),
+    encounters: parse(encountersConfigSchema, raw.encounters, 'encounters.json'),
     items: parse(itemsConfigSchema, raw.items, 'items.json'),
     loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
   };
@@ -216,10 +223,45 @@ function checkConsistency(d: GameData): void {
   });
   d.enemies.enemies.forEach((e, i) => {
     if (!(e.loot in d.loot.tables)) issues.push({ path: `enemies[${i}].loot`, message: `tabla de botín "${e.loot}" no definida` });
+    const fam = { slime: e.slime, goblin: e.goblin, golem: e.golem } as const;
+    for (const [f, sec] of Object.entries(fam)) {
+      if (e.family === f && !sec) issues.push({ path: `enemies[${i}].${f}`, message: `un enemigo de la familia ${f} necesita la sección "${f}"` });
+    }
+    if (e.variant === 'hawk' && !e.hawk) issues.push({ path: `enemies[${i}].hawk`, message: 'un halcón necesita la sección "hawk"' });
+    if (e.goblin?.drop && !weaponIds.has(e.goblin.drop)) issues.push({ path: `enemies[${i}].goblin.drop`, message: `arma "${e.goblin.drop}" no definida` });
+    if (e.slime?.splitInto && !enemyIds.has(e.slime.splitInto.enemy)) issues.push({ path: `enemies[${i}].slime.splitInto`, message: `enemigo "${e.slime.splitInto.enemy}" no definido` });
+    e.attacks.forEach((a, j) => {
+      const at = `enemies[${i}].attacks[${j}]`;
+      if (a.maxRange < a.minRange) issues.push({ path: at, message: 'maxRange < minRange' });
+      if (a.kind === 'projectile' && !a.projectile) issues.push({ path: at, message: 'un ataque "projectile" necesita la sección "projectile"' });
+      if (a.kind === 'summon' && (!a.summon || !enemyIds.has(a.summon))) issues.push({ path: at, message: 'un ataque "summon" necesita un enemigo "summon" válido' });
+      if ((a.kind === 'slam' || a.kind === 'discharge' || a.kind === 'dive' || a.kind === 'rockfall' || a.kind === 'shockwave') && a.radius <= 0) issues.push({ path: at, message: `"${a.kind}" necesita radius > 0` });
+    });
+  });
+  const en = d.encounters;
+  const enemyRef = (id: string, path: string) => {
+    if (!enemyIds.has(id)) issues.push({ path, message: `enemigo "${id}" no definido` });
+  };
+  en.camps.forEach((c, i) => {
+    c.members.forEach((m, j) => enemyRef(m.enemy, `encounters.camps[${i}].members[${j}].enemy`));
+    c.reinforcements?.members.forEach((m, j) => enemyRef(m, `encounters.camps[${i}].reinforcements.members[${j}]`));
+    if (!(c.chest.loot in d.loot.tables)) issues.push({ path: `encounters.camps[${i}].chest.loot`, message: `tabla "${c.chest.loot}" no definida` });
+    if (c.members.some((m) => m.role === 'lookout') && !c.lookout) issues.push({ path: `encounters.camps[${i}].lookout`, message: 'hay un vigía pero no torre de vigía' });
+    if (c.members.some((m) => m.role === 'patrol') && c.patrol.length < 2) issues.push({ path: `encounters.camps[${i}].patrol`, message: 'una patrulla necesita al menos 2 puntos' });
+  });
+  en.groups.forEach((g, i) => enemyRef(g.enemy, `encounters.groups[${i}].enemy`));
+  en.bosses.forEach((b, i) => {
+    enemyRef(b.enemy, `encounters.bosses[${i}].enemy`);
+    if (!d.enemies.enemies.find((e) => e.id === b.enemy)?.boss) issues.push({ path: `encounters.bosses[${i}].enemy`, message: 'el enemigo no tiene sección "boss"' });
+    if (!(b.reward in d.loot.tables)) issues.push({ path: `encounters.bosses[${i}].reward`, message: `tabla "${b.reward}" no definida` });
+  });
+  en.roosts.forEach((r, i) => {
+    enemyRef(r.enemy, `encounters.roosts[${i}].enemy`);
+    if (!d.enemies.enemies.find((e) => e.id === r.enemy)?.hawk) issues.push({ path: `encounters.roosts[${i}].enemy`, message: 'solo aves (sección "hawk") pueden anidar' });
   });
   for (const [table, rows] of Object.entries(d.loot.tables)) {
     rows.forEach((r, i) => {
-      if (!itemIds.has(r.item)) issues.push({ path: `loot_tables.${table}[${i}].item`, message: `objeto "${r.item}" no definido` });
+      if (!itemIds.has(r.item) && !weaponIds.has(r.item) && !shieldIds.has(r.item)) issues.push({ path: `loot_tables.${table}[${i}].item`, message: `objeto "${r.item}" no definido` });
       if (r.max < r.min) issues.push({ path: `loot_tables.${table}[${i}]`, message: 'max < min' });
     });
   }

@@ -15,6 +15,14 @@ import type { CapsuleHandle } from '../world/valley/ValleyBuilder';
 const HATCH_TIME = 0.6;
 const HOP_START = 0.45;
 const HOP_TIME = 0.6;
+/** Texto de la pantalla de muerte según la causa. */
+const DEATH_TEXT: Record<DamageCause, string> = {
+  drown: 'Te has ahogado',
+  enemy: 'Has sido derrotado',
+  fall: 'Has caído',
+  poison: 'El veneno ha podido contigo',
+  shock: 'Una descarga te ha derribado',
+};
 const DEATH_FADE = 1.1;
 const DEATH_HOLD = 1.6;
 
@@ -326,7 +334,7 @@ export class PlayerSystem implements System {
     this.deathTimer = 0;
     ctx.world.require(this.entity, 'player').control = 'locked';
     ctx.bus.emit('player:died', { cause });
-    ctx.bus.emit('screen:fade', { to: 'black', seconds: DEATH_FADE, text: cause === 'drown' ? 'Te has ahogado' : cause === 'enemy' ? 'Has sido derrotado' : 'Has caído' });
+    ctx.bus.emit('screen:fade', { to: 'black', seconds: DEATH_FADE, text: DEATH_TEXT[cause] });
   }
 
   private finishRespawn(ctx: GameContext): void {

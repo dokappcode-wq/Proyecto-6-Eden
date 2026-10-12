@@ -2,7 +2,7 @@ import type { EventBus } from './EventBus';
 import type { InteractableKind } from './ecs/components';
 
 export type ActionPhase = 'pressed' | 'released';
-export type DamageCause = 'fall' | 'drown' | 'enemy';
+export type DamageCause = 'fall' | 'drown' | 'enemy' | 'poison' | 'shock';
 
 /** Catálogo de eventos del juego. Cada fase añade los suyos aquí. */
 export interface GameEvents {
@@ -36,6 +36,15 @@ export interface GameEvents {
   'combat:equipped': { slot: 'melee' | 'bow' | 'shield'; name: string };
   'combat:no_arrows': Record<string, never>;
   'enemy:noticed': { entity: number };
+  'enemy:alarm': { camp: string; name: string; horn: boolean };
+  'enemy:reinforcements': { camp: string; count: number };
+  'camp:cleared': { camp: string; name: string };
+  'chest:opened': { id: string };
+  'boss:engaged': { id: string; name: string; title: string };
+  'boss:phase': { id: string; phase: number };
+  'boss:defeated': { id: string; name: string; x: number; y: number; z: number };
+  'player:status': { kind: 'poison' | 'shock'; active: boolean };
+  'debug:teleport': { name: string };
   'enemy:defeated': { entity: number; enemy: string; family: string; x: number; y: number; z: number };
   'item:picked': { item: string; name: string; count: number };
   'item:inventory_full': { name: string };

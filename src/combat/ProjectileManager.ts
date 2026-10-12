@@ -43,12 +43,35 @@ export class ProjectileManager {
         }
       }
       if (view) view.visible = true;
+    } else if (proj.kind === 'missile') {
+      view = this.missileView(proj.look ?? 'rock', proj.size ?? 0.2);
+      this.group.add(view);
     } else if (model) {
       view = buildWeaponModel(model.kind, model.length, model.color).group;
       this.group.add(view);
     }
     if (view) this.views.set(proj.id, view);
     return proj;
+  }
+
+  private readonly missileGeo = {
+    rock: new THREE.DodecahedronGeometry(1, 0),
+    goo: new THREE.SphereGeometry(1, 10, 8),
+    spark: new THREE.OctahedronGeometry(1, 0),
+  };
+  private readonly missileMat = {
+    rock: new THREE.MeshStandardMaterial({ color: '#7d766b', roughness: 0.95, flatShading: true }),
+    goo: new THREE.MeshStandardMaterial({ color: '#a45be0', emissive: '#5a1f8a', emissiveIntensity: 0.6, transparent: true, opacity: 0.85 }),
+    spark: new THREE.MeshBasicMaterial({ color: '#fff27a' }),
+  };
+
+  /** Rocas, gelatina tóxica y chispas (las flechas enemigas usan el pool de flechas). */
+  private missileView(look: 'arrow' | 'rock' | 'goo' | 'spark', size: number): THREE.Object3D {
+    const key = look === 'arrow' ? 'rock' : look;
+    const m = new THREE.Mesh(this.missileGeo[key], this.missileMat[key]);
+    m.scale.setScalar(size);
+    m.castShadow = true;
+    return m;
   }
 
   /** Avanza todos los proyectiles; `onEvent` recibe cada impacto. */
@@ -62,6 +85,9 @@ export class ProjectileManager {
       if (!p.stuck) {
         if (p.kind === 'arrow') {
           v.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz);
+        } else if (p.kind === 'missile') {
+          v.rotation.x += dt * 5;
+          v.rotation.z += dt * 3;
         } else {
           v.rotation.x += dt * 18; // arma girando en el aire
           v.rotation.y = Math.atan2(p.vx, p.vz);

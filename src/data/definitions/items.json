@@ -13,6 +13,48 @@
       "category": "material",
       "stack": 99,
       "color": "#7fe36a"
+    },
+    {
+      "id": "toxic_jelly",
+      "name": "Gelatina tóxica",
+      "category": "material",
+      "stack": 99,
+      "color": "#b07be6"
+    },
+    {
+      "id": "shock_jelly",
+      "name": "Gelatina eléctrica",
+      "category": "material",
+      "stack": 99,
+      "color": "#ffe56a"
+    },
+    {
+      "id": "goblin_fang",
+      "name": "Colmillo de goblin",
+      "category": "material",
+      "stack": 99,
+      "color": "#e9e1c8"
+    },
+    {
+      "id": "stone_shard",
+      "name": "Esquirla de golem",
+      "category": "material",
+      "stack": 99,
+      "color": "#a19a8c"
+    },
+    {
+      "id": "golem_crystal",
+      "name": "Cristal de golem",
+      "category": "material",
+      "stack": 99,
+      "color": "#5ff0ff"
+    },
+    {
+      "id": "hawk_feather",
+      "name": "Pluma de halcón",
+      "category": "material",
+      "stack": 99,
+      "color": "#b98a5a"
     }
   ]
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { hitSlime } from '../ai/slime';
+import { attackReaches, isBlockable } from '../ai/attacks';
 import { arrowSpeed, arrowsForShot, compensateDrop, drawFraction } from '../combat/bow';
 import { computeDamage, inArc, type AttackKind } from '../combat/damage';
 import { createDefense, resolveIncoming } from '../combat/defense';
@@ -12,7 +12,7 @@ import type { GameContext, System } from '../core/Game';
 import type { CombatState } from '../core/ecs/components';
 import type { Entity } from '../core/ecs/World';
 import { wrapAngle } from '../core/math';
-import type { CombatConfig, EnemyDef, ShieldDef, StaminaConfig, WeaponDef } from '../data/schemas';
+import type { AttackDef, CombatConfig, Element, EnemyDef, ShieldDef, StaminaConfig, WeaponDef } from '../data/schemas';
 import { raymarchTerrain, type CameraController } from '../player/CameraController';
 import { foldGlider } from '../player/movement/glide';
 import { canUse, spend, spendRate } from '../player/movement/Stamina';
@@ -72,6 +72,9 @@ export function createCombatState(equipment: CombatState['equipment']): CombatSt
     moveMultiplier: 1,
     faceYaw: null,
     lunge: 0,
+    poisonT: 0,
+    poisonTick: 0,
+    shockT: 0,
   };
 }
 
@@ -100,6 +103,14 @@ export class CombatSystem {
     d.player.combatPose = () => this.pose(ctx);
     ctx.bus.on('input:action', ({ action, phase }) => {
       if (action === 'lock_on' && phase === 'pressed' && ctx.session.mode === 'play') this.toggleLock(ctx);
+    });
+    // Reaparecer cura los estados alterados.
+    ctx.bus.on('player:respawned', () => {
+      const c = ctx.world.get(d.playerEntity, 'combat');
+      if (!c) return;
+      if (c.poisonT > 0) ctx.bus.emit('player:status', { kind: 'poison', active: false });
+      c.poisonT = 0;
+      c.shockT = 0;
     });
   }
 
@@ -160,7 +171,30 @@ export class CombatSystem {
     c.lunge = 0;
     this.window = null;
 
-    if (p.control !== 'free') {
+    // --- estados alterados
+    const st = cfg.status;
+    if (c.poisonT > 0) {
+      c.poisonT = Math.max(0, c.poisonT - dt);
+      c.poisonTick -= dt;
+      if (c.poisonTick <= 0 && p.control === 'free') {
+        c.poisonTick = st.poison.tickSeconds;
+        this.d.fx.burst(ch.x, ch.y + 1.2, ch.z, 'gel', 4);
+        this.d.player.damagePlayer(ctx, st.poison.damagePerTick, 'poison');
+      }
+      if (c.poisonT === 0) ctx.bus.emit('player:status', { kind: 'poison', active: false });
+    }
+    if (c.shockT > 0) {
+      c.shockT = Math.max(0, c.shockT - dt);
+      if (c.shockT === 0) ctx.bus.emit('player:status', { kind: 'shock', active: false });
+    }
+
+    if (p.control !== 'free' || c.shockT > 0) {
+      // Electrocutado (o sin control): no puede atacar, apuntar ni moverse.
+      if (c.shockT > 0) {
+        c.moveMultiplier = 0;
+        c.melee = createMelee();
+        if (Math.random() < 0.3) this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'spark', 2);
+      }
       c.aiming = false;
       c.defense.guarding = false;
       c.drawT = 0;
@@ -323,7 +357,10 @@ export class CombatSystem {
         if (!flurryHit && !inArc(ch.x, ch.z, ch.yaw, b.x, b.z, def.radius, w.reach, w.arc)) continue;
         c.swingHits.push(e);
         hitAny = true;
-        this.damageEnemy(ctx, c, e, def, melee, w.kind, w.multiplier, w.knockback, ch.x, ch.z, false);
+        const weak = this.d.enemies.weakSpot(ctx, e, b.x, b.y, b.z, false);
+        // Golpear un slime eléctrico cargado con metal (o a puño) electrocuta.
+        if (this.d.enemies.isCharged(ctx, e) && (melee.tags.includes('metal') || melee.category === 'fists')) this.applyShock(ctx, c, 2, b.x, b.z);
+        this.damageEnemy(ctx, c, e, def, melee, w.kind, w.multiplier, w.knockback, ch.x, ch.z, weak);
       }
       if (hitAny) {
         if (w.kind === 'shockwave') this.d.fx.ring(ch.x, ch.y, ch.z, w.reach, '#e8dcc6');
@@ -362,13 +399,14 @@ export class CombatSystem {
         const b = en.brain;
         const top = b.y + def.height;
         if (Math.hypot(b.x - ch.x, b.z - ch.z) < def.radius + 0.25 && ch.y > top - 0.5 && ch.y < top + 0.35) {
-          const killed = hitSlime(b, def, cfg.stomp.damage, ch.x, ch.z, 2, 0.4);
+          const killed = this.d.enemies.hit(ctx, e, cfg.stomp.damage, { fromX: ch.x, fromZ: ch.z, knockback: 2, stagger: true, stun: 0.4 });
           ctx.bus.emit('combat:hit', { x: b.x, y: top, z: b.z, damage: cfg.stomp.damage, kind: 'stomp', sneak: false, weak: false, tags: def.tags });
           this.d.fx.burst(b.x, top, b.z, 'gel', 10);
           ch.vy = cfg.stomp.bounce;
           ch.fallStartY = ch.y;
           c.hitstopT = cfg.hitstop.light;
           if (killed) this.onKilled(ctx, e, def);
+          if (this.d.enemies.isCharged(ctx, e)) this.applyShock(ctx, c, 2, b.x, b.z);
           break;
         }
       }
@@ -376,25 +414,34 @@ export class CombatSystem {
 
     // Ataques enemigos sobre el jugador.
     const shield = this.shieldDef(c);
+    const body = { x: ch.x, y: ch.y, z: ch.z, groundY: this.groundBelow(ch.x, ch.y, ch.z), radius: this.d.player.bodyRadius, height: 1.7 };
     for (const e of world.query('enemy')) {
       const en = world.require(e, 'enemy');
       if (en.deadT >= 0) continue;
       const b = en.brain;
       const def = this.d.enemies.def(en.defId);
+      const a = b.attack;
+      if (a && a.phase === 'active' && !a.hit && p.control === 'free') {
+        // Las descargas eléctricas llegan más lejos por el agua.
+        const water = a.def.element === 'shock' && ch.swimming && this.d.enemies.inWater(b) ? cfg.status.shock.waterMultiplier : 1;
+        const reaches = attackReaches(b, def, body, 0, water);
+        // Esquiva perfecta: basta con esquivar justo cuando el ataque iba a alcanzarte.
+        const perfect = !reaches && c.defense.dodgeT <= cfg.dodge.perfectWindow && attackReaches(b, def, body, cfg.dodge.perfectReach, water);
+        if (reaches || perfect) {
+          a.hit = true;
+          this.resolveEnemyAttack(ctx, c, e, def, a.def, shield);
+          continue;
+        }
+      }
+      if (b.kind === 'hawk') continue;
       const dx = ch.x - b.x;
       const dz = ch.z - b.z;
       const dist = Math.hypot(dx, dz);
-      const reach = def.radius + this.d.player.bodyRadius + 0.25;
-      const vertical = Math.abs(ch.y - b.y) < def.height + 0.6;
-      const attacking = b.mode === 'lunge' && !b.attackHit && b.t < def.lungeTime && vertical && p.control === 'free';
-      // Esquiva perfecta: basta con esquivar justo cuando el ataque iba a alcanzarte (aunque la esquiva te saque de su alcance).
-      const perfectThreat = attacking && c.defense.dodgeT <= cfg.dodge.perfectWindow && dist < reach + cfg.dodge.perfectReach;
-      if (attacking && (dist < reach || perfectThreat)) {
-        b.attackHit = true;
-        this.resolveEnemyAttack(ctx, c, e, def, shield);
-      } else if (dist < reach - 0.25 && vertical && dist > 1e-3 && ch.mode !== 'climb' && ch.mode !== 'ledge') {
+      const reach = def.radius + this.d.player.bodyRadius;
+      const vertical = ch.y < b.y + def.height && ch.y + 1.6 > b.y;
+      if (dist < reach && vertical && dist > 1e-3 && ch.mode !== 'climb' && ch.mode !== 'ledge') {
         // Separación: el jugador no atraviesa a los enemigos.
-        const push = reach - 0.25 - dist;
+        const push = reach - dist;
         ch.x += (dx / dist) * push;
         ch.z += (dz / dist) * push;
       }
@@ -404,6 +451,7 @@ export class CombatSystem {
     this.d.projectiles.update(this.projectileWorld(ctx), wdt, (pr, ev) => {
       if (ev.type === 'target') this.onProjectileHit(ctx, c, pr, ev.id, ev.x, ev.y, ev.z);
       else if (ev.type === 'scene' && pr.kind === 'thrown') this.dropThrown(ctx, pr, ev.x, ev.y, ev.z);
+      else if (ev.type === 'scene' && pr.kind === 'missile') this.missileImpact(ctx, c, pr, ev.x, ev.y, ev.z);
       else if (ev.type === 'scene') this.d.fx.burst(ev.x, ev.y, ev.z, 'stone', 4);
     });
 
@@ -417,22 +465,17 @@ export class CombatSystem {
 
   // ------------------------------------------------------------------ resolución
 
-  private resolveEnemyAttack(ctx: GameContext, c: CombatState, e: Entity, def: EnemyDef, shield: ShieldDef | null): void {
+  private resolveEnemyAttack(ctx: GameContext, c: CombatState, e: Entity, def: EnemyDef, attack: AttackDef, shield: ShieldDef | null): void {
     const cfg = this.d.cfg;
     const ch = ctx.world.require(this.d.playerEntity, 'character');
     const b = ctx.world.require(e, 'enemy').brain;
-    const result = resolveIncoming(c.defense, b, { x: ch.x, z: ch.z, yaw: ch.yaw }, shield, cfg);
+    let result = resolveIncoming(c.defense, b, { x: ch.x, z: ch.z, yaw: ch.yaw }, isBlockable(attack.kind) ? shield : null, cfg);
+    // Un escudo de metal no para la electricidad.
+    if (result === 'blocked' && attack.element === 'shock' && shield?.tags.includes('metal')) result = 'hit';
     const at = { x: (b.x + ch.x) / 2, y: ch.y + 1, z: (b.z + ch.z) / 2 };
     if (result === 'hit') {
-      const dir = Math.atan2(ch.x - b.x, ch.z - b.z);
-      ch.vx = Math.sin(dir) * 6;
-      ch.vz = Math.cos(dir) * 6;
-      ch.vy = 3.5;
-      ch.grounded = false;
-      ch.mode = 'air';
-      c.hitstopT = cfg.hitstop.light;
-      this.d.fx.burst(at.x, at.y, at.z, 'gel', 8);
-      this.d.player.damagePlayer(ctx, def.damage, 'enemy');
+      this.hurtPlayer(ctx, c, attack.damage, attack.element, attack.knockback, b.x, b.z, attack.kind === 'dive');
+      this.d.fx.burst(at.x, at.y, at.z, def.tags.includes('gel') ? 'gel' : def.tags.includes('rock') ? 'stone' : 'spark', 8);
       return;
     }
     ctx.bus.emit('combat:defended', { result, ...at });
@@ -445,21 +488,92 @@ export class CombatSystem {
       this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'flurry', 14);
     } else if (result === 'blocked') {
       const sh = equipped(c.equipment, 'shield');
-      if (sh) this.reportWear(ctx, sh.uid, wear(c.equipment, this.d.catalog, sh.uid, 1, cfg.durabilityWarning), ch);
-      b.mode = 'recover';
-      b.t = 0;
-      b.vx = -b.vx * 0.5;
-      b.vz = -b.vz * 0.5;
+      // Los golpes muy fuertes rompen la guardia: algo de daño y más desgaste.
+      const heavy = attack.knockback >= 10;
+      if (sh) this.reportWear(ctx, sh.uid, wear(c.equipment, this.d.catalog, sh.uid, heavy ? 3 : 1, cfg.durabilityWarning), ch);
+      if (heavy) this.hurtPlayer(ctx, c, Math.ceil(attack.damage * 0.25), 'physical', attack.knockback * 0.6, b.x, b.z, false);
+      else if (b.attack) {
+        b.attack.phase = 'recovery';
+        b.attack.t = 0;
+        b.vx = -b.vx * 0.5;
+        b.vz = -b.vz * 0.5;
+      }
       this.d.fx.burst(at.x, at.y, at.z, 'spark', 8);
-      this.d.camera.addShake(0.15);
+      this.d.camera.addShake(heavy ? 0.4 : 0.15);
     } else if (result === 'parried') {
-      // Parry: el atacante queda aturdido más tiempo y sale despedido.
-      hitSlime(b, def, 0, ch.x, ch.z, 7, -def.stunTime * 0.6);
-      b.hp = Math.max(b.hp, 1);
+      // Parry: el atacante queda aturdido (los grandes apenas se tambalean) y sale despedido.
+      this.d.enemies.hit(ctx, e, 0, { fromX: ch.x, fromZ: ch.z, knockback: 7, stagger: true, stun: def.stunTime * (1 - def.knockbackResist) * 1.5 });
       this.d.fx.burst(at.x, at.y, at.z, 'parry', 16);
       this.d.fx.ring(at.x, ch.y, at.z, 2, '#9ff3ff');
       c.hitstopT = cfg.hitstop.heavy;
     }
+  }
+
+  /** Daño al jugador con su elemento: empujón, veneno, descarga y plegado del planeador. */
+  private hurtPlayer(ctx: GameContext, c: CombatState, damage: number, element: Element, knockback: number, fromX: number, fromZ: number, foldGliderOnHit: boolean): void {
+    const cfg = this.d.cfg;
+    const ch = ctx.world.require(this.d.playerEntity, 'character');
+    const dir = Math.atan2(ch.x - fromX, ch.z - fromZ);
+    const k = Math.min(14, knockback);
+    if (ch.mode === 'glide') {
+      if (foldGliderOnHit || k >= 6) foldGlider(ch);
+    }
+    if (ch.mode !== 'climb' && ch.mode !== 'ledge') {
+      ch.vx = Math.sin(dir) * k;
+      ch.vz = Math.cos(dir) * k;
+      ch.vy = Math.max(ch.vy, 2 + k * 0.25);
+      ch.grounded = false;
+      if (ch.mode !== 'glide') ch.mode = 'air';
+    }
+    c.hitstopT = Math.max(c.hitstopT, cfg.hitstop.light);
+    c.aiming = false;
+    c.drawT = 0;
+    if (element === 'poison') {
+      if (c.poisonT <= 0) ctx.bus.emit('player:status', { kind: 'poison', active: true });
+      c.poisonT = cfg.status.poison.seconds;
+      c.poisonTick = cfg.status.poison.tickSeconds;
+    }
+    if (element === 'shock') this.applyShock(ctx, c, 0, fromX, fromZ);
+    if (damage > 0) this.d.player.damagePlayer(ctx, damage, element === 'poison' ? 'poison' : element === 'shock' ? 'shock' : 'enemy');
+  }
+
+  /** Descarga eléctrica: queda paralizado un instante y suelta el arma. */
+  private applyShock(ctx: GameContext, c: CombatState, damage: number, fromX: number, fromZ: number): void {
+    const cfg = this.d.cfg.status.shock;
+    const ch = ctx.world.require(this.d.playerEntity, 'character');
+    if (c.shockT <= 0) ctx.bus.emit('player:status', { kind: 'shock', active: true });
+    c.shockT = cfg.seconds;
+    c.drawT = 0;
+    c.aiming = false;
+    this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'spark', 16);
+    if (cfg.dropsWeapon) {
+      const inst = equipped(c.equipment, 'melee');
+      if (inst) {
+        removeGear(c.equipment, inst.uid);
+        const a = Math.atan2(ch.x - fromX, ch.z - fromZ);
+        this.d.pickups.drop(ctx, inst.id, 1, ch.x + Math.sin(a) * 1.2, ch.y + 0.5, ch.z + Math.cos(a) * 1.2, inst.durability);
+        ctx.bus.emit('combat:equipped', { slot: 'melee', name: 'Puños' });
+      }
+    }
+    if (damage > 0) this.d.player.damagePlayer(ctx, damage, 'shock');
+  }
+
+  /** Roca o gelatina enemiga que estalla contra el suelo (con área si es grande). */
+  private missileImpact(ctx: GameContext, c: CombatState, pr: Projectile, x: number, y: number, z: number): void {
+    this.d.fx.burst(x, y + 0.1, z, pr.look === 'goo' ? 'gel' : 'stone', pr.splash ? 16 : 6);
+    if (pr.splash) {
+      this.d.fx.ring(x, y, z, pr.splash, '#e8dcc6');
+      const ch = ctx.world.require(this.d.playerEntity, 'character');
+      const d = Math.hypot(ch.x - x, ch.z - z);
+      if (d < pr.splash + this.d.player.bodyRadius && Math.abs(ch.y - y) < 2.5 && ctx.world.require(this.d.playerEntity, 'player').control === 'free' && c.defense.dodgeT > this.d.cfg.dodge.iframes) {
+        this.hurtPlayer(ctx, c, Math.round(pr.damage), pr.element ?? 'physical', pr.knockback ?? 6, x, z, true);
+      }
+      if (d < 25) this.d.camera.addShake(0.35 * (1 - d / 25));
+    }
+  }
+
+  private groundBelow(x: number, y: number, z: number): number {
+    return Math.max(this.d.terrain.height(x, z), this.d.colliders.topAt(x, z, 0.3, y + 0.1));
   }
 
   private damageEnemy(ctx: GameContext, c: CombatState, e: Entity, def: EnemyDef, weapon: WeaponDef, kind: AttackKind, multiplier: number, knockback: number, fromX: number, fromZ: number, weak: boolean): void {
@@ -469,19 +583,35 @@ export class CombatSystem {
     const breaking = kind !== 'arrow' && kind !== 'thrown' && inst !== null && inst.durability <= 1 && weapon.durability > 0;
     const sneak = !b.aware;
     const dmg = computeDamage(weapon, { kind, multiplier, sneak, weakPoint: weak, weakPointBonus: def.weakPointBonus, breaking, targetTags: def.tags }, this.d.cfg);
-    const killed = hitSlime(b, def, dmg, fromX, fromZ, knockback * (sneak ? 1.5 : 1), 0.25);
-    ctx.bus.emit('combat:hit', { x: b.x, y: b.y + def.height * 0.6, z: b.z, damage: dmg, kind, sneak, weak, tags: def.tags });
-    this.d.fx.burst(b.x, b.y + def.height * 0.6, b.z, def.tags.includes('gel') ? 'gel' : 'spark', sneak || breaking ? 18 : 10);
+    const heavy = kind === 'heavy' || kind === 'plunge' || kind === 'shockwave';
+    const killed = this.d.enemies.hit(ctx, e, dmg, { fromX, fromZ, knockback: knockback * (sneak ? 1.5 : 1), stagger: heavy || weak, stun: 0.15 });
+    const y = b.y + def.height * 0.6;
+    ctx.bus.emit('combat:hit', { x: b.x, y, z: b.z, damage: dmg, kind, sneak, weak, tags: def.tags });
+    this.d.fx.burst(b.x, y, b.z, this.fxKind(def), sneak || breaking || weak ? 18 : 10);
+    if (weak && def.golem) this.d.fx.burst(b.x, y, b.z, 'parry', 10);
     if (killed) this.onKilled(ctx, e, def);
+  }
+
+  private fxKind(def: EnemyDef): 'gel' | 'stone' | 'spark' {
+    return def.tags.includes('gel') ? 'gel' : def.tags.includes('rock') ? 'stone' : 'spark';
   }
 
   private onKilled(ctx: GameContext, e: Entity, def: EnemyDef): void {
     const b = ctx.world.require(e, 'enemy').brain;
     ctx.bus.emit('enemy:defeated', { entity: e, enemy: def.id, family: def.family, x: b.x, y: b.y, z: b.z });
-    this.d.fx.burst(b.x, b.y + def.height * 0.5, b.z, 'gel', 24);
-    this.d.pickups.dropLoot(ctx, def.loot, b.x, b.y, b.z);
+    this.d.fx.burst(b.x, b.y + def.height * 0.5, b.z, this.fxKind(def), 24);
+    this.d.enemies.onKilled(ctx, e);
+    const gy = this.groundBelow(b.x, b.y + 0.5, b.z);
+    this.d.pickups.dropLoot(ctx, def.loot, b.x, Math.max(gy, b.kind === 'hawk' ? gy : b.y), b.z);
+    // Los goblins sueltan su arma (gastada).
+    const g = def.goblin;
+    if (g?.drop && Math.random() < g.dropChance) {
+      const max = this.d.catalog.maxDurability(g.drop);
+      this.d.pickups.drop(ctx, g.drop, 1, b.x + 0.5, b.y + 0.4, b.z, Math.max(1, Math.round(max * (0.35 + Math.random() * 0.4))));
+    }
     const c = ctx.world.require(this.d.playerEntity, 'combat');
     if (c.flurryTarget === e) c.flurryTarget = null;
+    if (c.lockTarget === e) c.lockTarget = null;
   }
 
   private wearMelee(ctx: GameContext, c: CombatState, ch: { x: number; y: number; z: number }): void {
@@ -593,29 +723,39 @@ export class CombatSystem {
       // Proyectil enemigo contra el jugador: escudo (parry o espejo) lo devuelve.
       const ch = ctx.world.require(this.d.playerEntity, 'character');
       const shield = this.shieldDef(c);
-      const result = resolveIncoming(c.defense, { x: pr.x - pr.vx, z: pr.z - pr.vz }, { x: ch.x, z: ch.z, yaw: ch.yaw }, shield, this.d.cfg);
+      const from = { x: pr.x - pr.vx, z: pr.z - pr.vz };
+      const result = resolveIncoming(c.defense, from, { x: ch.x, z: ch.z, yaw: ch.yaw }, shield, this.d.cfg);
       if (result === 'parried' || (result === 'blocked' && shield?.reflectsWhileGuarding)) {
         pr.alive = true;
-        reflectProjectile(pr, { x: pr.x - pr.vx, y: pr.y, z: pr.z - pr.vz });
+        const src = pr.source !== undefined ? ctx.world.get(pr.source, 'transform') : undefined;
+        reflectProjectile(pr, src ? { x: src.x, y: src.y + 1, z: src.z } : { x: from.x, y: pr.y, z: from.z });
         this.d.fx.burst(x, y, z, 'parry', 10);
         return;
       }
-      if (result === 'hit') this.d.player.damagePlayer(ctx, Math.round(pr.damage), 'enemy');
+      if (result === 'blocked') {
+        const sh = equipped(c.equipment, 'shield');
+        if (sh) this.reportWear(ctx, sh.uid, wear(c.equipment, this.d.catalog, sh.uid, 1, this.d.cfg.durabilityWarning), ch);
+        this.d.fx.burst(x, y, z, 'spark', 6);
+        return;
+      }
+      if (result === 'hit') {
+        this.hurtPlayer(ctx, c, Math.round(pr.damage), pr.element ?? 'physical', pr.knockback ?? 3, from.x, from.z, true);
+        this.d.fx.burst(x, y, z, pr.look === 'goo' ? 'gel' : 'spark', 6);
+      }
       return;
     }
     const en = ctx.world.get(id, 'enemy');
     if (!en || en.deadT >= 0) return;
     const def = this.d.enemies.def(en.defId);
-    if (pr.kind === 'arrow') {
-      // Punto débil: el núcleo del slime.
-      const coreY = en.brain.y + def.height * 0.55;
-      const weak = Math.abs(y - coreY) < def.height * 0.18;
+    if (pr.kind === 'arrow' || pr.kind === 'missile') {
+      // Punto débil: núcleo del slime, cabeza del goblin, cristal del golem.
+      const weak = this.d.enemies.weakSpot(ctx, id, x, y, z, true);
       const bow = this.bowDef(c) ?? this.d.catalog.weapon('short_bow');
       const k = pr.damage / bow.damage;
       this.damageEnemy(ctx, c, id, def, bow, 'arrow', k, 2, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, weak);
     } else if (pr.weaponId) {
       const w = this.d.catalog.weapon(pr.weaponId);
-      this.damageEnemy(ctx, c, id, def, w, 'thrown', 1, 5, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, false);
+      this.damageEnemy(ctx, c, id, def, w, 'thrown', 1, 5, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, this.d.enemies.weakSpot(ctx, id, x, y, z, true));
       this.dropThrown(ctx, pr, x, y, z);
     }
   }
@@ -646,7 +786,7 @@ export class CombatSystem {
           }
         } else {
           const ch = ctx.world.require(this.d.playerEntity, 'character');
-          const t = segmentSphere(ax, ay, az, bx, by, bz, ch.x, ch.y + 0.9, ch.z, 0.6);
+          const t = segmentSphere(ax, ay, az, bx, by, bz, ch.x, ch.y + 0.9, ch.z, 0.6 + (p.size ?? 0) * 0.6);
           if (t !== null) best = { id: this.d.playerEntity, tHit: t };
         }
         return best;

@@ -1,7 +1,9 @@
 import { parse, v, type Infer } from '../data/schema';
 import type { BindingStorage } from './input/InputManager';
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
+/** Versiones anteriores que se pueden migrar (les faltan campos opcionales). */
+const COMPATIBLE_VERSIONS = [3, 4];
 
 const gear = v.object({ id: v.string({ minLength: 1 }), durability: v.number({ min: 0, integer: true }) });
 
@@ -28,6 +30,8 @@ const saveSchema = v.object({
   }),
   /** Objetos del valle ya recogidos. */
   collected: v.array(v.string()),
+  /** Mundo: cofres de campamento abiertos y jefes derrotados (v4). */
+  world: v.optional(v.object({ chestsOpened: v.array(v.string()), bossesDefeated: v.array(v.string()) })),
 });
 
 export type SaveData = Infer<typeof saveSchema>;
@@ -57,7 +61,8 @@ export class SaveStore {
       const raw = this.storage?.getItem(this.prefix + slot);
       if (!raw) return null;
       const data = parse(saveSchema, JSON.parse(raw), `partida "${slot}"`);
-      return data.version === SAVE_VERSION ? data : null;
+      if (!COMPATIBLE_VERSIONS.includes(data.version)) return null;
+      return { ...data, world: data.world ?? { chestsOpened: [], bossesDefeated: [] } };
     } catch {
       return null;
     }

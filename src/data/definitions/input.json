@@ -73,6 +73,9 @@
     "lock_on": [
       "KeyZ",
       "Mouse1"
+    ],
+    "debug_teleport": [
+      "F7"
     ]
   }
 }

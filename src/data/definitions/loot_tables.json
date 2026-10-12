@@ -13,6 +13,216 @@
         "min": 2,
         "max": 4
       }
+    ],
+    "slime_toxic": [
+      {
+        "item": "toxic_jelly",
+        "chance": 0.9,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "item": "slime_jelly",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "slime_electric": [
+      {
+        "item": "shock_jelly",
+        "chance": 0.9,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "item": "arrow",
+        "chance": 0.3,
+        "min": 2,
+        "max": 3
+      }
+    ],
+    "slime_giant": [
+      {
+        "item": "slime_jelly",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "item": "arrow",
+        "chance": 0.8,
+        "min": 5,
+        "max": 8
+      }
+    ],
+    "goblin_melee": [
+      {
+        "item": "goblin_fang",
+        "chance": 0.6,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "arrow",
+        "chance": 0.3,
+        "min": 2,
+        "max": 4
+      }
+    ],
+    "goblin_spear": [
+      {
+        "item": "goblin_fang",
+        "chance": 0.6,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "arrow",
+        "chance": 0.3,
+        "min": 2,
+        "max": 4
+      }
+    ],
+    "goblin_archer": [
+      {
+        "item": "arrow",
+        "chance": 1,
+        "min": 3,
+        "max": 6
+      },
+      {
+        "item": "goblin_fang",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "goblin_chief": [
+      {
+        "item": "goblin_fang",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "item": "arrow",
+        "chance": 1,
+        "min": 4,
+        "max": 8
+      }
+    ],
+    "golem_small": [
+      {
+        "item": "stone_shard",
+        "chance": 1,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "golem_medium": [
+      {
+        "item": "stone_shard",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "golem_large": [
+      {
+        "item": "stone_shard",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 1,
+        "min": 1,
+        "max": 2
+      }
+    ],
+    "golem_giant": [
+      {
+        "item": "golem_crystal",
+        "chance": 1,
+        "min": 3,
+        "max": 4
+      },
+      {
+        "item": "stone_shard",
+        "chance": 1,
+        "min": 5,
+        "max": 8
+      }
+    ],
+    "hawk_hunter": [
+      {
+        "item": "hawk_feather",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      }
+    ],
+    "camp_plains_chest": [
+      {
+        "item": "woodcutter_axe",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "arrow",
+        "chance": 1,
+        "min": 10,
+        "max": 15
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "camp_west_chest": [
+      {
+        "item": "wood_shield",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "arrow",
+        "chance": 1,
+        "min": 8,
+        "max": 12
+      }
+    ],
+    "boss_colossus": [
+      {
+        "item": "colossus_maul",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 1,
+        "min": 3,
+        "max": 3
+      }
     ]
   }
 }

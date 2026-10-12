@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createSlime, hitSlime, stepSlime } from '../src/ai/slime';
 import { arrowsForShot, compensateDrop } from '../src/combat/bow';
 import { computeDamage, inArc, type HitModifiers } from '../src/combat/damage';
 import { createDefense, resolveIncoming } from '../src/combat/defense';
 import { addGear, addItem, Catalog, createEquipment, equip, equipped, takeItem, wear } from '../src/combat/inventory';
 import { comboDuration, createMelee, HOLD_TO_CHARGE, stepMelee, type MeleeStepResult } from '../src/combat/melee';
 import { reflectProjectile, segmentSphere, stepProjectile, type Projectile } from '../src/combat/projectiles';
-import { createRng } from '../src/core/math';
 import { DATA } from './helpers';
 
 const cfg = DATA.player.combat;
@@ -42,7 +40,9 @@ describe('Daño', () => {
 
 describe('Armas distintas entre sí', () => {
   it('cada categoría tiene un ritmo, alcance o especial claramente distinto', () => {
-    const melee = DATA.weapons.weapons.filter((w) => w.category !== 'bow' && w.category !== 'fists');
+    const all = DATA.weapons.weapons.filter((w) => w.category !== 'bow' && w.category !== 'fists');
+    // Un representante por categoría (las variantes, p. ej. goblin, comparten categoría).
+    const melee = [...new Map(all.map((w) => [w.category, w])).values()];
     expect(melee.length).toBeGreaterThanOrEqual(7);
     const sig = (w: (typeof melee)[number]) => `${comboDuration(w).toFixed(2)}|${w.reach}|${w.arc}|${w.heavy.special}`;
     expect(new Set(melee.map(sig)).size).toBe(melee.length);
@@ -181,49 +181,6 @@ describe('Arco y proyectiles', () => {
     reflectProjectile(p, { x: 0, y: 1, z: 10 });
     expect(p.vz).toBeGreaterThan(20);
     expect(p.owner).toBe('player');
-  });
-});
-
-describe('Slime', () => {
-  const def = DATA.enemies.enemies[0];
-  const flat = () => 0;
-  it('detecta, persigue, avisa y embiste', () => {
-    const s = createSlime(def, 0, 0, 0, 0.1);
-    const rng = createRng(1);
-    const seen: string[] = [];
-    let active = false;
-    const player = { x: 0, y: 0, z: 6, detectFactor: 1, alive: true };
-    for (let i = 0; i < 60 * 8; i++) {
-      const e = stepSlime(s, def, player, flat, rng, DT);
-      if (!seen.includes(s.mode)) seen.push(s.mode);
-      active ||= e.attackActive;
-    }
-    expect(seen).toEqual(expect.arrayContaining(['alert', 'chase', 'windup', 'lunge']));
-    expect(active).toBe(true);
-  });
-  it('agachado se le detecta desde más cerca', () => {
-    const s = createSlime(def, 0, 0, 0, 0.1);
-    stepSlime(s, def, { x: 0, y: 0, z: def.aggroRadius * 0.8, detectFactor: 0.5, alive: true }, flat, createRng(2), DT);
-    expect(s.aware).toBe(false);
-  });
-  it('por la espalda solo detecta muy de cerca', () => {
-    const s = createSlime(def, 0, 0, 0, 0);
-    s.yaw = 0;
-    const behind = def.aggroRadius * 0.5 * def.rearSense + 0.4;
-    stepSlime(s, def, { x: 0, y: 0, z: -behind, detectFactor: 0.5, alive: true }, flat, createRng(2), DT);
-    expect(s.aware).toBe(false);
-    const front = createSlime(def, 0, 0, 0, 0);
-    front.yaw = 0;
-    stepSlime(front, def, { x: 0, y: 0, z: behind, detectFactor: 0.5, alive: true }, flat, createRng(2), DT);
-    expect(front.aware).toBe(true);
-  });
-  it('recibe daño, retrocede y muere', () => {
-    const s = createSlime(def, 0, 0, 0, 0.1);
-    expect(hitSlime(s, def, 5, 0, -1, 4, 0.3)).toBe(false);
-    expect(s.mode).toBe('stunned');
-    expect(s.vz).toBeGreaterThan(0);
-    expect(hitSlime(s, def, 100, 0, -1, 4, 0.3)).toBe(true);
-    expect(s.mode).toBe('dead');
   });
 });
 

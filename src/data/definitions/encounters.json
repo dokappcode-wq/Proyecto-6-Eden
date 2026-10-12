@@ -1,0 +1,467 @@
+{
+  "schedule": {
+    "sleepFrom": 22,
+    "sleepTo": 6,
+    "meals": [
+      [
+        7,
+        8.5
+      ],
+      [
+        19,
+        21
+      ]
+    ],
+    "fireLightRadius": 11
+  },
+  "camps": [
+    {
+      "id": "camp_plains",
+      "name": "Campamento goblin del Llano",
+      "center": [
+        190,
+        520
+      ],
+      "radius": 26,
+      "fire": [
+        190,
+        520
+      ],
+      "horn": [
+        205,
+        507
+      ],
+      "regroup": [
+        236,
+        566
+      ],
+      "tents": [
+        {
+          "position": [
+            178,
+            533
+          ],
+          "yaw": 0.6
+        },
+        {
+          "position": [
+            200,
+            536
+          ],
+          "yaw": -0.5
+        },
+        {
+          "position": [
+            180,
+            506
+          ],
+          "yaw": 2.4
+        }
+      ],
+      "lookout": {
+        "position": [
+          171,
+          513
+        ],
+        "height": 5
+      },
+      "chest": {
+        "position": [
+          187,
+          529
+        ],
+        "yaw": 0.3,
+        "loot": "camp_plains_chest"
+      },
+      "members": [
+        {
+          "enemy": "goblin_chief",
+          "role": "leader",
+          "position": [
+            193,
+            523
+          ]
+        },
+        {
+          "enemy": "goblin_melee",
+          "role": "guard",
+          "position": [
+            212,
+            512
+          ],
+          "post": [
+            214,
+            509
+          ]
+        },
+        {
+          "enemy": "goblin_melee",
+          "role": "cook",
+          "position": [
+            186,
+            517
+          ]
+        },
+        {
+          "enemy": "goblin_spear",
+          "role": "patrol",
+          "position": [
+            220,
+            530
+          ]
+        },
+        {
+          "enemy": "goblin_spear",
+          "role": "guard",
+          "position": [
+            168,
+            541
+          ],
+          "post": [
+            166,
+            545
+          ]
+        },
+        {
+          "enemy": "goblin_archer",
+          "role": "lookout",
+          "position": [
+            171,
+            513
+          ]
+        },
+        {
+          "enemy": "goblin_archer",
+          "role": "sleeper",
+          "position": [
+            200,
+            534
+          ]
+        }
+      ],
+      "patrol": [
+        [
+          222,
+          498
+        ],
+        [
+          224,
+          546
+        ],
+        [
+          166,
+          556
+        ],
+        [
+          158,
+          498
+        ]
+      ],
+      "reinforcements": {
+        "from": [
+          262,
+          468
+        ],
+        "members": [
+          "goblin_melee",
+          "goblin_spear"
+        ]
+      }
+    },
+    {
+      "id": "camp_west",
+      "name": "Campamento goblin del oeste",
+      "center": [
+        -260,
+        640
+      ],
+      "radius": 20,
+      "fire": [
+        -260,
+        640
+      ],
+      "horn": [
+        -248,
+        628
+      ],
+      "regroup": [
+        -300,
+        690
+      ],
+      "tents": [
+        {
+          "position": [
+            -270,
+            650
+          ],
+          "yaw": 0.8
+        },
+        {
+          "position": [
+            -250,
+            652
+          ],
+          "yaw": -0.8
+        }
+      ],
+      "chest": {
+        "position": [
+          -266,
+          646
+        ],
+        "yaw": -0.4,
+        "loot": "camp_west_chest"
+      },
+      "members": [
+        {
+          "enemy": "goblin_melee",
+          "role": "leader",
+          "position": [
+            -258,
+            636
+          ]
+        },
+        {
+          "enemy": "goblin_spear",
+          "role": "guard",
+          "position": [
+            -244,
+            622
+          ],
+          "post": [
+            -242,
+            619
+          ]
+        },
+        {
+          "enemy": "goblin_archer",
+          "role": "sleeper",
+          "position": [
+            -270,
+            650
+          ]
+        },
+        {
+          "enemy": "goblin_melee",
+          "role": "cook",
+          "position": [
+            -262,
+            644
+          ]
+        }
+      ],
+      "patrol": []
+    }
+  ],
+  "groups": [
+    {
+      "id": "g_plains_slimes",
+      "enemy": "slime_green",
+      "position": [
+        100,
+        430
+      ],
+      "count": 4,
+      "radius": 10,
+      "route": []
+    },
+    {
+      "id": "g_toxic",
+      "enemy": "slime_toxic",
+      "position": [
+        44,
+        412
+      ],
+      "count": 3,
+      "radius": 8,
+      "route": []
+    },
+    {
+      "id": "g_electric",
+      "enemy": "slime_electric",
+      "position": [
+        -46,
+        372
+      ],
+      "count": 3,
+      "radius": 7,
+      "route": []
+    },
+    {
+      "id": "g_giant_slime",
+      "enemy": "slime_giant",
+      "position": [
+        330,
+        400
+      ],
+      "count": 1,
+      "radius": 0,
+      "route": []
+    },
+    {
+      "id": "g_rockfield",
+      "enemy": "golem_small",
+      "position": [
+        -170,
+        470
+      ],
+      "count": 3,
+      "radius": 14,
+      "route": []
+    },
+    {
+      "id": "g_golem",
+      "enemy": "golem_medium",
+      "position": [
+        -120,
+        560
+      ],
+      "count": 1,
+      "radius": 0,
+      "route": []
+    },
+    {
+      "id": "g_golem_large",
+      "enemy": "golem_large",
+      "position": [
+        60,
+        760
+      ],
+      "count": 1,
+      "radius": 0,
+      "route": []
+    },
+    {
+      "id": "g_patrol",
+      "enemy": "goblin_spear",
+      "position": [
+        70,
+        455
+      ],
+      "count": 2,
+      "radius": 2,
+      "route": [
+        [
+          70,
+          455
+        ],
+        [
+          160,
+          470
+        ],
+        [
+          130,
+          600
+        ],
+        [
+          40,
+          560
+        ]
+      ]
+    }
+  ],
+  "bosses": [
+    {
+      "id": "boss_colossus",
+      "enemy": "golem_giant",
+      "position": [
+        0,
+        1000
+      ],
+      "yaw": 3.14159,
+      "reward": "boss_colossus"
+    }
+  ],
+  "roosts": [
+    {
+      "id": "roost_cliffs",
+      "enemy": "hawk_hunter",
+      "center": [
+        300,
+        280
+      ],
+      "count": 2
+    },
+    {
+      "id": "roost_peaks",
+      "enemy": "hawk_hunter",
+      "center": [
+        0,
+        -1150
+      ],
+      "count": 3
+    }
+  ],
+  "teleports": [
+    {
+      "name": "Salida del valle",
+      "position": [
+        0,
+        280
+      ]
+    },
+    {
+      "name": "Campamento goblin del Llano",
+      "position": [
+        150,
+        478
+      ]
+    },
+    {
+      "name": "Campamento goblin del oeste",
+      "position": [
+        -228,
+        600
+      ]
+    },
+    {
+      "name": "Slimes tóxicos",
+      "position": [
+        44,
+        394
+      ]
+    },
+    {
+      "name": "Slimes eléctricos (lago)",
+      "position": [
+        -30,
+        392
+      ]
+    },
+    {
+      "name": "Slime gigante",
+      "position": [
+        312,
+        382
+      ]
+    },
+    {
+      "name": "Campo de rocas (golems)",
+      "position": [
+        -150,
+        446
+      ]
+    },
+    {
+      "name": "Golem grande",
+      "position": [
+        40,
+        730
+      ]
+    },
+    {
+      "name": "Arena del Coloso",
+      "position": [
+        0,
+        940
+      ]
+    },
+    {
+      "name": "Acantilado de los halcones",
+      "position": [
+        232,
+        196
+      ]
+    }
+  ]
+}
