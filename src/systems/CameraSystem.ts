@@ -23,6 +23,10 @@ export class CameraSystem implements System {
   private readonly target = { x: 0, y: 0, z: 0 };
   private cinematic: { id: string; shots: CinematicShot[]; index: number; t: number } | null = null;
   private readonly look = new THREE.Vector3();
+  /** Si devuelve true, el ratón se desvía a otro uso (rueda de armas) y la cámara no gira. */
+  lookSink: ((dx: number, dy: number) => boolean) | null = null;
+  /** Estado de combate que afecta a la cámara. */
+  combatView: () => { aim: { distance: number; shoulder: number; fov: number } | null; lock: { x: number; y: number; z: number } | null } = () => ({ aim: null, lock: null });
 
   constructor(
     private readonly playerEntity: Entity,
@@ -84,10 +88,12 @@ export class CameraSystem implements System {
     this.target.y = lerp(t.prevY, t.y, alpha);
     this.target.z = lerp(t.prevZ, t.z, alpha);
     const speed = ch.mode === 'glide' ? Math.hypot(ch.vx, ch.vz) + Math.max(0, -ch.vy) * 0.5 : Math.hypot(ch.vx, ch.vz);
+    const sunk = this.lookSink?.(look.dx, look.dy) ?? false;
+    const view = this.combatView();
     this.controller.update(
       {
-        lookDX: look.dx,
-        lookDY: look.dy,
+        lookDX: sunk ? 0 : look.dx,
+        lookDY: sunk ? 0 : look.dy,
         zoom,
         target: this.target,
         speed,
@@ -95,6 +101,8 @@ export class CameraSystem implements System {
         moving: p.control === 'free' && Math.hypot(ch.vx, ch.vz) > 0.5 && ch.mode !== 'climb',
         gliding: ch.mode === 'glide',
         climbing: ch.mode === 'climb',
+        aim: view.aim,
+        lockTarget: view.lock,
       },
       this.env,
       time.frameDt,

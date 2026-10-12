@@ -1,3 +1,7 @@
+import type { SlimeState } from '../../ai/slime';
+import type { DefenseState } from '../../combat/defense';
+import type { Equipment } from '../../combat/inventory';
+import type { MeleeState } from '../../combat/melee';
 import type { CharacterState } from '../../player/CharacterController';
 import type { HealthState } from '../../player/movement/Stamina';
 
@@ -22,7 +26,7 @@ export interface Name {
   value: string;
 }
 
-export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower';
+export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower' | 'pickup';
 
 export interface Interactable {
   id: string;
@@ -48,6 +52,53 @@ export interface Player {
   health: HealthState;
 }
 
+/** Estado de combate del jugador (equipo, ataque, defensa, arco, fijado, ráfaga...). */
+export interface CombatState {
+  equipment: Equipment;
+  melee: MeleeState;
+  defense: DefenseState;
+  /** Tensando el arco (s). */
+  drawT: number;
+  aiming: boolean;
+  plunging: boolean;
+  /** Ráfaga tras esquiva perfecta: tiempo restante (s) y objetivo. */
+  flurryT: number;
+  flurryTarget: number | null;
+  /** Parada de impacto restante (s, tiempo real). */
+  hitstopT: number;
+  lockTarget: number | null;
+  wheelOpen: boolean;
+  /** Objetivos ya golpeados por el barrido actual. */
+  swingId: number;
+  swingHits: number[];
+  /** Modificadores que el sistema de combate pasa al movimiento en este paso. */
+  moveMultiplier: number;
+  faceYaw: number | null;
+  lunge: number;
+}
+
+/** Enemigo vivo: definición + cerebro (estado de IA y física propia). */
+export interface Enemy {
+  defId: string;
+  brain: SlimeState;
+  spawnId: string;
+  /** Tiempo desde la muerte (animación de desaparición); -1 si vive. */
+  deadT: number;
+}
+
+/** Objeto en el suelo. */
+export interface Pickup {
+  item: string;
+  count: number;
+  /** Durabilidad restante (armas soltadas/lanzadas). */
+  durability: number | null;
+  /** Id del objeto colocado en el valle (para no reaparecer al cargar), o null. */
+  sourceId: string | null;
+  /** Se recoge al pasar por encima (munición y materiales). */
+  auto: boolean;
+  age: number;
+}
+
 /** Registro de todos los componentes. Cada fase amplía este mapa. */
 export interface ComponentMap {
   transform: Transform;
@@ -55,6 +106,9 @@ export interface ComponentMap {
   interactable: Interactable;
   player: Player;
   character: CharacterState;
+  combat: CombatState;
+  enemy: Enemy;
+  pickup: Pickup;
 }
 
 export type ComponentName = keyof ComponentMap;

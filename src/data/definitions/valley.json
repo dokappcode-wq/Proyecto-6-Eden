@@ -1,52 +1,454 @@
 {
-  "capsule": { "position": [-120, -110], "rotationY": 0.7 },
+  "capsule": {
+    "position": [
+      -120,
+      -110
+    ],
+    "rotationY": 0.7
+  },
   "wreckage": [
-    { "kind": "panel", "position": [-136, -127], "rotationY": 0.4, "scale": 1.2 },
-    { "kind": "wing", "position": [-148, -142], "rotationY": 2.1, "scale": 1.4 },
-    { "kind": "engine", "position": [-102, -128], "rotationY": -0.6, "scale": 1.0 },
-    { "kind": "debris", "position": [-128, -92], "rotationY": 1.2, "scale": 0.9 },
-    { "kind": "debris", "position": [-158, -118], "rotationY": -1.4, "scale": 1.1 },
-    { "kind": "panel", "position": [-112, -140], "rotationY": 2.6, "scale": 0.8 }
+    {
+      "kind": "panel",
+      "position": [
+        -136,
+        -127
+      ],
+      "rotationY": 0.4,
+      "scale": 1.2
+    },
+    {
+      "kind": "wing",
+      "position": [
+        -148,
+        -142
+      ],
+      "rotationY": 2.1,
+      "scale": 1.4
+    },
+    {
+      "kind": "engine",
+      "position": [
+        -102,
+        -128
+      ],
+      "rotationY": -0.6,
+      "scale": 1.0
+    },
+    {
+      "kind": "debris",
+      "position": [
+        -128,
+        -92
+      ],
+      "rotationY": 1.2,
+      "scale": 0.9
+    },
+    {
+      "kind": "debris",
+      "position": [
+        -158,
+        -118
+      ],
+      "rotationY": -1.4,
+      "scale": 1.1
+    },
+    {
+      "kind": "panel",
+      "position": [
+        -112,
+        -140
+      ],
+      "rotationY": 2.6,
+      "scale": 0.8
+    }
   ],
-  "tower": { "id": "tower_valley", "position": [110, -100], "rotationY": 0.3, "height": 42, "beamHeight": 900 },
-  "temple": { "id": "temple_valley", "position": [120, 110], "rotationY": -2.3 },
-  "gate": { "position": [0, 206], "rotationY": 0, "width": 34, "height": 24, "depth": 7 },
+  "tower": {
+    "id": "tower_valley",
+    "position": [
+      110,
+      -100
+    ],
+    "rotationY": 0.3,
+    "height": 42,
+    "beamHeight": 900
+  },
+  "temple": {
+    "id": "temple_valley",
+    "position": [
+      120,
+      110
+    ],
+    "rotationY": -2.3
+  },
+  "gate": {
+    "position": [
+      0,
+      206
+    ],
+    "rotationY": 0,
+    "width": 34,
+    "height": 24,
+    "depth": 7
+  },
   "ruins": [
-    { "kind": "block", "position": [-80, -40], "rotationY": 0.5, "size": [2.4, 1.1, 2.4] },
-    { "kind": "block", "position": [-76.6, -36.4], "rotationY": 0.6, "size": [2.2, 1.7, 2.2] },
-    { "kind": "block", "position": [-73, -33.2], "rotationY": 0.7, "size": [2.2, 2.3, 2.2], "runes": true },
-    { "kind": "block", "position": [-69.6, -30.4], "rotationY": 0.75, "size": [2.4, 2.9, 2.4] },
-    { "kind": "block", "position": [-65.4, -26.8], "rotationY": 0.8, "size": [5, 3.4, 5], "runes": true },
-    { "kind": "pillar", "position": [-63.6, -25], "rotationY": 0, "size": [0.9, 4.2, 0.9], "yOffset": 3.4 },
-    { "kind": "pillar", "position": [-86, -30], "rotationY": 0, "size": [1, 5.5, 1] },
-
-    { "kind": "rockface", "position": [-38, -44], "rotationY": 0.3, "size": [3, 2.0, 3] },
-    { "kind": "rockface", "position": [-35.6, -47.2], "rotationY": 0.3, "size": [3, 4.2, 3] },
-    { "kind": "rockface", "position": [-32.4, -51.2], "rotationY": 0.3, "size": [7, 9, 3.4] },
-    { "kind": "pillar", "position": [-58, -42], "rotationY": 0, "size": [1, 3.2, 1] },
-
-    { "kind": "block", "position": [-15.2, -5.6], "rotationY": 0.2, "size": [1.5, 1, 1.5], "topAbsolute": 61.25 },
-    { "kind": "block", "position": [-12.2, -6.4], "rotationY": 0.9, "size": [1.4, 1, 1.4], "topAbsolute": 61.2 },
-    { "kind": "block", "position": [-9.1, -5.8], "rotationY": 0.4, "size": [1.5, 1, 1.5], "topAbsolute": 61.3 },
-    { "kind": "block", "position": [-6.0, -6.6], "rotationY": 1.1, "size": [1.4, 1, 1.4], "topAbsolute": 61.2 },
-
-    { "kind": "wall", "position": [52, 30], "rotationY": 0.5, "size": [12, 6, 1.4], "runes": true },
-    { "kind": "wall", "position": [62.5, 41], "rotationY": 0.5, "size": [12, 6, 1.4] },
-    { "kind": "slab", "position": [57.2, 35.5], "rotationY": 0.5, "size": [13, 1.2, 13.5], "yOffset": 6 },
-    { "kind": "arch", "position": [44, 46], "rotationY": 0.5, "size": [7, 7, 1.4] },
-    { "kind": "pillar", "position": [70, 28], "rotationY": 0, "size": [1.1, 6.5, 1.1], "runes": true },
-    { "kind": "pillar", "position": [74, 36], "rotationY": 0, "size": [1.1, 3.5, 1.1] },
-    { "kind": "block", "position": [38, 26], "rotationY": 1.2, "size": [3, 1.2, 2] },
-
-    { "kind": "arch", "position": [102, 90], "rotationY": -0.8, "size": [8, 8, 1.6], "runes": true },
-    { "kind": "pillar", "position": [-30, 150], "rotationY": 0, "size": [1.2, 7, 1.2] },
-    { "kind": "pillar", "position": [-22, 156], "rotationY": 0, "size": [1.2, 4, 1.2] },
-    { "kind": "pillar", "position": [22, 162], "rotationY": 0, "size": [1.2, 6, 1.2], "runes": true }
+    {
+      "kind": "block",
+      "position": [
+        -80,
+        -40
+      ],
+      "rotationY": 0.5,
+      "size": [
+        2.4,
+        1.1,
+        2.4
+      ]
+    },
+    {
+      "kind": "block",
+      "position": [
+        -76.6,
+        -36.4
+      ],
+      "rotationY": 0.6,
+      "size": [
+        2.2,
+        1.7,
+        2.2
+      ]
+    },
+    {
+      "kind": "block",
+      "position": [
+        -73,
+        -33.2
+      ],
+      "rotationY": 0.7,
+      "size": [
+        2.2,
+        2.3,
+        2.2
+      ],
+      "runes": true
+    },
+    {
+      "kind": "block",
+      "position": [
+        -69.6,
+        -30.4
+      ],
+      "rotationY": 0.75,
+      "size": [
+        2.4,
+        2.9,
+        2.4
+      ]
+    },
+    {
+      "kind": "block",
+      "position": [
+        -65.4,
+        -26.8
+      ],
+      "rotationY": 0.8,
+      "size": [
+        5,
+        3.4,
+        5
+      ],
+      "runes": true
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        -63.6,
+        -25
+      ],
+      "rotationY": 0,
+      "size": [
+        0.9,
+        4.2,
+        0.9
+      ],
+      "yOffset": 3.4
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        -86,
+        -30
+      ],
+      "rotationY": 0,
+      "size": [
+        1,
+        5.5,
+        1
+      ]
+    },
+    {
+      "kind": "rockface",
+      "position": [
+        -38,
+        -44
+      ],
+      "rotationY": 0.3,
+      "size": [
+        3,
+        2.0,
+        3
+      ]
+    },
+    {
+      "kind": "rockface",
+      "position": [
+        -35.6,
+        -47.2
+      ],
+      "rotationY": 0.3,
+      "size": [
+        3,
+        4.2,
+        3
+      ]
+    },
+    {
+      "kind": "rockface",
+      "position": [
+        -32.4,
+        -51.2
+      ],
+      "rotationY": 0.3,
+      "size": [
+        7,
+        9,
+        3.4
+      ]
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        -58,
+        -42
+      ],
+      "rotationY": 0,
+      "size": [
+        1,
+        3.2,
+        1
+      ]
+    },
+    {
+      "kind": "block",
+      "position": [
+        -15.2,
+        -5.6
+      ],
+      "rotationY": 0.2,
+      "size": [
+        1.5,
+        1,
+        1.5
+      ],
+      "topAbsolute": 61.25
+    },
+    {
+      "kind": "block",
+      "position": [
+        -12.2,
+        -6.4
+      ],
+      "rotationY": 0.9,
+      "size": [
+        1.4,
+        1,
+        1.4
+      ],
+      "topAbsolute": 61.2
+    },
+    {
+      "kind": "block",
+      "position": [
+        -9.1,
+        -5.8
+      ],
+      "rotationY": 0.4,
+      "size": [
+        1.5,
+        1,
+        1.5
+      ],
+      "topAbsolute": 61.3
+    },
+    {
+      "kind": "block",
+      "position": [
+        -6.0,
+        -6.6
+      ],
+      "rotationY": 1.1,
+      "size": [
+        1.4,
+        1,
+        1.4
+      ],
+      "topAbsolute": 61.2
+    },
+    {
+      "kind": "wall",
+      "position": [
+        52,
+        30
+      ],
+      "rotationY": 0.5,
+      "size": [
+        12,
+        6,
+        1.4
+      ],
+      "runes": true
+    },
+    {
+      "kind": "wall",
+      "position": [
+        62.5,
+        41
+      ],
+      "rotationY": 0.5,
+      "size": [
+        12,
+        6,
+        1.4
+      ]
+    },
+    {
+      "kind": "slab",
+      "position": [
+        57.2,
+        35.5
+      ],
+      "rotationY": 0.5,
+      "size": [
+        13,
+        1.2,
+        13.5
+      ],
+      "yOffset": 6
+    },
+    {
+      "kind": "arch",
+      "position": [
+        44,
+        46
+      ],
+      "rotationY": 0.5,
+      "size": [
+        7,
+        7,
+        1.4
+      ]
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        70,
+        28
+      ],
+      "rotationY": 0,
+      "size": [
+        1.1,
+        6.5,
+        1.1
+      ],
+      "runes": true
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        74,
+        36
+      ],
+      "rotationY": 0,
+      "size": [
+        1.1,
+        3.5,
+        1.1
+      ]
+    },
+    {
+      "kind": "block",
+      "position": [
+        38,
+        26
+      ],
+      "rotationY": 1.2,
+      "size": [
+        3,
+        1.2,
+        2
+      ]
+    },
+    {
+      "kind": "arch",
+      "position": [
+        102,
+        90
+      ],
+      "rotationY": -0.8,
+      "size": [
+        8,
+        8,
+        1.6
+      ],
+      "runes": true
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        -30,
+        150
+      ],
+      "rotationY": 0,
+      "size": [
+        1.2,
+        7,
+        1.2
+      ]
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        -22,
+        156
+      ],
+      "rotationY": 0,
+      "size": [
+        1.2,
+        4,
+        1.2
+      ]
+    },
+    {
+      "kind": "pillar",
+      "position": [
+        22,
+        162
+      ],
+      "rotationY": 0,
+      "size": [
+        1.2,
+        6,
+        1.2
+      ],
+      "runes": true
+    }
   ],
   "inscriptions": [
     {
       "id": "capsule_log",
-      "position": [-116, -105],
+      "position": [
+        -116,
+        -105
+      ],
       "rotationY": 2.2,
       "yOffset": 0,
       "style": "terminal",
@@ -55,7 +457,10 @@
     },
     {
       "id": "mirador_stone",
-      "position": [-66.4, -28.6],
+      "position": [
+        -66.4,
+        -28.6
+      ],
       "rotationY": 0.8,
       "yOffset": 3.4,
       "title": "Piedra del mirador",
@@ -63,7 +468,10 @@
     },
     {
       "id": "ruins_hall",
-      "position": [57, 35.5],
+      "position": [
+        57,
+        35.5
+      ],
       "rotationY": 0.5,
       "yOffset": 0,
       "title": "Sala en ruinas",
@@ -71,7 +479,10 @@
     },
     {
       "id": "tower_base",
-      "position": [98, -92],
+      "position": [
+        98,
+        -92
+      ],
       "rotationY": -0.9,
       "yOffset": 0,
       "title": "Torre de reconocimiento",
@@ -79,7 +490,10 @@
     },
     {
       "id": "temple_seal",
-      "position": [114, 104],
+      "position": [
+        114,
+        104
+      ],
       "rotationY": -2.3,
       "yOffset": 0,
       "title": "Piedra ancestral",
@@ -87,7 +501,10 @@
     },
     {
       "id": "gate_seal",
-      "position": [-7, 189],
+      "position": [
+        -7,
+        189
+      ],
       "rotationY": 3.14159,
       "yOffset": 0,
       "title": "Muro sellado",
@@ -95,69 +512,649 @@
     }
   ],
   "trees": [
-    { "position": [-162, -62], "scale": 1.2, "kind": "pine" },
-    { "position": [-155, -48], "scale": 1.0, "kind": "pine" },
-    { "position": [-166, -30], "scale": 1.3, "kind": "pine" },
-    { "position": [-148, -12], "scale": 0.9, "kind": "broadleaf" },
-    { "position": [-160, 10], "scale": 1.1, "kind": "pine" },
-    { "position": [-138, 68], "scale": 1.3, "kind": "broadleaf" },
-    { "position": [-124, 88], "scale": 1.0, "kind": "broadleaf" },
-    { "position": [-142, 102], "scale": 1.2, "kind": "pine" },
-    { "position": [-104, 112], "scale": 0.9, "kind": "broadleaf" },
-    { "position": [-86, 128], "scale": 1.1, "kind": "broadleaf" },
-    { "position": [-62, 142], "scale": 1.0, "kind": "pine" },
-    { "position": [-38, 98], "scale": 1.4, "kind": "broadleaf" },
-    { "position": [-52, 60], "scale": 1.0, "kind": "broadleaf" },
-    { "position": [-30, 20], "scale": 1.2, "kind": "broadleaf" },
-    { "position": [18, -60], "scale": 1.1, "kind": "broadleaf" },
-    { "position": [8, -120], "scale": 1.3, "kind": "pine" },
-    { "position": [30, -150], "scale": 1.0, "kind": "pine" },
-    { "position": [58, -142], "scale": 1.2, "kind": "pine" },
-    { "position": [148, -52], "scale": 1.1, "kind": "pine" },
-    { "position": [152, -10], "scale": 1.3, "kind": "pine" },
-    { "position": [140, 24], "scale": 1.0, "kind": "broadleaf" },
-    { "position": [96, 4], "scale": 1.2, "kind": "broadleaf" },
-    { "position": [84, 52], "scale": 0.9, "kind": "broadleaf" },
-    { "position": [150, 70], "scale": 1.1, "kind": "pine" },
-    { "position": [138, 140], "scale": 1.0, "kind": "pine" },
-    { "position": [60, 168], "scale": 1.2, "kind": "broadleaf" },
-    { "position": [-96, -70], "scale": 0.8, "kind": "broadleaf" },
-    { "position": [-46, -150], "scale": 1.2, "kind": "pine" },
-    { "position": [-70, -165], "scale": 1.0, "kind": "pine" },
-    { "position": [-8, 70], "scale": 1.1, "kind": "broadleaf" },
-    { "position": [34, 98], "scale": 1.0, "kind": "broadleaf" },
-    { "position": [-176, -150], "scale": 1.2, "kind": "pine" }
+    {
+      "position": [
+        -162,
+        -62
+      ],
+      "scale": 1.2,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -155,
+        -48
+      ],
+      "scale": 1.0,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -166,
+        -30
+      ],
+      "scale": 1.3,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -148,
+        -12
+      ],
+      "scale": 0.9,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -160,
+        10
+      ],
+      "scale": 1.1,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -138,
+        68
+      ],
+      "scale": 1.3,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -124,
+        88
+      ],
+      "scale": 1.0,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -142,
+        102
+      ],
+      "scale": 1.2,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -104,
+        112
+      ],
+      "scale": 0.9,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -86,
+        128
+      ],
+      "scale": 1.1,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -62,
+        142
+      ],
+      "scale": 1.0,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -38,
+        98
+      ],
+      "scale": 1.4,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -52,
+        60
+      ],
+      "scale": 1.0,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -30,
+        20
+      ],
+      "scale": 1.2,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        18,
+        -60
+      ],
+      "scale": 1.1,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        8,
+        -120
+      ],
+      "scale": 1.3,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        30,
+        -150
+      ],
+      "scale": 1.0,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        58,
+        -142
+      ],
+      "scale": 1.2,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        148,
+        -52
+      ],
+      "scale": 1.1,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        152,
+        -10
+      ],
+      "scale": 1.3,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        140,
+        24
+      ],
+      "scale": 1.0,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        96,
+        4
+      ],
+      "scale": 1.2,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        84,
+        52
+      ],
+      "scale": 0.9,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        150,
+        70
+      ],
+      "scale": 1.1,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        138,
+        140
+      ],
+      "scale": 1.0,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        60,
+        168
+      ],
+      "scale": 1.2,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -96,
+        -70
+      ],
+      "scale": 0.8,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -46,
+        -150
+      ],
+      "scale": 1.2,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -70,
+        -165
+      ],
+      "scale": 1.0,
+      "kind": "pine"
+    },
+    {
+      "position": [
+        -8,
+        70
+      ],
+      "scale": 1.1,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        34,
+        98
+      ],
+      "scale": 1.0,
+      "kind": "broadleaf"
+    },
+    {
+      "position": [
+        -176,
+        -150
+      ],
+      "scale": 1.2,
+      "kind": "pine"
+    }
   ],
   "rocks": [
-    { "position": [-128, -118], "scale": 1.6, "rotationY": 0.3 },
-    { "position": [-90, -100], "scale": 2.2, "rotationY": 1.1 },
-    { "position": [-60, -80], "scale": 1.2, "rotationY": 2.0 },
-    { "position": [-34, -60], "scale": 2.8, "rotationY": 0.7 },
-    { "position": [12, -40], "scale": 1.5, "rotationY": 1.7 },
-    { "position": [40, -80], "scale": 3.2, "rotationY": 0.2 },
-    { "position": [78, -120], "scale": 2.4, "rotationY": 2.4 },
-    { "position": [126, -76], "scale": 1.8, "rotationY": 0.9 },
-    { "position": [120, -30], "scale": 3.5, "rotationY": 1.3 },
-    { "position": [92, 30], "scale": 1.4, "rotationY": 0.5 },
-    { "position": [132, 86], "scale": 2.6, "rotationY": 2.9 },
-    { "position": [76, 120], "scale": 1.7, "rotationY": 0.1 },
-    { "position": [-14, 126], "scale": 2.0, "rotationY": 1.9 },
-    { "position": [-74, 90], "scale": 3.0, "rotationY": 0.6 },
-    { "position": [-118, 30], "scale": 2.1, "rotationY": 2.2 },
-    { "position": [-150, -90], "scale": 2.6, "rotationY": 1.5 },
-    { "position": [-6, -170], "scale": 3.4, "rotationY": 0.4 },
-    { "position": [-40, -176], "scale": 2.2, "rotationY": 1.0 },
-    { "position": [14, 176], "scale": 2.0, "rotationY": 2.6 },
-    { "position": [-14, 182], "scale": 1.6, "rotationY": 0.8 }
+    {
+      "position": [
+        -128,
+        -118
+      ],
+      "scale": 1.6,
+      "rotationY": 0.3
+    },
+    {
+      "position": [
+        -90,
+        -100
+      ],
+      "scale": 2.2,
+      "rotationY": 1.1
+    },
+    {
+      "position": [
+        -60,
+        -80
+      ],
+      "scale": 1.2,
+      "rotationY": 2.0
+    },
+    {
+      "position": [
+        -34,
+        -60
+      ],
+      "scale": 2.8,
+      "rotationY": 0.7
+    },
+    {
+      "position": [
+        12,
+        -40
+      ],
+      "scale": 1.5,
+      "rotationY": 1.7
+    },
+    {
+      "position": [
+        40,
+        -80
+      ],
+      "scale": 3.2,
+      "rotationY": 0.2
+    },
+    {
+      "position": [
+        78,
+        -120
+      ],
+      "scale": 2.4,
+      "rotationY": 2.4
+    },
+    {
+      "position": [
+        126,
+        -76
+      ],
+      "scale": 1.8,
+      "rotationY": 0.9
+    },
+    {
+      "position": [
+        120,
+        -30
+      ],
+      "scale": 3.5,
+      "rotationY": 1.3
+    },
+    {
+      "position": [
+        92,
+        30
+      ],
+      "scale": 1.4,
+      "rotationY": 0.5
+    },
+    {
+      "position": [
+        132,
+        86
+      ],
+      "scale": 2.6,
+      "rotationY": 2.9
+    },
+    {
+      "position": [
+        76,
+        120
+      ],
+      "scale": 1.7,
+      "rotationY": 0.1
+    },
+    {
+      "position": [
+        -14,
+        126
+      ],
+      "scale": 2.0,
+      "rotationY": 1.9
+    },
+    {
+      "position": [
+        -74,
+        90
+      ],
+      "scale": 3.0,
+      "rotationY": 0.6
+    },
+    {
+      "position": [
+        -118,
+        30
+      ],
+      "scale": 2.1,
+      "rotationY": 2.2
+    },
+    {
+      "position": [
+        -150,
+        -90
+      ],
+      "scale": 2.6,
+      "rotationY": 1.5
+    },
+    {
+      "position": [
+        -6,
+        -170
+      ],
+      "scale": 3.4,
+      "rotationY": 0.4
+    },
+    {
+      "position": [
+        -40,
+        -176
+      ],
+      "scale": 2.2,
+      "rotationY": 1.0
+    },
+    {
+      "position": [
+        14,
+        176
+      ],
+      "scale": 2.0,
+      "rotationY": 2.6
+    },
+    {
+      "position": [
+        -14,
+        182
+      ],
+      "scale": 1.6,
+      "rotationY": 0.8
+    }
   ],
   "waterfalls": [
-    { "top": [-20, 134, -213], "bottom": [-20, 59.8, -190], "width": 8 }
+    {
+      "top": [
+        -20,
+        134,
+        -213
+      ],
+      "bottom": [
+        -20,
+        59.8,
+        -190
+      ],
+      "width": 8
+    }
   ],
   "floatingIslands": [
-    { "position": [-1300, 760, -1500], "radius": 120, "waterfall": true },
-    { "position": [-650, 900, -2300], "radius": 70, "waterfall": false },
-    { "position": [1400, 820, -1300], "radius": 105, "waterfall": true },
-    { "position": [300, 690, -1900], "radius": 85, "waterfall": false },
-    { "position": [-1750, 600, -400], "radius": 60, "waterfall": false }
+    {
+      "position": [
+        -1300,
+        760,
+        -1500
+      ],
+      "radius": 120,
+      "waterfall": true
+    },
+    {
+      "position": [
+        -650,
+        900,
+        -2300
+      ],
+      "radius": 70,
+      "waterfall": false
+    },
+    {
+      "position": [
+        1400,
+        820,
+        -1300
+      ],
+      "radius": 105,
+      "waterfall": true
+    },
+    {
+      "position": [
+        300,
+        690,
+        -1900
+      ],
+      "radius": 85,
+      "waterfall": false
+    },
+    {
+      "position": [
+        -1750,
+        600,
+        -400
+      ],
+      "radius": 60,
+      "waterfall": false
+    }
+  ],
+  "pickups": [
+    {
+      "id": "pk_branch",
+      "item": "branch",
+      "count": 1,
+      "position": [
+        -110,
+        -103
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_wood_shield",
+      "item": "wood_shield",
+      "count": 1,
+      "position": [
+        -133,
+        -124
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_arrows_ship",
+      "item": "arrow",
+      "count": 10,
+      "position": [
+        -104,
+        -124
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_explorer_sword",
+      "item": "explorer_sword",
+      "count": 1,
+      "position": [
+        -64.6,
+        -26
+      ],
+      "yOffset": 3.4
+    },
+    {
+      "id": "pk_short_bow",
+      "item": "short_bow",
+      "count": 1,
+      "position": [
+        55,
+        34
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_arrows_ruins",
+      "item": "arrow",
+      "count": 15,
+      "position": [
+        59,
+        37
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_spear",
+      "item": "stone_spear",
+      "count": 1,
+      "position": [
+        70.5,
+        31
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_axe",
+      "item": "woodcutter_axe",
+      "count": 1,
+      "position": [
+        95,
+        6
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_daggers",
+      "item": "twin_daggers",
+      "count": 1,
+      "position": [
+        -32.4,
+        -51.2
+      ],
+      "yOffset": 9
+    },
+    {
+      "id": "pk_hammer",
+      "item": "boulder_hammer",
+      "count": 1,
+      "position": [
+        113,
+        -21
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_greatsword",
+      "item": "ancestral_greatsword",
+      "count": 1,
+      "position": [
+        103,
+        92
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_tower_shield",
+      "item": "tower_shield",
+      "count": 1,
+      "position": [
+        -28,
+        152
+      ],
+      "yOffset": 0
+    },
+    {
+      "id": "pk_mirror_shield",
+      "item": "mirror_shield",
+      "count": 1,
+      "position": [
+        22,
+        163
+      ],
+      "yOffset": 0
+    }
+  ],
+  "enemySpawns": [
+    {
+      "id": "sp_path",
+      "enemy": "slime_green",
+      "position": [
+        24,
+        -30
+      ],
+      "count": 3,
+      "radius": 6
+    },
+    {
+      "id": "sp_ruins",
+      "enemy": "slime_green",
+      "position": [
+        78,
+        48
+      ],
+      "count": 2,
+      "radius": 5
+    },
+    {
+      "id": "sp_south",
+      "enemy": "slime_green",
+      "position": [
+        -18,
+        112
+      ],
+      "count": 3,
+      "radius": 6
+    }
   ]
 }

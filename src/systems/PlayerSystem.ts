@@ -1,4 +1,5 @@
 import type { GameContext, System } from '../core/Game';
+import type { DamageCause } from '../core/events';
 import { teleportTransform } from '../core/ecs/components';
 import type { Entity } from '../core/ecs/World';
 import { clamp, lerp, smoothstep } from '../core/math';
@@ -8,7 +9,7 @@ import { createCharacterState, type CharacterEnv, type CharacterState } from '..
 import { glideStateLabel } from '../player/movement/glide';
 import { stepMovement, type MovementEvents, type MovementParams } from '../player/movement/Movement';
 import { createHealth, damage } from '../player/movement/Stamina';
-import type { DustPool, PlayerVisual } from '../player/PlayerVisual';
+import type { CombatPose, DustPool, PlayerVisual } from '../player/PlayerVisual';
 import type { CapsuleHandle } from '../world/valley/ValleyBuilder';
 
 const HATCH_TIME = 0.6;
@@ -38,6 +39,8 @@ export class PlayerSystem implements System {
   private deathTimer = -1;
   private lockReasons = new Set<string>();
   lastEvents: MovementEvents | null = null;
+  /** Pose de combate para la animación (la aporta el sistema de combate). */
+  combatPose: () => CombatPose | null = () => null;
 
   constructor(
     readonly entity: Entity,
@@ -63,6 +66,10 @@ export class PlayerSystem implements System {
       }
     });
     ctx.bus.on('camera:cinematic', ({ id, active }) => this.setLocked(ctx, `cinematic:${id}`, active));
+  }
+
+  get bodyRadius(): number {
+    return this.cfg.body.radius;
   }
 
   /** Bloquea/desbloquea el control por un motivo (cinemáticas, portales). */
@@ -124,7 +131,12 @@ export class PlayerSystem implements System {
       return;
     }
 
-    const locked = p.control === 'locked';
+    // Escala de tiempo del jugador (tiempo bala al apuntar en el aire, parada de impacto).
+    const pdt = dt * ctx.time.playerScale;
+    if (pdt <= 0) return;
+    const combat = world.get(this.entity, 'combat');
+    const locked = p.control === 'locked' || (combat?.wheelOpen ?? false);
+    const moveMul = combat?.moveMultiplier ?? 1;
     const f = this.camera.forward();
     const r = this.camera.right();
     const ix = locked ? 0 : input.axis('move_left', 'move_right');
@@ -136,6 +148,8 @@ export class PlayerSystem implements System {
       mx /= len;
       mz /= len;
     }
+    mx *= moveMul;
+    mz *= moveMul;
     const pressed = (a: string) => !locked && input.wasPressed(a);
     const down = (a: string) => !locked && input.isDown(a);
 
@@ -154,10 +168,12 @@ export class PlayerSystem implements System {
         walk: down('walk'),
         dodgePressed: pressed('dodge'),
         grabPressed: pressed('interact') && !this.hasInteractFocus(),
+        faceYaw: combat?.faceYaw ?? undefined,
+        lunge: combat?.lunge ?? 0,
       },
       this.params,
       this.env,
-      dt,
+      pdt,
       p.health.maxFragments,
     );
     this.lastEvents = ev;
@@ -191,6 +207,7 @@ export class PlayerSystem implements System {
         glideDive: ch.glide.dive,
         glideDeploy: ch.mode === 'glide' ? clamp(1 + ch.glide.deployT / this.params.glider.deploySeconds, 0, 1) : 0,
         underwater: ch.underwater,
+        combat: free ? this.combatPose() : null,
       },
       ctx.time.frameDt,
     );
@@ -240,7 +257,8 @@ export class PlayerSystem implements System {
         if (l.rolled) this.visual.roll();
         this.dust.burst(ch.x, ch.y, ch.z, Math.round(clamp(l.speed, 4, 14)), clamp(l.speed / 6, 0.8, 3));
       }
-      if (l.damage > 0) {
+      // El ataque en picado aterriza a propósito: sin daño de caída.
+      if (l.damage > 0 && !ctx.world.get(this.entity, 'combat')?.plunging) {
         this.camera.addShake(clamp(l.damage / 6, 0.3, 1));
         this.hurt(ctx, l.damage, 'fall');
       }
@@ -271,6 +289,10 @@ export class PlayerSystem implements System {
       this.camera.addShake(0.08);
     }
     if (ev.gliderFold) bus.emit('player:glider', { phase: 'fold', reason: ev.gliderFold });
+    if (ev.dodged) {
+      bus.emit('player:dodge', { perfect: false });
+      this.dust.burst(ch.x, ch.y, ch.z, 4, 0.6);
+    }
     if (ev.glideLand) bus.emit('player:glide_land', ev.glideLand);
     if (ev.exhausted) bus.emit('player:exhausted', {});
     if (ev.drowned && this.deathTimer < 0) {
@@ -285,18 +307,26 @@ export class PlayerSystem implements System {
     }
   }
 
-  private hurt(ctx: GameContext, amount: number, cause: 'fall' | 'drown'): void {
+  /** Daño externo (enemigos): devuelve true si muere. */
+  damagePlayer(ctx: GameContext, amount: number, cause: DamageCause): boolean {
+    if (this.deathTimer >= 0) return false;
+    this.camera.addShake(clamp(amount / 6, 0.25, 0.8));
+    return this.hurt(ctx, amount, cause);
+  }
+
+  private hurt(ctx: GameContext, amount: number, cause: DamageCause): boolean {
     const p = ctx.world.require(this.entity, 'player');
     const dead = damage(p.health, amount);
     ctx.bus.emit('player:damaged', { amount, cause, remaining: p.health.fragments });
     if (dead) this.die(ctx, cause);
+    return dead;
   }
 
-  private die(ctx: GameContext, cause: 'fall' | 'drown'): void {
+  private die(ctx: GameContext, cause: DamageCause): void {
     this.deathTimer = 0;
     ctx.world.require(this.entity, 'player').control = 'locked';
     ctx.bus.emit('player:died', { cause });
-    ctx.bus.emit('screen:fade', { to: 'black', seconds: DEATH_FADE, text: cause === 'drown' ? 'Te has ahogado' : 'Has caído' });
+    ctx.bus.emit('screen:fade', { to: 'black', seconds: DEATH_FADE, text: cause === 'drown' ? 'Te has ahogado' : cause === 'enemy' ? 'Has sido derrotado' : 'Has caído' });
   }
 
   private finishRespawn(ctx: GameContext): void {

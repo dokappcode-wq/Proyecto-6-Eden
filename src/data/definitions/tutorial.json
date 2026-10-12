@@ -59,7 +59,7 @@
       "order": 5,
       "phase": 3,
       "title": "Combate básico",
-      "hint": "Ataca con {attack} y esquiva con {dodge}",
+      "hint": "Recoge un arma y derrota a los slimes: ataca con {attack}, mantén para cargar y esquiva con {dodge}",
       "trigger": {
         "kind": "defeat",
         "target": "slime",

@@ -1,6 +1,7 @@
 import type { GameContext, System } from '../core/Game';
 import type { Entity } from '../core/ecs/World';
 import type { SaveData, SaveStore } from '../core/save';
+import { serializeEquipment, type Equipment } from '../combat/inventory';
 import type { ValleyProgress } from './ValleyProgressSystem';
 
 export const MAIN_SLOT = 'slot1';
@@ -13,6 +14,8 @@ export interface SaveSources {
   progress(): ValleyProgress;
   /** No se guarda dentro de un templo (se reanuda siempre en el mundo). */
   canSave(): boolean;
+  equipment(): Equipment;
+  collected(): string[];
 }
 
 /**
@@ -38,6 +41,7 @@ export class SaveSystem implements System {
     ctx.bus.on('valley:gate_opened', () => this.save(ctx, 'auto'));
     ctx.bus.on('tower:activated', () => this.save(ctx, 'auto'));
     ctx.bus.on('temple:exit', () => this.save(ctx, 'auto'));
+    ctx.bus.on('item:picked', () => this.save(ctx, 'auto'));
   }
 
   load(): SaveData | null {
@@ -58,6 +62,8 @@ export class SaveSystem implements System {
       player: p.control === 'capsule' ? { x: ch.x, y: ch.y, z: ch.z, yaw: ch.yaw } : { x: ch.safeX, y: ch.safeY, z: ch.safeZ, yaw: ch.yaw },
       health: { fragments: Math.max(1, p.health.fragments), maxFragments: p.health.maxFragments },
       progress: { ...this.sources.progress() },
+      equipment: serializeEquipment(this.sources.equipment()),
+      collected: this.sources.collected(),
     });
     if (ok && kind === 'manual') ctx.bus.emit('game:saved', { slot: MAIN_SLOT });
   }

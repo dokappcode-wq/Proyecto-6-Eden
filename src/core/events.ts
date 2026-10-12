@@ -2,6 +2,7 @@ import type { EventBus } from './EventBus';
 import type { InteractableKind } from './ecs/components';
 
 export type ActionPhase = 'pressed' | 'released';
+export type DamageCause = 'fall' | 'drown' | 'enemy';
 
 /** Catálogo de eventos del juego. Cada fase añade los suyos aquí. */
 export interface GameEvents {
@@ -14,8 +15,8 @@ export interface GameEvents {
   'player:landed': { x: number; y: number; z: number; speed: number; drop: number };
   'player:respawned': { x: number; y: number; z: number };
   'capsule:exited': Record<string, never>;
-  'player:damaged': { amount: number; cause: 'fall' | 'drown'; remaining: number };
-  'player:died': { cause: 'fall' | 'drown' };
+  'player:damaged': { amount: number; cause: DamageCause; remaining: number };
+  'player:died': { cause: DamageCause };
   'player:healed': { remaining: number };
   'player:exhausted': Record<string, never>;
   'player:ledge': { phase: 'contact' | 'boost' | 'exit' | 'release'; x: number; y: number; z: number; mantle: boolean };
@@ -25,6 +26,19 @@ export interface GameEvents {
   'player:splash': { x: number; y: number; z: number };
   'player:launched': { x: number; y: number; z: number };
   'player:obtained': { item: 'glider' };
+  'player:dodge': { perfect: boolean };
+
+  'combat:hit': { x: number; y: number; z: number; damage: number; kind: string; sneak: boolean; weak: boolean; tags: string[] };
+  'combat:defended': { result: 'dodged' | 'perfect' | 'blocked' | 'parried'; x: number; y: number; z: number };
+  'combat:flurry': { active: boolean };
+  'combat:weapon_warning': { name: string };
+  'combat:weapon_broken': { name: string; x: number; y: number; z: number };
+  'combat:equipped': { slot: 'melee' | 'bow' | 'shield'; name: string };
+  'combat:no_arrows': Record<string, never>;
+  'enemy:noticed': { entity: number };
+  'enemy:defeated': { entity: number; enemy: string; family: string; x: number; y: number; z: number };
+  'item:picked': { item: string; name: string; count: number };
+  'item:inventory_full': { name: string };
 
   'interaction:focus': { id: string; prompt: string } | null;
   interact: { id: string; kind: InteractableKind };

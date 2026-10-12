@@ -23,6 +23,10 @@ export interface CameraFrameInput {
   gliding?: boolean;
   /** Trepando: algo más alejada para ver la pared. */
   climbing?: boolean;
+  /** Apuntando con el arco: cámara al hombro con zoom. */
+  aim?: { distance: number; shoulder: number; fov: number } | null;
+  /** Objetivo fijado: la cámara lo mantiene encuadrado. */
+  lockTarget?: Vec3 | null;
 }
 
 /**
@@ -50,6 +54,8 @@ export class CameraController {
   private shake = 0;
   private fovKick = 0;
   private baseFov: number;
+  private aimK = 0;
+  private lastAim = { distance: 2.3, shoulder: 0.75, fov: 48 };
   private shakeT = 0;
   private modeDistance = 0;
   /** Desplazamiento de sacudida aplicado este frame (lo suma la cámara de Three.js). */
@@ -85,15 +91,25 @@ export class CameraController {
 
   update(input: CameraFrameInput, env: CameraEnv, dt: number): void {
     const c = this.cfg;
+    const aim = input.aim ?? null;
     const looked = input.lookDX !== 0 || input.lookDY !== 0;
-    this.yaw -= input.lookDX * c.sensitivity;
-    this.pitch = clamp(this.pitch + input.lookDY * c.sensitivity, c.minPitchDeg * DEG2RAD, c.maxPitchDeg * DEG2RAD);
+    const sens = c.sensitivity * (aim ? 0.6 : 1);
+    this.yaw -= input.lookDX * sens;
+    this.pitch = clamp(this.pitch + input.lookDY * sens, c.minPitchDeg * DEG2RAD, c.maxPitchDeg * DEG2RAD);
+    this.aimK = damp(this.aimK, aim ? 1 : 0, 12, dt);
+    if (aim) this.lastAim = aim;
     this.distance = clamp(this.distance + input.zoom * c.zoomStep, c.minDistance, c.maxDistance);
 
     // Auto-alineado detrás del jugador cuando se mueve y no se toca el ratón.
     // Planeando se alinea antes y con más fuerza (la vista sigue al rumbo del vuelo).
     this.idleTime = looked ? 0 : this.idleTime + dt;
-    if (input.gliding && this.idleTime > 0.4) {
+    if (input.lockTarget) {
+      // Fijado: la cámara mira del jugador al objetivo.
+      const dx = input.lockTarget.x - input.target.x;
+      const dz = input.lockTarget.z - input.target.z;
+      this.yaw = dampAngle(this.yaw, Math.atan2(-dx, -dz), 8, dt);
+      this.pitch = damp(this.pitch, 0.28, 4, dt);
+    } else if (input.gliding && this.idleTime > 0.4) {
       this.yaw = dampAngle(this.yaw, input.moveYaw + Math.PI, c.glideAlignSharpness, dt);
       this.pitch = damp(this.pitch, 0.12, 1.5, dt);
     } else if (input.moving && this.idleTime > c.autoAlignDelay) {
@@ -101,7 +117,7 @@ export class CameraController {
     }
     const modeTarget = input.gliding ? c.glideDistanceBonus : input.climbing ? 1.2 : 0;
     this.modeDistance = damp(this.modeDistance, modeTarget, 2.5, dt);
-    const wanted = this.distance + this.modeDistance;
+    const wanted = lerpN(this.distance + this.modeDistance, this.lastAim.distance, this.aimK);
 
     // Pivote suavizado (sigue al jugador sin tirones al aterrizar).
     const tx = input.target.x;
@@ -122,9 +138,10 @@ export class CameraController {
     // Desplazamiento de hombro (a la derecha de la vista).
     const rx = Math.cos(this.yaw);
     const rz = -Math.sin(this.yaw);
-    const px = this.pivot.x + rx * c.shoulderOffset;
+    const shoulder = lerpN(c.shoulderOffset, this.lastAim.shoulder, this.aimK);
+    const px = this.pivot.x + rx * shoulder;
     const py = this.pivot.y;
-    const pz = this.pivot.z + rz * c.shoulderOffset;
+    const pz = this.pivot.z + rz * shoulder;
 
     const cp = Math.cos(this.pitch);
     const dx = Math.sin(this.yaw) * cp;
@@ -154,7 +171,7 @@ export class CameraController {
     const speedK = clamp((input.speed - 5) / 15, 0, 1);
     this.fovKick = damp(this.fovKick, 0, 5, dt);
     this.baseFov = damp(this.baseFov, c.fovBase + c.fovSpeedBonus * speedK, 4, dt);
-    this.fov = this.baseFov + this.fovKick;
+    this.fov = lerpN(this.baseFov, this.lastAim.fov, this.aimK) + this.fovKick;
 
     // Sacudida: ruido suave que se apaga rápido.
     this.shake = damp(this.shake, 0, 6, dt);
@@ -197,4 +214,8 @@ export function raymarchTerrain(env: CameraEnv, ox: number, oy: number, oz: numb
     prevT = t;
   }
   return Infinity;
+}
+
+function lerpN(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }

@@ -1,6 +1,29 @@
 import * as THREE from 'three';
 import { clamp, damp } from '../core/math';
+import { buildShieldModel, buildWeaponModel } from '../combat/WeaponModels';
+import type { MeleePhase } from '../combat/melee';
 import type { MoveMode } from './CharacterController';
+
+export interface CombatPose {
+  phase: MeleePhase;
+  /** Progreso 0..1 de la fase actual. */
+  k: number;
+  kind: string;
+  comboIndex: number;
+  special: string;
+  guarding: boolean;
+  aiming: boolean;
+  /** Tensión del arco 0..1. */
+  draw: number;
+  charged: boolean;
+  plunging: boolean;
+}
+
+export interface Loadout {
+  melee: { kind: string; length: number; color: string } | null;
+  bow: { kind: string; length: number; color: string } | null;
+  shield: { kind: 'round' | 'tower' | 'mirror'; size: number; color: string } | null;
+}
 
 export interface PlayerAnimInput {
   mode: MoveMode;
@@ -20,6 +43,7 @@ export interface PlayerAnimInput {
   /** 0..1 progreso del despliegue del planeador (0 = plegado). */
   glideDeploy: number;
   underwater: boolean;
+  combat: CombatPose | null;
 }
 
 const CYAN = new THREE.Color('#1fd6ff');
@@ -57,6 +81,17 @@ export class PlayerVisual {
   private swimK = 0;
   private rollT = -1;
   private time = 0;
+  private readonly handR = new THREE.Group();
+  private readonly handL = new THREE.Group();
+  private readonly forearmL = new THREE.Group();
+  private readonly backSlot = new THREE.Group();
+  private meleeModel: { group: THREE.Group; tip: THREE.Object3D } | null = null;
+  private meleeTwin: THREE.Group | null = null;
+  private bowModel: THREE.Group | null = null;
+  private shieldModel: THREE.Group | null = null;
+  private loadoutKey = '';
+  private readonly swingTrail = new WingTrail('#ffffff', 14);
+  private chargeGlow = 0;
 
   constructor() {
     this.root.name = 'player';
@@ -109,6 +144,18 @@ export class PlayerVisual {
     };
     this.armL = makeArm(-1);
     this.armR = makeArm(1);
+    // Puntos de anclaje: manos, antebrazo izquierdo (escudo) y espalda (armas guardadas).
+    this.handR.position.set(0, -0.6, 0.03);
+    this.handR.rotation.x = Math.PI / 2;
+    this.armR.add(this.handR);
+    this.handL.position.set(0, -0.6, 0.03);
+    this.handL.rotation.x = Math.PI / 2;
+    this.armL.add(this.handL);
+    this.forearmL.position.set(-0.1, -0.42, 0);
+    this.armL.add(this.forearmL);
+    this.backSlot.position.set(0, 0.42, -0.24);
+    this.backSlot.rotation.set(0, 0, 2.4);
+    this.torso.add(this.backSlot);
 
     // --- Planeador ancestral: cilindro plegado en la mochila + alas de tela con borde cian.
     const ancestral = new THREE.MeshStandardMaterial({ color: '#3d4c58', roughness: 0.5, metalness: 0.35 });
@@ -156,8 +203,27 @@ export class PlayerVisual {
 
     this.trailL = new WingTrail();
     this.trailR = new WingTrail();
-    this.trails.add(this.trailL.line, this.trailR.line);
+    this.trails.add(this.trailL.line, this.trailR.line, this.swingTrail.line);
     this.trails.name = 'glider-trails';
+  }
+
+  /** Cambia los modelos de arma/arco/escudo (solo si cambió algo). */
+  setLoadout(l: Loadout): void {
+    const key = JSON.stringify(l);
+    if (key === this.loadoutKey) return;
+    this.loadoutKey = key;
+    for (const m of [this.meleeModel?.group, this.meleeTwin, this.bowModel, this.shieldModel]) m?.removeFromParent();
+    this.meleeModel = l.melee && l.melee.kind !== 'fists' ? buildWeaponModel(l.melee.kind, l.melee.length, l.melee.color) : null;
+    this.meleeTwin = l.melee?.kind === 'daggers' ? buildWeaponModel('daggers', l.melee.length, l.melee.color).group : null;
+    this.bowModel = l.bow ? buildWeaponModel('bow', l.bow.length, l.bow.color).group : null;
+    this.shieldModel = l.shield ? buildShieldModel(l.shield.kind, l.shield.size, l.shield.color) : null;
+    if (this.meleeModel) this.handR.add(this.meleeModel.group);
+    if (this.meleeTwin) this.handL.add(this.meleeTwin);
+    if (this.bowModel) this.backSlot.add(this.bowModel);
+    if (this.shieldModel) {
+      this.shieldModel.rotation.y = -Math.PI / 2;
+      this.forearmL.add(this.shieldModel);
+    }
   }
 
   setGliderEquipped(on: boolean): void {
@@ -262,6 +328,94 @@ export class PlayerVisual {
       this.body.rotation.x = (0.3 + a.glideDive * 0.5) * k;
     }
 
+    // --- combate: ataques, carga, guardia, arco y picado
+    let torsoY = 0;
+    const c = a.combat;
+    const handsBusy = a.mode === 'climb' || a.mode === 'ledge' || a.mode === 'glide' || a.mode === 'swim';
+    if (c && !handsBusy) {
+      if (c.plunging) {
+        armLx = armRx = -3.0;
+        armLz = -0.1;
+        armRz = 0.1;
+        legL = -0.6;
+        legR = -0.9;
+        torsoX = 0.5;
+      } else if (c.phase === 'charging') {
+        // Arma atrás, temblando con la carga.
+        armRx = -2.2 + Math.sin(this.time * 40) * (c.charged ? 0.04 : 0.01);
+        armRz = 0.6;
+        torsoY = 0.6;
+        armLx = -0.6;
+      } else if (c.phase === 'heavy') {
+        if (c.special === 'spin_360') {
+          armRx = -1.55;
+          armRz = 1.2;
+          armLx = -1.4;
+          armLz = -1.2;
+          this.body.rotation.y = this.time * 14;
+        } else if (c.special === 'shockwave') {
+          armRx = armLx = c.k < 0.5 ? -2.9 : -0.6;
+          torsoX = c.k < 0.5 ? -0.2 : 0.55;
+        } else {
+          armRx = -1.55;
+          armRz = 0.1;
+          torsoX = 0.35;
+        }
+      } else if (c.phase !== 'idle') {
+        // Tajos alternos y golpe final por arriba.
+        const k = c.phase === 'windup' ? 0 : c.phase === 'active' ? c.k : 1;
+        const recover = c.phase === 'recovery' ? c.k : 0;
+        if (c.kind === 'air') {
+          armRx = -1.5;
+          armRz = 1.0;
+          this.body.rotation.y = k * Math.PI * 2;
+        } else if (c.comboIndex === 2 || c.kind === 'flurry') {
+          armRx = lerpN(-2.9, 0.1, k) * (1 - recover) + -0.3 * recover;
+          torsoX = lerpN(-0.15, 0.4, k);
+        } else {
+          const dir = c.comboIndex === 0 ? 1 : -1;
+          armRx = -1.6 * (1 - recover) - 0.3 * recover;
+          armRz = lerpN(1.1 * dir, -1.0 * dir, k) * (1 - recover);
+          torsoY = lerpN(0.7 * dir, -0.6 * dir, k) * (1 - recover);
+        }
+        legL = 0.35;
+        legR = -0.25;
+      } else if (this.meleeModel) {
+        armRx = Math.min(armRx, -0.35);
+      }
+      if (c.guarding) {
+        armLx = -1.35;
+        armLz = 0.45;
+      }
+      if (c.aiming) {
+        armLx = -1.55;
+        armLz = -0.05;
+        armRx = -1.5;
+        armRz = 0.35 - c.draw * 0.25;
+        torsoY = 0.35;
+      }
+    }
+    this.torso.rotation.y = torsoY;
+
+    // Armas: en la mano para pelear; a la espalda con las manos ocupadas o apuntando con el arco.
+    const stow = handsBusy || (c?.aiming ?? false);
+    if (this.meleeModel) {
+      const parent = stow ? this.backSlot : this.handR;
+      if (this.meleeModel.group.parent !== parent) parent.add(this.meleeModel.group);
+    }
+    if (this.meleeTwin) this.meleeTwin.visible = !stow;
+    if (this.bowModel) {
+      const parent = c?.aiming && !handsBusy ? this.handL : this.backSlot;
+      if (this.bowModel.parent !== parent) parent.add(this.bowModel);
+      this.bowModel.rotation.set(c?.aiming ? -Math.PI / 2 : 0, 0, c?.aiming ? Math.PI / 2 : 0.4);
+      this.bowModel.position.set(c?.aiming ? 0 : 0.12, 0, 0);
+    }
+    if (this.shieldModel) this.shieldModel.rotation.y = c?.guarding ? -Math.PI / 2 + 1.2 : -Math.PI / 2;
+
+    // Brillo de carga en el arma.
+    this.chargeGlow = damp(this.chargeGlow, c?.charged ? 1 : 0, 10, dt);
+    if (this.meleeModel) this.meleeModel.group.scale.setScalar(1 + this.chargeGlow * 0.08 * (0.5 + 0.5 * Math.sin(this.time * 30)));
+
     this.legL.rotation.x = legL;
     this.legR.rotation.x = legR;
     this.armL.rotation.x = armLx;
@@ -298,6 +452,9 @@ export class PlayerVisual {
     this.root.updateMatrixWorld(true);
     this.trailL.update(gliding ? this.tipL.getWorldPosition(tmpV) : null, dt);
     this.trailR.update(gliding ? this.tipR.getWorldPosition(tmpV) : null, dt);
+    // Estela del arma durante el golpe.
+    const swinging = !!c && !stow && (c.phase === 'active' || c.phase === 'heavy');
+    this.swingTrail.update(swinging && this.meleeModel ? this.meleeModel.tip.getWorldPosition(tmpV) : null, dt);
   }
 }
 
@@ -313,10 +470,11 @@ class WingTrail {
   private readonly points: THREE.Vector3[] = [];
   private readonly positions: Float32Array;
   private readonly colors: Float32Array;
-  private readonly max = 28;
+  private readonly color: THREE.Color;
   private fade = 0;
 
-  constructor() {
+  constructor(color = '#1fd6ff', private readonly max = 28) {
+    this.color = new THREE.Color(color);
     this.positions = new Float32Array(this.max * 3);
     this.colors = new Float32Array(this.max * 3);
     const g = new THREE.BufferGeometry();
@@ -342,7 +500,7 @@ class WingTrail {
       const q = this.points[Math.min(i, this.points.length - 1)];
       this.positions.set([q.x, q.y, q.z], i * 3);
       const k = (1 - i / this.max) * this.fade;
-      this.colors.set([CYAN.r * k, CYAN.g * k, CYAN.b * k], i * 3);
+      this.colors.set([this.color.r * k, this.color.g * k, this.color.b * k], i * 3);
     }
     this.line.geometry.getAttribute('position').needsUpdate = true;
     this.line.geometry.getAttribute('color').needsUpdate = true;

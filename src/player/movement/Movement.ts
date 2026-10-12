@@ -33,6 +33,10 @@ export interface MovementInput {
   dodgePressed: boolean;
   /** "Interactuar" sin nada interactuable delante: agarrarse a la pared. */
   grabPressed: boolean;
+  /** Orientación impuesta por el combate (apuntar, fijar, atacar). */
+  faceYaw?: number;
+  /** Embestida de un ataque (m/s hacia `faceYaw` o la orientación actual). */
+  lunge?: number;
 }
 
 export interface LandingInfo {
@@ -57,6 +61,7 @@ export interface MovementEvents {
   climbTopOut: boolean;
   gliderDeploy: boolean;
   gliderFold: 'input' | 'stamina' | 'ledge' | 'wall' | null;
+  dodged: boolean;
   glideLand: { x: number; z: number; water: boolean } | null;
   exhausted: boolean;
   drowned: boolean;
@@ -77,6 +82,7 @@ function emptyEvents(): MovementEvents {
     climbTopOut: false,
     gliderDeploy: false,
     gliderFold: null,
+    dodged: false,
     glideLand: null,
     exhausted: false,
     drowned: false,
@@ -152,6 +158,27 @@ function stepFreeMode(s: CharacterState, input: MovementInput, P: MovementParams
   const st = pc.stamina;
   const wasGrounded = s.grounded;
 
+  // Esquiva: ráfaga corta con invulnerabilidad (la resuelve el combate leyendo `dodgeT`).
+  const dg = pc.combat.dodge;
+  s.dodgeT += dt;
+  if (input.dodgePressed && s.grounded && !s.sliding && !s.swimming && s.dodgeT > dg.seconds + dg.cooldown && spend(s.stamina, dg.stamina, 'dodge', st)) {
+    const l = Math.hypot(input.moveX, input.moveZ);
+    // Sin dirección: paso atrás.
+    s.dodgeX = l > 0.1 ? input.moveX / l : -Math.sin(s.yaw);
+    s.dodgeZ = l > 0.1 ? input.moveZ / l : -Math.cos(s.yaw);
+    s.dodgeT = 0;
+    ev.dodged = true;
+  }
+  let forcedVelocity: { x: number; z: number } | undefined;
+  if (s.dodgeT < dg.seconds) {
+    const k = s.dodgeT / dg.seconds;
+    const v = dg.speed * (1 - 0.55 * k * k);
+    forcedVelocity = { x: s.dodgeX * v, z: s.dodgeZ * v };
+  } else if (input.lunge && input.lunge > 0 && s.grounded) {
+    const yaw = input.faceYaw ?? s.yaw;
+    forcedVelocity = { x: Math.sin(yaw) * input.lunge, z: Math.cos(yaw) * input.lunge };
+  }
+
   // Sprint y natación consumen stamina.
   const wantsSprint = input.sprint && moving && s.grounded && !s.swimming && canUse(s.stamina);
   s.sprinting = wantsSprint && spendRate(s.stamina, st.costs.sprint, dt, 'sprint', st);
@@ -159,7 +186,18 @@ function stepFreeMode(s: CharacterState, input: MovementInput, P: MovementParams
 
   const cev = stepCharacter(
     s,
-    { moveX: input.moveX, moveZ: input.moveZ, jumpPressed: input.jumpPressed, jumpHeld: input.jumpHeld, crouch: input.crouch && !s.swimming, walk: input.walk, sprint: s.sprinting, dive: input.crouch && s.swimming },
+    {
+      moveX: input.moveX,
+      moveZ: input.moveZ,
+      jumpPressed: input.jumpPressed,
+      jumpHeld: input.jumpHeld,
+      crouch: input.crouch && !s.swimming,
+      walk: input.walk,
+      sprint: s.sprinting,
+      dive: input.crouch && s.swimming,
+      forcedVelocity,
+      faceYaw: s.dodgeT < dg.seconds ? undefined : input.faceYaw,
+    },
     pc.movement,
     body,
     env,

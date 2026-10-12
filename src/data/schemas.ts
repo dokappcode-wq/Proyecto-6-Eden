@@ -118,6 +118,30 @@ export const playerConfigSchema = v.object({
     rollWindow: v.number({ min: 0 }),
     rollDamageMultiplier: v.number({ min: 0, max: 1 }),
   }),
+  combat: v.object({
+    dodge: v.object({
+      speed: v.number({ min: 0 }),
+      seconds: v.number({ min: 0.05 }),
+      iframes: v.number({ min: 0 }),
+      perfectWindow: v.number({ min: 0 }),
+      perfectReach: v.number({ min: 0 }),
+      cooldown: v.number({ min: 0 }),
+      stamina: v.number({ min: 0 }),
+    }),
+    flurry: v.object({ seconds: v.number({ min: 0 }), worldScale: v.number({ min: 0.01, max: 1 }), strikeInterval: v.number({ min: 0.02 }) }),
+    hitstop: v.object({ light: v.number({ min: 0 }), heavy: v.number({ min: 0 }), break: v.number({ min: 0 }) }),
+    bulletTime: v.object({ airScale: v.number({ min: 0.05, max: 1 }), glideScale: v.number({ min: 0.05, max: 1 }) }),
+    plunge: v.object({ minHeight: v.number({ min: 0 }), speed: v.number({ min: 1 }), radius: v.number({ min: 0.5 }), damageMultiplier: v.number({ min: 1 }) }),
+    stomp: v.object({ damage: v.number({ min: 0 }), bounce: v.number({ min: 0 }) }),
+    sneakMultiplier: v.number({ min: 1 }),
+    throwMultiplier: v.number({ min: 0 }),
+    breakDamageMultiplier: v.number({ min: 1 }),
+    durabilityWarning: v.number({ min: 0, max: 1 }),
+    attackMoveMultiplier: v.number({ min: 0, max: 1 }),
+    lockOnRange: v.number({ min: 1 }),
+    aimCamera: v.object({ distance: v.number({ min: 0.5 }), shoulder: v.number(), fov: v.number({ min: 20, max: 120 }) }),
+    inventory: v.object({ weapons: v.number({ min: 1, integer: true }), bows: v.number({ min: 1, integer: true }), shields: v.number({ min: 1, integer: true }) }),
+  }),
   health: v.object({
     startHearts: v.number({ min: 1, integer: true }),
     maxHearts: v.number({ min: 1, integer: true }),
@@ -287,6 +311,8 @@ export const valleyConfigSchema = v.object({
   rocks: v.array(v.object({ ...placed, scale: v.number({ min: 0.1 }) })),
   waterfalls: v.array(v.object({ top: vec3, bottom: vec3, width: v.number({ min: 0.5 }) })),
   floatingIslands: v.array(v.object({ position: vec3, radius: v.number({ min: 5 }), waterfall: v.boolean() })),
+  pickups: v.array(v.object({ id: v.string({ minLength: 1 }), item: v.string({ minLength: 1 }), count: v.number({ min: 1, integer: true }), position: vec2, yOffset: v.number() })),
+  enemySpawns: v.array(v.object({ id: v.string({ minLength: 1 }), enemy: v.string({ minLength: 1 }), position: vec2, count: v.number({ min: 1, integer: true }), radius: v.number({ min: 0 }) })),
 });
 
 // ---------------------------------------------------------------- ledge_boost.json
@@ -417,6 +443,99 @@ export const templesConfigSchema = v.object({
   ),
 });
 
+// ---------------------------------------------------------------- weapons.json
+export const WEAPON_CATEGORIES = ['fists', 'club', 'sword', 'greatsword', 'daggers', 'spear', 'axe', 'hammer', 'bow'] as const;
+export const SPECIALS = ['none', 'leap_thrust', 'spin_360', 'backstab_x4', 'line_charge', 'shield_break', 'shockwave', 'triple_arrow'] as const;
+const RARITIES = ['common', 'fine', 'rare', 'legendary'] as const;
+
+const comboHitSchema = v.object({
+  windup: v.number({ min: 0 }),
+  active: v.number({ min: 0.01 }),
+  recovery: v.number({ min: 0 }),
+  damage: v.number({ min: 0 }),
+  knockback: v.number({ min: 0 }),
+});
+
+const weaponSchema = v.object({
+  id: v.string({ minLength: 1 }),
+  name: v.string({ minLength: 1 }),
+  category: v.oneOf(WEAPON_CATEGORIES),
+  rarity: v.oneOf(RARITIES),
+  damage: v.number({ min: 0 }),
+  /** 0 = irrompible (puños). */
+  durability: v.number({ min: 0, integer: true }),
+  reach: v.number({ min: 0 }),
+  /** Arco de golpe en grados. */
+  arc: v.number({ min: 0, max: 360 }),
+  combo: v.array(comboHitSchema),
+  heavy: v.object({ stamina: v.number({ min: 0 }), chargeTime: v.number({ min: 0 }), damageMultiplier: v.number({ min: 0 }), special: v.oneOf(SPECIALS) }),
+  throwable: v.boolean(),
+  tags: v.array(v.string({ minLength: 1 })),
+  bow: v.optional(v.object({ drawTime: v.number({ min: 0.05 }), arrowSpeed: v.number({ min: 1 }), minSpeedFraction: v.number({ min: 0, max: 1 }), multishotSpread: v.number({ min: 0 }) })),
+  model: v.object({ kind: v.string({ minLength: 1 }), length: v.number({ min: 0 }), color }),
+});
+
+const shieldSchema = v.object({
+  id: v.string({ minLength: 1 }),
+  name: v.string({ minLength: 1 }),
+  rarity: v.oneOf(RARITIES),
+  guard: v.number({ min: 0 }),
+  durability: v.number({ min: 1, integer: true }),
+  parryWindow: v.number({ min: 0, max: 1 }),
+  guardArc: v.number({ min: 0, max: 360 }),
+  moveMultiplier: v.number({ min: 0, max: 1 }),
+  reflectsWhileGuarding: v.boolean(),
+  surfSpeed: v.number({ min: 0 }),
+  tags: v.array(v.string({ minLength: 1 })),
+  model: v.object({ kind: v.oneOf(['round', 'tower', 'mirror'] as const), size: v.number({ min: 0.1 }), color }),
+});
+
+export const weaponsConfigSchema = v.object({ weapons: v.array(weaponSchema, { minLength: 1 }), shields: v.array(shieldSchema) });
+
+// ---------------------------------------------------------------- enemies.json
+export const ENEMY_FAMILIES = ['golem', 'goblin', 'slime', 'fauna', 'automaton', 'biome_special'] as const;
+
+const enemySchema = v.object({
+  id: v.string({ minLength: 1 }),
+  name: v.string({ minLength: 1 }),
+  family: v.oneOf(ENEMY_FAMILIES),
+  variant: v.string({ minLength: 1 }),
+  hp: v.number({ min: 1 }),
+  damage: v.number({ min: 0, integer: true }),
+  moveSpeed: v.number({ min: 0 }),
+  hopInterval: v.number({ min: 0.05 }),
+  hopHeight: v.number({ min: 0 }),
+  aggroRadius: v.number({ min: 0 }),
+  viewAngle: v.number({ min: 0, max: 360 }),
+  rearSense: v.number({ min: 0, max: 1 }),
+  loseRadius: v.number({ min: 0 }),
+  attackRange: v.number({ min: 0 }),
+  attackWindup: v.number({ min: 0 }),
+  attackCooldown: v.number({ min: 0 }),
+  lungeSpeed: v.number({ min: 0 }),
+  lungeTime: v.number({ min: 0.05 }),
+  radius: v.number({ min: 0.1 }),
+  height: v.number({ min: 0.1 }),
+  weakPointBonus: v.number({ min: 1 }),
+  stunTime: v.number({ min: 0 }),
+  knockbackResist: v.number({ min: 0, max: 1 }),
+  tags: v.array(v.string({ minLength: 1 })),
+  color,
+  loot: v.string({ minLength: 1 }),
+  stompable: v.boolean(),
+});
+
+export const enemiesConfigSchema = v.object({ enemies: v.array(enemySchema, { minLength: 1 }) });
+
+// ---------------------------------------------------------------- items.json / loot_tables.json
+export const itemsConfigSchema = v.object({
+  items: v.array(v.object({ id: v.string({ minLength: 1 }), name: v.string({ minLength: 1 }), category: v.oneOf(['ammo', 'material'] as const), stack: v.number({ min: 1, integer: true }), color })),
+});
+
+export const lootTablesConfigSchema = v.object({
+  tables: v.record(v.array(v.object({ item: v.string({ minLength: 1 }), chance: v.number({ min: 0, max: 1 }), min: v.number({ min: 0, integer: true }), max: v.number({ min: 0, integer: true }) }))),
+});
+
 // ---------------------------------------------------------------- tutorial.json
 export const TRIGGER_KINDS = ['interact', 'reach', 'read', 'climb', 'defeat', 'temple', 'glide_land'] as const;
 
@@ -467,3 +586,14 @@ export type MaterialDef = MaterialsConfig[string];
 export type SettingsConfig = Infer<typeof settingsConfigSchema>;
 export type TemplesConfig = Infer<typeof templesConfigSchema>;
 export type TempleDef = TemplesConfig['temples'][number];
+export type CombatConfig = PlayerConfig['combat'];
+export type WeaponsConfig = Infer<typeof weaponsConfigSchema>;
+export type WeaponDef = Infer<typeof weaponSchema>;
+export type ShieldDef = Infer<typeof shieldSchema>;
+export type ComboHit = Infer<typeof comboHitSchema>;
+export type WeaponCategory = (typeof WEAPON_CATEGORIES)[number];
+export type WeaponSpecial = (typeof SPECIALS)[number];
+export type EnemiesConfig = Infer<typeof enemiesConfigSchema>;
+export type EnemyDef = Infer<typeof enemySchema>;
+export type ItemsConfig = Infer<typeof itemsConfigSchema>;
+export type LootTablesConfig = Infer<typeof lootTablesConfigSchema>;

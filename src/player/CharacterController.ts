@@ -26,6 +26,10 @@ export interface CharacterInput {
   sprint?: boolean;
   /** Bucear (agacharse en el agua). */
   dive?: boolean;
+  /** Velocidad horizontal impuesta (esquiva, embestidas de ataque): ignora la aceleración normal. */
+  forcedVelocity?: { x: number; z: number };
+  /** Orientación impuesta (apuntar, fijar objetivo, atacar). */
+  faceYaw?: number;
 }
 
 export type MoveMode = 'ground' | 'air' | 'swim' | 'climb' | 'ledge' | 'glide';
@@ -118,6 +122,10 @@ export interface CharacterState {
   rollTimer: number;
   /** Tiempo empujando contra una pared desde el suelo (para empezar a trepar). */
   pushTimer: number;
+  /** Tiempo desde el inicio de la última esquiva (s). */
+  dodgeT: number;
+  dodgeX: number;
+  dodgeZ: number;
   /** Última posición segura en tierra firme (reaparecer tras ahogarse). */
   safeX: number;
   safeY: number;
@@ -167,6 +175,9 @@ export function createCharacterState(x: number, y: number, z: number, yaw = 0, m
     lastLedgeEnd: -999,
     rollTimer: 999,
     pushTimer: 0,
+    dodgeT: 999,
+    dodgeX: 0,
+    dodgeZ: 0,
     safeX: x,
     safeY: y,
     safeZ: z,
@@ -214,7 +225,10 @@ export function stepCharacter(
   const tz = input.moveZ * speed;
   const hasInput = input.moveX * input.moveX + input.moveZ * input.moveZ > 1e-4;
 
-  if ((s.grounded && !s.sliding) || s.swimming) {
+  if (input.forcedVelocity && !s.swimming) {
+    s.vx = input.forcedVelocity.x;
+    s.vz = input.forcedVelocity.z;
+  } else if ((s.grounded && !s.sliding) || s.swimming) {
     accelerateTowards(s, tx, tz, (hasInput ? cfg.groundAccel : cfg.groundDecel) * dt);
   } else if (s.sliding) {
     const n = env.terrainNormal(s.x, s.z, tmpN);
@@ -371,8 +385,9 @@ export function stepCharacter(
     s.fallStartY = s.y;
   }
 
-  // --- orientación hacia la dirección de entrada
-  if (hasInput && !s.sliding) s.yaw = dampAngle(s.yaw, Math.atan2(input.moveX, input.moveZ), cfg.turnSharpness, dt);
+  // --- orientación: impuesta (combate) o hacia la dirección de entrada
+  if (input.faceYaw !== undefined) s.yaw = dampAngle(s.yaw, input.faceYaw, cfg.turnSharpness * 1.6, dt);
+  else if (hasInput && !s.sliding) s.yaw = dampAngle(s.yaw, Math.atan2(input.moveX, input.moveZ), cfg.turnSharpness, dt);
 
   return ev;
 }

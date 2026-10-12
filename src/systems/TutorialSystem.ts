@@ -22,6 +22,7 @@ export class TutorialSystem implements System {
     ctx.bus.on('player:climb', ({ phase }) => phase === 'start' && this.report(ctx, { kind: 'climb' }));
     ctx.bus.on('player:ledge', ({ phase }) => phase === 'exit' && this.report(ctx, { kind: 'climb' }));
     ctx.bus.on('temple:complete', ({ id }) => this.report(ctx, { kind: 'temple', target: id }));
+    ctx.bus.on('enemy:defeated', ({ family }) => this.report(ctx, { kind: 'defeat', target: family }));
     ctx.bus.on('player:glide_land', ({ x, z }) => {
       // Aterrizar planeando dentro (o en la orilla) de un lago cuenta como "aterrizar en él".
       for (const lake of ctx.data.terrain.lakes) {

@@ -1,0 +1,485 @@
+{
+  "weapons": [
+    {
+      "id": "fists",
+      "name": "Puños",
+      "category": "fists",
+      "rarity": "common",
+      "damage": 1,
+      "durability": 0,
+      "reach": 1.2,
+      "arc": 80,
+      "combo": [
+        {
+          "windup": 0.08,
+          "active": 0.08,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 1
+        },
+        {
+          "windup": 0.08,
+          "active": 0.08,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 1
+        },
+        {
+          "windup": 0.1,
+          "active": 0.1,
+          "recovery": 0.25,
+          "damage": 1.5,
+          "knockback": 3
+        }
+      ],
+      "heavy": {
+        "stamina": 0,
+        "chargeTime": 99,
+        "damageMultiplier": 1,
+        "special": "none"
+      },
+      "throwable": false,
+      "tags": [],
+      "model": {
+        "kind": "fists",
+        "length": 0,
+        "color": "#d9a982"
+      }
+    },
+    {
+      "id": "branch",
+      "name": "Rama robusta",
+      "category": "club",
+      "rarity": "common",
+      "damage": 4,
+      "durability": 12,
+      "reach": 1.7,
+      "arc": 110,
+      "combo": [
+        {
+          "windup": 0.12,
+          "active": 0.1,
+          "recovery": 0.2,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.12,
+          "active": 0.1,
+          "recovery": 0.2,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.16,
+          "active": 0.12,
+          "recovery": 0.32,
+          "damage": 1.4,
+          "knockback": 4
+        }
+      ],
+      "heavy": {
+        "stamina": 20,
+        "chargeTime": 0.55,
+        "damageMultiplier": 2,
+        "special": "none"
+      },
+      "throwable": true,
+      "tags": [
+        "wood",
+        "flammable"
+      ],
+      "model": {
+        "kind": "club",
+        "length": 1.0,
+        "color": "#7a5a3a"
+      }
+    },
+    {
+      "id": "explorer_sword",
+      "name": "Espada de explorador",
+      "category": "sword",
+      "rarity": "fine",
+      "damage": 8,
+      "durability": 28,
+      "reach": 1.9,
+      "arc": 115,
+      "combo": [
+        {
+          "windup": 0.08,
+          "active": 0.1,
+          "recovery": 0.16,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.08,
+          "active": 0.1,
+          "recovery": 0.16,
+          "damage": 1,
+          "knockback": 2
+        },
+        {
+          "windup": 0.12,
+          "active": 0.12,
+          "recovery": 0.28,
+          "damage": 1.5,
+          "knockback": 4
+        }
+      ],
+      "heavy": {
+        "stamina": 20,
+        "chargeTime": 0.5,
+        "damageMultiplier": 2.2,
+        "special": "leap_thrust"
+      },
+      "throwable": true,
+      "tags": [
+        "metal"
+      ],
+      "model": {
+        "kind": "sword",
+        "length": 1.0,
+        "color": "#cfd8de"
+      }
+    },
+    {
+      "id": "ancestral_greatsword",
+      "name": "Mandoble ancestral",
+      "category": "greatsword",
+      "rarity": "rare",
+      "damage": 16,
+      "durability": 40,
+      "reach": 2.5,
+      "arc": 160,
+      "combo": [
+        {
+          "windup": 0.3,
+          "active": 0.14,
+          "recovery": 0.38,
+          "damage": 1,
+          "knockback": 5
+        },
+        {
+          "windup": 0.28,
+          "active": 0.14,
+          "recovery": 0.38,
+          "damage": 1,
+          "knockback": 5
+        },
+        {
+          "windup": 0.34,
+          "active": 0.16,
+          "recovery": 0.5,
+          "damage": 1.6,
+          "knockback": 8
+        }
+      ],
+      "heavy": {
+        "stamina": 25,
+        "chargeTime": 0.8,
+        "damageMultiplier": 1.6,
+        "special": "spin_360"
+      },
+      "throwable": true,
+      "tags": [
+        "metal",
+        "ancestral"
+      ],
+      "model": {
+        "kind": "greatsword",
+        "length": 1.7,
+        "color": "#5f6d78"
+      }
+    },
+    {
+      "id": "twin_daggers",
+      "name": "Dagas gemelas",
+      "category": "daggers",
+      "rarity": "fine",
+      "damage": 5,
+      "durability": 24,
+      "reach": 1.4,
+      "arc": 90,
+      "combo": [
+        {
+          "windup": 0.05,
+          "active": 0.07,
+          "recovery": 0.09,
+          "damage": 1,
+          "knockback": 1
+        },
+        {
+          "windup": 0.05,
+          "active": 0.07,
+          "recovery": 0.09,
+          "damage": 1,
+          "knockback": 1
+        },
+        {
+          "windup": 0.06,
+          "active": 0.08,
+          "recovery": 0.18,
+          "damage": 1.3,
+          "knockback": 2
+        }
+      ],
+      "heavy": {
+        "stamina": 15,
+        "chargeTime": 0.4,
+        "damageMultiplier": 1.8,
+        "special": "backstab_x4"
+      },
+      "throwable": true,
+      "tags": [
+        "metal"
+      ],
+      "model": {
+        "kind": "daggers",
+        "length": 0.45,
+        "color": "#b9c4cc"
+      }
+    },
+    {
+      "id": "stone_spear",
+      "name": "Lanza de piedra",
+      "category": "spear",
+      "rarity": "common",
+      "damage": 7,
+      "durability": 26,
+      "reach": 3.0,
+      "arc": 40,
+      "combo": [
+        {
+          "windup": 0.1,
+          "active": 0.1,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 3
+        },
+        {
+          "windup": 0.1,
+          "active": 0.1,
+          "recovery": 0.14,
+          "damage": 1,
+          "knockback": 3
+        },
+        {
+          "windup": 0.14,
+          "active": 0.12,
+          "recovery": 0.26,
+          "damage": 1.4,
+          "knockback": 5
+        }
+      ],
+      "heavy": {
+        "stamina": 22,
+        "chargeTime": 0.55,
+        "damageMultiplier": 1.5,
+        "special": "line_charge"
+      },
+      "throwable": true,
+      "tags": [
+        "wood",
+        "stone"
+      ],
+      "model": {
+        "kind": "spear",
+        "length": 2.1,
+        "color": "#8a7b66"
+      }
+    },
+    {
+      "id": "woodcutter_axe",
+      "name": "Hacha de leñador",
+      "category": "axe",
+      "rarity": "common",
+      "damage": 10,
+      "durability": 30,
+      "reach": 1.9,
+      "arc": 110,
+      "combo": [
+        {
+          "windup": 0.16,
+          "active": 0.11,
+          "recovery": 0.24,
+          "damage": 1,
+          "knockback": 4
+        },
+        {
+          "windup": 0.16,
+          "active": 0.11,
+          "recovery": 0.24,
+          "damage": 1,
+          "knockback": 4
+        },
+        {
+          "windup": 0.2,
+          "active": 0.13,
+          "recovery": 0.34,
+          "damage": 1.5,
+          "knockback": 6
+        }
+      ],
+      "heavy": {
+        "stamina": 22,
+        "chargeTime": 0.6,
+        "damageMultiplier": 2,
+        "special": "shield_break"
+      },
+      "throwable": true,
+      "tags": [
+        "metal",
+        "wood"
+      ],
+      "model": {
+        "kind": "axe",
+        "length": 1.1,
+        "color": "#9aa4ab"
+      }
+    },
+    {
+      "id": "boulder_hammer",
+      "name": "Maza de roca",
+      "category": "hammer",
+      "rarity": "fine",
+      "damage": 18,
+      "durability": 36,
+      "reach": 2.2,
+      "arc": 120,
+      "combo": [
+        {
+          "windup": 0.42,
+          "active": 0.16,
+          "recovery": 0.48,
+          "damage": 1,
+          "knockback": 7
+        },
+        {
+          "windup": 0.4,
+          "active": 0.16,
+          "recovery": 0.48,
+          "damage": 1,
+          "knockback": 7
+        },
+        {
+          "windup": 0.46,
+          "active": 0.18,
+          "recovery": 0.6,
+          "damage": 1.5,
+          "knockback": 10
+        }
+      ],
+      "heavy": {
+        "stamina": 30,
+        "chargeTime": 0.9,
+        "damageMultiplier": 1.8,
+        "special": "shockwave"
+      },
+      "throwable": true,
+      "tags": [
+        "stone"
+      ],
+      "model": {
+        "kind": "hammer",
+        "length": 1.4,
+        "color": "#7d756a"
+      }
+    },
+    {
+      "id": "short_bow",
+      "name": "Arco corto",
+      "category": "bow",
+      "rarity": "fine",
+      "damage": 6,
+      "durability": 30,
+      "reach": 0,
+      "arc": 0,
+      "combo": [],
+      "heavy": {
+        "stamina": 0,
+        "chargeTime": 99,
+        "damageMultiplier": 1,
+        "special": "triple_arrow"
+      },
+      "throwable": false,
+      "tags": [
+        "wood"
+      ],
+      "bow": {
+        "drawTime": 0.45,
+        "arrowSpeed": 42,
+        "minSpeedFraction": 0.35,
+        "multishotSpread": 0.09
+      },
+      "model": {
+        "kind": "bow",
+        "length": 1.1,
+        "color": "#8b5e34"
+      }
+    }
+  ],
+  "shields": [
+    {
+      "id": "wood_shield",
+      "name": "Escudo de madera",
+      "rarity": "common",
+      "guard": 5,
+      "durability": 16,
+      "parryWindow": 0.15,
+      "guardArc": 140,
+      "moveMultiplier": 0.75,
+      "reflectsWhileGuarding": false,
+      "surfSpeed": 1.0,
+      "tags": [
+        "wood"
+      ],
+      "model": {
+        "kind": "round",
+        "size": 0.55,
+        "color": "#8a6a45"
+      }
+    },
+    {
+      "id": "tower_shield",
+      "name": "Escudo de torre",
+      "rarity": "fine",
+      "guard": 12,
+      "durability": 40,
+      "parryWindow": 0.12,
+      "guardArc": 160,
+      "moveMultiplier": 0.55,
+      "reflectsWhileGuarding": false,
+      "surfSpeed": 0.8,
+      "tags": [
+        "metal"
+      ],
+      "model": {
+        "kind": "tower",
+        "size": 0.9,
+        "color": "#6c757d"
+      }
+    },
+    {
+      "id": "mirror_shield",
+      "name": "Escudo espejo",
+      "rarity": "rare",
+      "guard": 7,
+      "durability": 26,
+      "parryWindow": 0.15,
+      "guardArc": 140,
+      "moveMultiplier": 0.75,
+      "reflectsWhileGuarding": true,
+      "surfSpeed": 1.15,
+      "tags": [
+        "metal",
+        "ancestral"
+      ],
+      "model": {
+        "kind": "mirror",
+        "size": 0.6,
+        "color": "#d8e6ee"
+      }
+    }
+  ]
+}

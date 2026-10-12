@@ -1,9 +1,12 @@
 import airflowJson from './definitions/airflow.json';
 import dayNightJson from './definitions/daynight.json';
+import enemiesJson from './definitions/enemies.json';
 import gameJson from './definitions/game.json';
 import gliderJson from './definitions/glider.json';
 import inputJson from './definitions/input.json';
+import itemsJson from './definitions/items.json';
 import ledgeBoostJson from './definitions/ledge_boost.json';
+import lootTablesJson from './definitions/loot_tables.json';
 import materialsJson from './definitions/materials.json';
 import playerJson from './definitions/player.json';
 import settingsJson from './definitions/settings.json';
@@ -11,10 +14,15 @@ import templesJson from './definitions/temples.json';
 import terrainJson from './definitions/terrain.json';
 import tutorialJson from './definitions/tutorial.json';
 import valleyJson from './definitions/valley.json';
+import weaponsJson from './definitions/weapons.json';
 import { DataValidationError, parse, type Issue } from './schema';
 import {
   airflowConfigSchema,
   dayNightConfigSchema,
+  enemiesConfigSchema,
+  itemsConfigSchema,
+  lootTablesConfigSchema,
+  weaponsConfigSchema,
   gliderConfigSchema,
   ledgeBoostConfigSchema,
   materialsConfigSchema,
@@ -28,6 +36,10 @@ import {
   valleyConfigSchema,
   type AirflowConfig,
   type DayNightConfig,
+  type EnemiesConfig,
+  type ItemsConfig,
+  type LootTablesConfig,
+  type WeaponsConfig,
   type GliderConfig,
   type LedgeBoostConfig,
   type MaterialsConfig,
@@ -55,6 +67,10 @@ export interface GameData {
   materials: MaterialsConfig;
   settings: SettingsConfig;
   temples: TemplesConfig;
+  weapons: WeaponsConfig;
+  enemies: EnemiesConfig;
+  items: ItemsConfig;
+  loot: LootTablesConfig;
 }
 
 /** Fuentes crudas (inyectables en tests para probar datos rotos). */
@@ -72,6 +88,10 @@ export interface RawGameData {
   materials: unknown;
   settings: unknown;
   temples: unknown;
+  weapons: unknown;
+  enemies: unknown;
+  items: unknown;
+  loot: unknown;
 }
 
 export const BUNDLED_DATA: RawGameData = {
@@ -88,6 +108,10 @@ export const BUNDLED_DATA: RawGameData = {
   materials: materialsJson,
   settings: settingsJson,
   temples: templesJson,
+  weapons: weaponsJson,
+  enemies: enemiesJson,
+  items: itemsJson,
+  loot: lootTablesJson,
 };
 
 /**
@@ -109,6 +133,10 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     materials: parse(materialsConfigSchema, raw.materials, 'materials.json'),
     settings: parse(settingsConfigSchema, raw.settings, 'settings.json'),
     temples: parse(templesConfigSchema, raw.temples, 'temples.json'),
+    weapons: parse(weaponsConfigSchema, raw.weapons, 'weapons.json'),
+    enemies: parse(enemiesConfigSchema, raw.enemies, 'enemies.json'),
+    items: parse(itemsConfigSchema, raw.items, 'items.json'),
+    loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
   };
   checkConsistency(data);
   return data;
@@ -169,6 +197,32 @@ function checkConsistency(d: GameData): void {
   const lb = d.ledgeBoost;
   if (lb.reachMin >= lb.reachMax) issues.push({ path: 'ledge_boost.reachMin', message: 'debe ser menor que reachMax' });
   if (lb.contactSeconds + lb.boostSeconds > 0.4 + 1e-9) issues.push({ path: 'ledge_boost', message: 'contacto + impulso no puede superar 0.4 s (requisito de diseño)' });
+
+  // Armas, enemigos, objetos y botín: referencias cruzadas.
+  const weaponIds = new Set(d.weapons.weapons.map((w) => w.id));
+  const shieldIds = new Set(d.weapons.shields.map((w) => w.id));
+  const itemIds = new Set(d.items.items.map((i) => i.id));
+  const enemyIds = new Set(d.enemies.enemies.map((e) => e.id));
+  if (!weaponIds.has('fists')) issues.push({ path: 'weapons.weapons', message: 'falta el arma "fists" (manos desnudas)' });
+  d.weapons.weapons.forEach((w, i) => {
+    if (w.category === 'bow' && !w.bow) issues.push({ path: `weapons.weapons[${i}].bow`, message: 'un arco necesita la sección "bow"' });
+    if (w.category !== 'bow' && w.category !== 'fists' && w.combo.length !== 3) issues.push({ path: `weapons.weapons[${i}].combo`, message: 'el combo ligero debe tener 3 golpes' });
+  });
+  d.valley.pickups.forEach((p, i) => {
+    if (!weaponIds.has(p.item) && !shieldIds.has(p.item) && !itemIds.has(p.item)) issues.push({ path: `valley.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
+  });
+  d.valley.enemySpawns.forEach((sp, i) => {
+    if (!enemyIds.has(sp.enemy)) issues.push({ path: `valley.enemySpawns[${i}].enemy`, message: `enemigo "${sp.enemy}" no definido` });
+  });
+  d.enemies.enemies.forEach((e, i) => {
+    if (!(e.loot in d.loot.tables)) issues.push({ path: `enemies[${i}].loot`, message: `tabla de botín "${e.loot}" no definida` });
+  });
+  for (const [table, rows] of Object.entries(d.loot.tables)) {
+    rows.forEach((r, i) => {
+      if (!itemIds.has(r.item)) issues.push({ path: `loot_tables.${table}[${i}].item`, message: `objeto "${r.item}" no definido` });
+      if (r.max < r.min) issues.push({ path: `loot_tables.${table}[${i}]`, message: 'max < min' });
+    });
+  }
 
   if (issues.length > 0) throw new DataValidationError('coherencia entre datos', issues);
 }

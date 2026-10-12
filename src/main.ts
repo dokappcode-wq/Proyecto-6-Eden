@@ -8,6 +8,9 @@ import { InputManager } from './core/input/InputManager';
 import { Renderer } from './core/Renderer';
 import { browserStorage, SaveStore } from './core/save';
 import { loadGameData } from './data';
+import { HitFx } from './combat/HitFx';
+import { Catalog, createEquipment, equipped, restoreEquipment } from './combat/inventory';
+import { ProjectileManager } from './combat/ProjectileManager';
 import { CameraController } from './player/CameraController';
 import { createCharacterState, type CharacterEnv } from './player/CharacterController';
 import { gliderModifiers } from './player/movement/glide';
@@ -15,6 +18,9 @@ import type { MovementParams } from './player/movement/Movement';
 import { createHealth } from './player/movement/Stamina';
 import { DustPool, PlayerVisual } from './player/PlayerVisual';
 import { CameraSystem } from './systems/CameraSystem';
+import { CombatSystem, createCombatState } from './systems/CombatSystem';
+import { EnemySystem } from './systems/EnemySystem';
+import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
 import { GateSystem } from './systems/GateSystem';
 import { InteractionSystem } from './systems/InteractionSystem';
@@ -26,6 +32,7 @@ import { TutorialSystem } from './systems/TutorialSystem';
 import { ValleyProgressSystem } from './systems/ValleyProgressSystem';
 import { DebugOverlay } from './ui/DebugOverlay';
 import { Hud } from './ui/Hud';
+import { CombatHud } from './ui/CombatHud';
 import { codeLabel } from './ui/keyLabels';
 import { PlayerHud } from './ui/PlayerHud';
 import { Airflow, emptyAir } from './world/airflow/Airflow';
@@ -71,6 +78,8 @@ async function boot(): Promise<void> {
   world.add(playerEntity, 'transform', createTransform());
   world.add(playerEntity, 'player', { control: 'capsule', scriptTime: 0, cameraYaw: 0, health: createHealth(hp.startHearts, hp.fragmentsPerHeart) });
   world.add(playerEntity, 'character', createCharacterState(0, 0, 0, 0, data.player.stamina.base, data.player.swim.airSeconds));
+  world.add(playerEntity, 'combat', createCombatState(createEquipment()));
+  const catalog = new Catalog(data.weapons, data.items);
 
   const camDir = new THREE.Vector3();
   const hud = new Hud(
@@ -145,6 +154,7 @@ async function boot(): Promise<void> {
   const environment = new EnvironmentSystem(renderer, playerEntity, chunks, far, water, data.terrain, updaters, ctx);
   const interaction = new InteractionSystem(playerEntity, ctx);
   const cameraSystem = new CameraSystem(playerEntity, cameraCtl, camEnv, renderer.camera, titleOrbit);
+  const renderSystem = new RenderSystem(renderer);
   const playerSystem = new PlayerSystem(
     playerEntity,
     data.player,
@@ -171,10 +181,42 @@ async function boot(): Promise<void> {
       gateOpen: () => gate.isOpen,
       progress: () => progress.progress,
       canSave: () => !progress.isInTemple,
+      equipment: () => world.require(playerEntity, 'combat').equipment,
+      collected: () => [...pickups.collected],
     },
     ctx,
   );
-  const renderSystem = new RenderSystem(renderer);
+
+  // --- combate, enemigos y objetos
+  const fx = new HitFx();
+  const projectiles = new ProjectileManager();
+  renderer.scene.add(fx.group, projectiles.group);
+  const enemies = new EnemySystem(data.enemies.enemies, playerEntity, terrain, colliders, renderSystem, renderer.camera);
+  const pickups = new PickupSystem(playerEntity, catalog, data.loot, data.player.combat.inventory, terrain, (x, z, y) => enemies.groundAt(x, z, y), renderer.scene, ctx);
+  const combat = new CombatSystem(
+    { playerEntity, cfg: data.player.combat, stamina: data.player.stamina, catalog, player: playerSystem, enemies, pickups, camera: cameraCtl, threeCamera: renderer.camera, colliders, terrain, fx, projectiles },
+    ctx,
+  );
+  cameraSystem.lookSink = (dx, dy) => {
+    if (!world.require(playerEntity, 'combat').wheelOpen) return false;
+    combat.wheelLook(dx, dy);
+    return true;
+  };
+  cameraSystem.combatView = () => ({ aim: world.require(playerEntity, 'combat').aiming ? data.player.combat.aimCamera : null, lock: combat.lockPosition(ctx) });
+  const loadout = {
+    name: 'loadout',
+    render: () => {
+      const eq = world.require(playerEntity, 'combat').equipment;
+      const m = equipped(eq, 'melee');
+      const b = equipped(eq, 'bow');
+      const sh = equipped(eq, 'shield');
+      visual.setLoadout({
+        melee: m ? catalog.weapon(m.id).model : null,
+        bow: b ? catalog.weapon(b.id).model : null,
+        shield: sh ? catalog.shield(sh.id).model : null,
+      });
+    },
+  };
 
   const anchor = new THREE.Vector3();
   const camRight = new THREE.Vector3();
@@ -198,6 +240,13 @@ async function boot(): Promise<void> {
     flightIndicators: data.settings.accessibility.flightIndicators,
   });
 
+  const projectPoint = new THREE.Vector3();
+  const combatHud = new CombatHud(ctx, playerEntity, combat, catalog, (x, y, z) => {
+    projectPoint.set(x, y, z).project(renderer.camera);
+    if (projectPoint.z > 1) return null;
+    return { x: ((projectPoint.x + 1) / 2) * renderer.canvas.clientWidth, y: ((1 - projectPoint.y) / 2) * renderer.canvas.clientHeight };
+  });
+
   const game = new Game(ctx);
   game
     .addSystem(new TransformSnapshotSystem())
@@ -205,13 +254,19 @@ async function boot(): Promise<void> {
     .addSystem(cameraSystem)
     .addSystem(environment)
     .addSystem(interaction)
+    .addSystem(combat.pre)
     .addSystem(playerSystem)
+    .addSystem(enemies)
+    .addSystem(combat.post)
+    .addSystem(pickups)
     .addSystem(progress)
     .addSystem(gate)
     .addSystem(tutorial)
     .addSystem(saveSystem)
     .addSystem(hud)
     .addSystem(playerHud)
+    .addSystem(combatHud)
+    .addSystem(loadout)
     .addSystem(debug)
     .addSystem(renderSystem);
   renderSystem.attach(playerEntity, visual.root);
@@ -246,6 +301,27 @@ async function boot(): Promise<void> {
   debug.addProvider('progreso', () => {
     const p = progress.progress;
     return `torre ${p.towerActivated ? '✓' : '·'}  templo ${p.templeCompleted ? '✓' : p.templeOpened ? 'abierto' : '·'}  planeador ${p.hasGlider ? '✓' : '·'}  salida ${gate.isOpen ? 'abierta' : 'cerrada'}`;
+  });
+  debug.addProvider('combate', () => {
+    const c = world.require(playerEntity, 'combat');
+    const m = c.melee;
+    return `${combat.meleeDef(c).name}  ${m.phase}${m.phase !== 'idle' ? ` (${m.kind} ${m.comboIndex + 1})` : ''}  ${c.aiming ? `apuntando ${c.drawT.toFixed(2)}s` : ''}${c.defense.guarding ? 'guardia' : ''}${c.plunging ? 'PICADO' : ''}${c.flurryT > 0 ? ' RÁFAGA' : ''}  fijado ${c.lockTarget ?? '—'}  tiempo ×${ctx.time.worldScale.toFixed(2)}/${ctx.time.playerScale.toFixed(2)}`;
+  });
+  debug.addProvider('enemigos', () => {
+    const t = world.require(playerEntity, 'transform');
+    let near = '';
+    let nd = Infinity;
+    let n = 0;
+    for (const e of world.query('enemy')) {
+      const b = world.require(e, 'enemy').brain;
+      n++;
+      const d = Math.hypot(b.x - t.x, b.z - t.z);
+      if (d < nd) {
+        nd = d;
+        near = `${b.mode} hp ${b.hp} ${b.aware ? 'alerta' : 'desprevenido'} a ${d.toFixed(1)} m`;
+      }
+    }
+    return `${n} vivos  más cercano: ${near || '—'}  proyectiles ${projectiles.list.length}`;
   });
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
@@ -287,6 +363,8 @@ async function boot(): Promise<void> {
     if (save.exitedCapsule) playerSystem.placeFree(ctx, save.player.x, save.player.y, save.player.z, save.player.yaw);
     else playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, save.progress, save.gateOpen);
+    world.require(playerEntity, 'combat').equipment = restoreEquipment(save.equipment, catalog);
+    pickups.spawnValley(ctx, data.valley.pickups, save.collected);
     const p = world.require(playerEntity, 'player');
     p.health.maxFragments = save.health.maxFragments;
     p.health.fragments = Math.min(save.health.fragments, save.health.maxFragments);
@@ -298,7 +376,10 @@ async function boot(): Promise<void> {
     interaction.syncCapsulePrompt(ctx, false);
     playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, noProgress, false);
+    world.require(playerEntity, 'combat').equipment = createEquipment();
+    pickups.spawnValley(ctx, data.valley.pickups, []);
   }
+  enemies.spawnAll(ctx, data.valley.enemySpawns);
   const pt = world.require(playerEntity, 'transform');
   cameraCtl.snapBehind(pt.rotY, pt);
   ctx.session.mode = 'play';
@@ -307,7 +388,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups } });
   }
 }
 

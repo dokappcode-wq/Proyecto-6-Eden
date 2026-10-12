@@ -17,6 +17,8 @@ const sample = {
   player: { x: 1, y: 61, z: 2, yaw: 0.5 },
   health: { fragments: 10, maxFragments: 12 },
   progress: { towerActivated: true, templeOpened: true, templeCompleted: false, hasGlider: true },
+  equipment: { weapons: [{ id: 'branch', durability: 5 }], bows: [], shields: [], melee: 0, bow: -1, shield: -1, items: { arrow: 7 } },
+  collected: ['pk_branch'],
 };
 
 describe('SaveStore', () => {
@@ -28,7 +30,7 @@ describe('SaveStore', () => {
 
   it('ignora partidas corruptas sin lanzar', () => {
     const mem = memory();
-    mem.setItem('eden.save.a', '{"version":2,"hour":"x"}');
+    mem.setItem('eden.save.a', '{"version":3,"hour":"x"}');
     mem.setItem('eden.save.b', 'no-es-json');
     const s = new SaveStore(mem);
     expect(s.read('a')).toBeNull();
@@ -48,5 +50,23 @@ describe('validación cruzada de datos', () => {
     const terrain = structuredClone(BUNDLED_DATA.terrain) as { chunk: { lodDistances: number[] } };
     terrain.chunk.lodDistances = [500, 200, 800];
     expect(() => loadGameData({ ...BUNDLED_DATA, terrain })).toThrow(/creciente/);
+  });
+});
+
+describe('equipo guardado', () => {
+  it('serializa y restaura armas, equipadas y objetos', async () => {
+    const { addGear, Catalog, createEquipment, equipped, restoreEquipment, serializeEquipment } = await import('../src/combat/inventory');
+    const data = loadGameData();
+    const cat = new Catalog(data.weapons, data.items);
+    const eq = createEquipment();
+    addGear(eq, cat, 'branch', data.player.combat.inventory);
+    const sword = addGear(eq, cat, 'explorer_sword', data.player.combat.inventory)!;
+    sword.durability = 9;
+    eq.melee = sword.uid;
+    eq.items.arrow = 12;
+    const back = restoreEquipment(serializeEquipment(eq), cat);
+    expect(equipped(back, 'melee')).toMatchObject({ id: 'explorer_sword', durability: 9 });
+    expect(back.weapons).toHaveLength(2);
+    expect(back.items.arrow).toBe(12);
   });
 });

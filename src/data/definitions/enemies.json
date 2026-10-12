@@ -1,0 +1,35 @@
+{
+  "enemies": [
+    {
+      "id": "slime_green",
+      "name": "Slime",
+      "family": "slime",
+      "variant": "normal",
+      "hp": 16,
+      "damage": 2,
+      "moveSpeed": 2.4,
+      "hopInterval": 0.9,
+      "hopHeight": 0.9,
+      "aggroRadius": 11,
+      "viewAngle": 200,
+      "rearSense": 0.2,
+      "loseRadius": 18,
+      "attackRange": 2.6,
+      "attackWindup": 0.6,
+      "attackCooldown": 1.8,
+      "lungeSpeed": 7.5,
+      "lungeTime": 0.45,
+      "radius": 0.55,
+      "height": 0.9,
+      "weakPointBonus": 2,
+      "stunTime": 1.2,
+      "knockbackResist": 0,
+      "tags": [
+        "gel"
+      ],
+      "color": "#6fdc5a",
+      "loot": "slime_green",
+      "stompable": true
+    }
+  ]
+}

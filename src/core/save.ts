@@ -1,7 +1,9 @@
 import { parse, v, type Infer } from '../data/schema';
 import type { BindingStorage } from './input/InputManager';
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
+
+const gear = v.object({ id: v.string({ minLength: 1 }), durability: v.number({ min: 0, integer: true }) });
 
 const saveSchema = v.object({
   version: v.number({ integer: true }),
@@ -14,6 +16,18 @@ const saveSchema = v.object({
   player: v.object({ x: v.number(), y: v.number(), z: v.number(), yaw: v.number() }),
   health: v.object({ fragments: v.number({ min: 0, integer: true }), maxFragments: v.number({ min: 1, integer: true }) }),
   progress: v.object({ towerActivated: v.boolean(), templeOpened: v.boolean(), templeCompleted: v.boolean(), hasGlider: v.boolean() }),
+  equipment: v.object({
+    weapons: v.array(gear),
+    bows: v.array(gear),
+    shields: v.array(gear),
+    /** Índice equipado en cada lista (-1 = nada / puños). */
+    melee: v.number({ integer: true }),
+    bow: v.number({ integer: true }),
+    shield: v.number({ integer: true }),
+    items: v.record(v.number({ min: 0, integer: true })),
+  }),
+  /** Objetos del valle ya recogidos. */
+  collected: v.array(v.string()),
 });
 
 export type SaveData = Infer<typeof saveSchema>;

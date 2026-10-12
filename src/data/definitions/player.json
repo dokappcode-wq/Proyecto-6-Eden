@@ -104,5 +104,56 @@
     "maxHearts": 20,
     "fragmentsPerHeart": 4,
     "drownDamageFragments": 4
+  },
+  "combat": {
+    "dodge": {
+      "speed": 9,
+      "seconds": 0.32,
+      "iframes": 0.26,
+      "perfectWindow": 0.18,
+      "perfectReach": 1.8,
+      "cooldown": 0.15,
+      "stamina": 10
+    },
+    "flurry": {
+      "seconds": 1.5,
+      "worldScale": 0.22,
+      "strikeInterval": 0.12
+    },
+    "hitstop": {
+      "light": 0.045,
+      "heavy": 0.085,
+      "break": 0.12
+    },
+    "bulletTime": {
+      "airScale": 0.3,
+      "glideScale": 0.6
+    },
+    "plunge": {
+      "minHeight": 2.5,
+      "speed": 22,
+      "radius": 2.6,
+      "damageMultiplier": 2
+    },
+    "stomp": {
+      "damage": 4,
+      "bounce": 7.5
+    },
+    "sneakMultiplier": 3,
+    "throwMultiplier": 1.5,
+    "breakDamageMultiplier": 2,
+    "durabilityWarning": 0.25,
+    "attackMoveMultiplier": 0.3,
+    "lockOnRange": 16,
+    "aimCamera": {
+      "distance": 2.3,
+      "shoulder": 0.75,
+      "fov": 48
+    },
+    "inventory": {
+      "weapons": 10,
+      "bows": 4,
+      "shields": 4
+    }
   }
 }

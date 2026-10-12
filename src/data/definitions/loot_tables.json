@@ -1,0 +1,18 @@
+{
+  "tables": {
+    "slime_green": [
+      {
+        "item": "slime_jelly",
+        "chance": 0.85,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "item": "arrow",
+        "chance": 0.35,
+        "min": 2,
+        "max": 4
+      }
+    ]
+  }
+}

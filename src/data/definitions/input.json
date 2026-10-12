@@ -1,23 +1,78 @@
 {
   "actions": {
-    "move_forward": ["KeyW", "ArrowUp"],
-    "move_back": ["KeyS", "ArrowDown"],
-    "move_left": ["KeyA", "ArrowLeft"],
-    "move_right": ["KeyD", "ArrowRight"],
-    "jump": ["Space"],
-    "sprint": ["ShiftLeft"],
-    "walk": ["CapsLock"],
-    "crouch": ["ControlLeft", "KeyC"],
-    "interact": ["KeyE"],
-    "attack": ["Mouse0"],
-    "aim": ["Mouse2"],
-    "dodge": ["AltLeft"],
-    "glider": ["Space"],
-    "map": ["KeyM"],
-    "pause": ["Escape"],
-    "debug_toggle": ["F3"],
-    "debug_time_fast": ["KeyT"],
-    "debug_open_gate": ["F6"],
-    "debug_respawn": ["F8"]
+    "move_forward": [
+      "KeyW",
+      "ArrowUp"
+    ],
+    "move_back": [
+      "KeyS",
+      "ArrowDown"
+    ],
+    "move_left": [
+      "KeyA",
+      "ArrowLeft"
+    ],
+    "move_right": [
+      "KeyD",
+      "ArrowRight"
+    ],
+    "jump": [
+      "Space"
+    ],
+    "sprint": [
+      "ShiftLeft"
+    ],
+    "walk": [
+      "CapsLock"
+    ],
+    "crouch": [
+      "ControlLeft",
+      "KeyC"
+    ],
+    "interact": [
+      "KeyE"
+    ],
+    "attack": [
+      "Mouse0"
+    ],
+    "aim": [
+      "Mouse2"
+    ],
+    "dodge": [
+      "AltLeft",
+      "KeyV"
+    ],
+    "glider": [
+      "Space"
+    ],
+    "map": [
+      "KeyM"
+    ],
+    "pause": [
+      "Escape"
+    ],
+    "debug_toggle": [
+      "F3"
+    ],
+    "debug_time_fast": [
+      "KeyT"
+    ],
+    "debug_open_gate": [
+      "F6"
+    ],
+    "debug_respawn": [
+      "F8"
+    ],
+    "throw": [
+      "KeyR"
+    ],
+    "weapon_wheel": [
+      "Tab",
+      "KeyQ"
+    ],
+    "lock_on": [
+      "KeyZ",
+      "Mouse1"
+    ]
   }
 }

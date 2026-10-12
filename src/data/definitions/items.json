@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": "arrow",
+      "name": "Flecha",
+      "category": "ammo",
+      "stack": 99,
+      "color": "#c9b48a"
+    },
+    {
+      "id": "slime_jelly",
+      "name": "Gelatina de slime",
+      "category": "material",
+      "stack": 99,
+      "color": "#7fe36a"
+    }
+  ]
+}

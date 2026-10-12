@@ -20,6 +20,10 @@ export interface TimeState {
   fps: number;
   /** Fracción [0,1) del siguiente paso fijo, para interpolar en el render. */
   alpha: number;
+  /** Escala de tiempo del mundo (enemigos, proyectiles, partículas): tiempo bala, parada de impacto. */
+  worldScale: number;
+  /** Escala de tiempo del jugador (en la ráfaga el jugador va a velocidad normal). */
+  playerScale: number;
 }
 
 export type SessionMode = 'loading' | 'title' | 'play';
@@ -124,5 +128,5 @@ export class Game {
 }
 
 export function createTimeState(fixedStepHz: number): TimeState {
-  return { fixedDt: 1 / fixedStepHz, elapsed: 0, frame: 0, fixedSteps: 0, stepsThisFrame: 0, frameMs: 0, frameDt: 0, fps: 0, alpha: 0 };
+  return { fixedDt: 1 / fixedStepHz, elapsed: 0, frame: 0, fixedSteps: 0, stepsThisFrame: 0, frameMs: 0, frameDt: 0, fps: 0, alpha: 0, worldScale: 1, playerScale: 1 };
 }
