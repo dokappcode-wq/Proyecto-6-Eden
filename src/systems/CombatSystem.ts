@@ -21,6 +21,7 @@ import type { StaticColliders } from '../world/physics/StaticColliders';
 import type { TerrainGenerator } from '../world/terrain/TerrainGenerator';
 import type { EnemySystem } from './EnemySystem';
 import type { PickupSystem } from './PickupSystem';
+import type { Stats } from '../items/stats';
 import type { ElementSystem } from './ElementSystem';
 import type { PlayerSystem } from './PlayerSystem';
 
@@ -49,6 +50,8 @@ export interface CombatDeps {
   elementsCfg: ElementsConfig;
   /** Lluvia 0..1 donde está el jugador. */
   rain: () => number;
+  /** Estadísticas del equipo y la comida (fuerza, arco, resistencias). */
+  stats: () => Stats;
 }
 
 const WHEEL_SCALE = 0.08;
@@ -597,12 +600,19 @@ export class CombatSystem {
     c.hitstopT = Math.max(c.hitstopT, cfg.hitstop.light);
     c.aiming = false;
     c.drawT = 0;
-    if (element === 'poison') {
+    const st = this.d.stats();
+    if (element === 'poison' && st.poisonResist < 1) {
       if (c.poisonT <= 0) ctx.bus.emit('player:status', { kind: 'poison', active: true });
-      c.poisonT = cfg.status.poison.seconds;
+      c.poisonT = cfg.status.poison.seconds * (1 - st.poisonResist);
       c.poisonTick = cfg.status.poison.tickSeconds;
     }
-    if (element === 'shock') this.applyShock(ctx, c, 0, fromX, fromZ);
+    if (element === 'shock') {
+      if (st.shockResist >= 1) damage = 0;
+      else {
+        damage = Math.round(damage * (1 - st.shockResist));
+        this.applyShock(ctx, c, 0, fromX, fromZ);
+      }
+    }
     if (element === 'fire' || element === 'ice' || element === 'bleed') this.applyStatus(ctx, element === 'fire' ? 'burn' : element === 'ice' ? 'freeze' : 'bleed');
     const cause = element === 'poison' ? 'poison' : element === 'shock' ? 'shock' : element === 'fire' ? 'fire' : element === 'bleed' ? 'bleed' : 'enemy';
     if (damage > 0) this.d.player.damagePlayer(ctx, damage, cause);
@@ -633,7 +643,7 @@ export class CombatSystem {
         return;
       }
       if (c.freezeT <= 0) ctx.bus.emit('player:status', { kind: 'freeze', active: true });
-      c.freezeT = el.freeze.seconds;
+      c.freezeT = el.freeze.seconds * (1 - Math.min(0.9, this.d.stats().stunResist));
       c.aiming = false;
       c.drawT = 0;
     } else {
@@ -649,8 +659,11 @@ export class CombatSystem {
   private applyShock(ctx: GameContext, c: CombatState, damage: number, fromX: number, fromZ: number): void {
     const cfg = this.d.cfg.status.shock;
     const ch = ctx.world.require(this.d.playerEntity, 'character');
+    const st = this.d.stats();
+    // El equipo aislante anula las descargas; la armadura pesada acorta el aturdimiento.
+    if (st.shockResist >= 1) return;
     if (c.shockT <= 0) ctx.bus.emit('player:status', { kind: 'shock', active: true });
-    c.shockT = cfg.seconds;
+    c.shockT = cfg.seconds * (1 - Math.min(0.9, st.stunResist + st.shockResist * 0.5));
     c.drawT = 0;
     c.aiming = false;
     this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'spark', 16);
@@ -696,7 +709,8 @@ export class CombatSystem {
     const inst = equipped(c.equipment, 'melee');
     const breaking = kind !== 'arrow' && kind !== 'thrown' && inst !== null && inst.durability <= 1 && weapon.durability > 0;
     const sneak = !b.aware;
-    const dmg = computeDamage(weapon, { kind, multiplier, sneak, weakPoint: weak, weakPointBonus: def.weakPointBonus, breaking, targetTags: def.tags }, this.d.cfg);
+    // La comida de fuerza sube el daño de cualquier ataque.
+    const dmg = computeDamage(weapon, { kind, multiplier, sneak, weakPoint: weak, weakPointBonus: def.weakPointBonus, breaking, targetTags: def.tags }, this.d.cfg) * (1 + this.d.stats().attack);
     const heavy = kind === 'heavy' || kind === 'plunge' || kind === 'shockwave';
     const killed = this.d.enemies.hit(ctx, e, dmg, { fromX, fromZ, knockback: knockback * (sneak ? 1.5 : 1), stagger: heavy || weak, stun: 0.15 });
     const y = b.y + def.height * 0.6;
@@ -837,7 +851,7 @@ export class CombatSystem {
         vy: shot.dy * shot.speed,
         vz: shot.dz * shot.speed,
         gravity: ARROW_GRAVITY,
-        damage: bow.damage * (0.4 + 0.6 * drawFraction(bow, c.drawT)),
+        damage: bow.damage * (0.4 + 0.6 * drawFraction(bow, c.drawT)) * (1 + this.d.stats().bowDamage),
         maxAge: 8,
         element,
       });

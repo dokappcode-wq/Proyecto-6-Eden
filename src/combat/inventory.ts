@@ -1,6 +1,28 @@
-import type { CombatConfig, ItemsConfig, ShieldDef, WeaponDef, WeaponsConfig } from '../data/schemas';
+import type { ArmorConfig, ArmorPiece, ArmorSlot, CombatConfig, FoodEffect, ItemsConfig, ShieldDef, WeaponDef, WeaponsConfig } from '../data/schemas';
 
 export type SlotKind = 'melee' | 'bow' | 'shield';
+export const ARMOR_SLOT_LIST: readonly ArmorSlot[] = ['head', 'torso', 'legs', 'boots', 'cape', 'charm'];
+
+/** Una pieza de armadura concreta con su nivel de mejora. */
+export interface ArmorInstance {
+  uid: number;
+  id: string;
+  level: number;
+}
+
+/** Plato cocinado (se apilan los idénticos). */
+export interface Meal {
+  uid: number;
+  recipe: string;
+  name: string;
+  /** Fragmentos de corazón que cura. */
+  heal: number;
+  effect: FoodEffect | null;
+  /** Nivel del efecto (1-3) o cantidad para efectos instantáneos. */
+  potency: number;
+  seconds: number;
+  count: number;
+}
 
 /** Un arma concreta (con su durabilidad propia). */
 export interface WeaponInstance {
@@ -19,10 +41,29 @@ export interface Equipment {
   shield: number | null;
   items: Record<string, number>;
   nextUid: number;
+  armor: ArmorInstance[];
+  /** Pieza puesta en cada hueco (uid) o null. */
+  worn: Record<ArmorSlot, number | null>;
+  meals: Meal[];
+  /** Huecos extra comprados con semillas. */
+  slotBonus: { weapons: number; bows: number; shields: number };
 }
 
 export function createEquipment(): Equipment {
-  return { weapons: [], bows: [], shields: [], melee: null, bow: null, shield: null, items: {}, nextUid: 1 };
+  return {
+    weapons: [],
+    bows: [],
+    shields: [],
+    melee: null,
+    bow: null,
+    shield: null,
+    items: {},
+    nextUid: 1,
+    armor: [],
+    worn: { head: null, torso: null, legs: null, boots: null, cape: null, charm: null },
+    meals: [],
+    slotBonus: { weapons: 0, bows: 0, shields: 0 },
+  };
 }
 
 /** Catálogo de armas/escudos/objetos para búsquedas rápidas por id. */
@@ -30,11 +71,37 @@ export class Catalog {
   private readonly weapons = new Map<string, WeaponDef>();
   private readonly shields = new Map<string, ShieldDef>();
   private readonly items = new Map<string, ItemsConfig['items'][number]>();
+  private readonly armorPieces = new Map<string, ArmorPiece>();
+  private readonly armorSet = new Map<string, ArmorConfig['sets'][number]>();
 
-  constructor(w: WeaponsConfig, items: ItemsConfig) {
+  constructor(w: WeaponsConfig, items: ItemsConfig, armor?: ArmorConfig) {
     for (const d of w.weapons) this.weapons.set(d.id, d);
     for (const d of w.shields) this.shields.set(d.id, d);
     for (const d of items.items) this.items.set(d.id, d);
+    if (armor) {
+      for (const st of armor.sets) {
+        for (const p of st.pieces) {
+          this.armorPieces.set(p.id, p);
+          this.armorSet.set(p.id, st);
+        }
+      }
+      for (const p of armor.accessories) this.armorPieces.set(p.id, p);
+    }
+  }
+
+  armor(id: string): ArmorPiece {
+    const d = this.armorPieces.get(id);
+    if (!d) throw new Error(`Armadura desconocida: ${id}`);
+    return d;
+  }
+
+  /** Set al que pertenece una pieza (los accesorios no tienen set). */
+  setOf(id: string): ArmorConfig['sets'][number] | null {
+    return this.armorSet.get(id) ?? null;
+  }
+
+  get allItems(): IterableIterator<ItemsConfig['items'][number]> {
+    return this.items.values();
   }
 
   weapon(id: string): WeaponDef {
@@ -54,16 +121,17 @@ export class Catalog {
   }
 
   /** Clasifica un id de objeto recogible. */
-  kindOf(id: string): SlotKind | 'item' | null {
+  kindOf(id: string): SlotKind | 'item' | 'armor' | null {
     const w = this.weapons.get(id);
     if (w) return w.category === 'bow' ? 'bow' : 'melee';
     if (this.shields.has(id)) return 'shield';
     if (this.items.has(id)) return 'item';
+    if (this.armorPieces.has(id)) return 'armor';
     return null;
   }
 
   name(id: string): string {
-    return this.weapons.get(id)?.name ?? this.shields.get(id)?.name ?? this.items.get(id)?.name ?? id;
+    return this.weapons.get(id)?.name ?? this.shields.get(id)?.name ?? this.items.get(id)?.name ?? this.armorPieces.get(id)?.name ?? id;
   }
 
   maxDurability(id: string): number {
@@ -85,13 +153,58 @@ function limitFor(kind: SlotKind, limits: CombatConfig['inventory']): number {
  */
 export function addGear(eq: Equipment, catalog: Catalog, id: string, limits: CombatConfig['inventory'], durability?: number): WeaponInstance | null {
   const kind = catalog.kindOf(id);
-  if (kind === null || kind === 'item') throw new Error(`"${id}" no es equipable`);
+  if (kind === null || kind === 'item' || kind === 'armor') throw new Error(`"${id}" no es un arma, arco o escudo`);
   const list = listFor(eq, kind);
-  if (list.length >= limitFor(kind, limits)) return null;
+  if (list.length >= limitFor(kind, effectiveLimits(eq, limits))) return null;
   const inst: WeaponInstance = { uid: eq.nextUid++, id, durability: durability ?? catalog.maxDurability(id) };
   list.push(inst);
   if (eq[kind] === null) eq[kind] = inst.uid;
   return inst;
+}
+
+/** Huecos disponibles: los base más los comprados con semillas. */
+export function effectiveLimits(eq: Equipment, base: CombatConfig['inventory']): CombatConfig['inventory'] {
+  return { weapons: base.weapons + eq.slotBonus.weapons, bows: base.bows + eq.slotBonus.bows, shields: base.shields + eq.slotBonus.shields };
+}
+
+/** Añade una pieza de armadura (se pone sola si su hueco está libre). */
+export function addArmor(eq: Equipment, catalog: Catalog, id: string, level = 0): ArmorInstance {
+  const piece = catalog.armor(id);
+  const inst: ArmorInstance = { uid: eq.nextUid++, id, level };
+  eq.armor.push(inst);
+  if (eq.worn[piece.slot] === null) eq.worn[piece.slot] = inst.uid;
+  return inst;
+}
+
+/** Ponerse (o quitarse, si ya la lleva) una pieza. */
+export function toggleArmor(eq: Equipment, catalog: Catalog, uid: number): void {
+  const inst = eq.armor.find((a) => a.uid === uid);
+  if (!inst) return;
+  const slot = catalog.armor(inst.id).slot;
+  eq.worn[slot] = eq.worn[slot] === uid ? null : uid;
+}
+
+/** Piezas puestas ahora mismo. */
+export function wornArmor(eq: Equipment): ArmorInstance[] {
+  const out: ArmorInstance[] = [];
+  for (const slot of ARMOR_SLOT_LIST) {
+    const uid = eq.worn[slot];
+    const inst = uid !== null ? eq.armor.find((a) => a.uid === uid) : undefined;
+    if (inst) out.push(inst);
+  }
+  return out;
+}
+
+/** Añade un plato (apila con uno idéntico). */
+export function addMeal(eq: Equipment, meal: Omit<Meal, 'uid' | 'count'>): Meal {
+  const same = eq.meals.find((m) => m.recipe === meal.recipe && m.name === meal.name && m.heal === meal.heal && m.effect === meal.effect && m.potency === meal.potency && m.seconds === meal.seconds);
+  if (same) {
+    same.count++;
+    return same;
+  }
+  const m: Meal = { ...meal, uid: eq.nextUid++, count: 1 };
+  eq.meals.push(m);
+  return m;
 }
 
 export function findGear(eq: Equipment, uid: number | null): { inst: WeaponInstance; kind: SlotKind } | null {
@@ -156,6 +269,11 @@ export function takeItem(eq: Equipment, id: string, count: number): boolean {
   return true;
 }
 
+const FOOD_EFFECT_SET = new Set<string>(['hearty', 'stamina', 'endurance', 'cold', 'heat', 'attack', 'defense', 'stealth', 'speed', 'shock']);
+function isFoodEffect(e: string): e is FoodEffect {
+  return FOOD_EFFECT_SET.has(e);
+}
+
 export interface SavedEquipment {
   weapons: { id: string; durability: number }[];
   bows: { id: string; durability: number }[];
@@ -164,6 +282,9 @@ export interface SavedEquipment {
   bow: number;
   shield: number;
   items: Record<string, number>;
+  armor?: { id: string; level: number; worn: boolean }[];
+  meals?: (Omit<Meal, 'uid' | 'effect'> & { effect: string | null })[];
+  slotBonus?: { weapons: number; bows: number; shields: number };
 }
 
 export function serializeEquipment(eq: Equipment): SavedEquipment {
@@ -177,6 +298,9 @@ export function serializeEquipment(eq: Equipment): SavedEquipment {
     bow: idx(eq.bows, eq.bow),
     shield: idx(eq.shields, eq.shield),
     items: { ...eq.items },
+    armor: eq.armor.map((a) => ({ id: a.id, level: a.level, worn: Object.values(eq.worn).includes(a.uid) })),
+    meals: eq.meals.map(({ uid: _uid, ...m }) => m),
+    slotBonus: { ...eq.slotBonus },
   };
 }
 
@@ -192,5 +316,13 @@ export function restoreEquipment(saved: SavedEquipment, catalog: Catalog): Equip
   eq.bow = b[saved.bow]?.uid ?? null;
   eq.shield = s[saved.shield]?.uid ?? null;
   for (const [id, n] of Object.entries(saved.items)) if (catalog.item(id)) eq.items[id] = n;
+  for (const a of saved.armor ?? []) {
+    if (catalog.kindOf(a.id) !== 'armor') continue;
+    const inst: ArmorInstance = { uid: eq.nextUid++, id: a.id, level: a.level };
+    eq.armor.push(inst);
+    if (a.worn) eq.worn[catalog.armor(a.id).slot] = inst.uid;
+  }
+  for (const m of saved.meals ?? []) eq.meals.push({ ...m, effect: m.effect && isFoodEffect(m.effect) ? m.effect : null, uid: eq.nextUid++ });
+  if (saved.slotBonus) eq.slotBonus = { ...saved.slotBonus };
   return eq;
 }

@@ -26,7 +26,8 @@ export interface TimeState {
   playerScale: number;
 }
 
-export type SessionMode = 'loading' | 'title' | 'play';
+/** menu: partida en pausa con un menú abierto (inventario, cocina, mapa...). */
+export type SessionMode = 'loading' | 'title' | 'play' | 'menu';
 
 export interface Session {
   mode: SessionMode;

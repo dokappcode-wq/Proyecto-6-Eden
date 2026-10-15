@@ -15,6 +15,10 @@ export interface Schema<T> {
 }
 
 export type Infer<S> = S extends Schema<infer T> ? T : never;
+type OptKeys<S> = { [K in keyof S]: S[K] extends { readonly optional: true } ? K : never }[keyof S];
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
+/** Objeto validado: los campos `optional` son opcionales también en el tipo. */
+export type ObjectOut<S> = Simplify<{ [K in Exclude<keyof S, OptKeys<S>>]: Infer<S[K]> } & { [K in OptKeys<S>]?: Infer<S[K]> }>;
 
 export class DataValidationError extends Error {
   constructor(
@@ -153,7 +157,7 @@ export const v = {
 
   object<S extends Record<string, Schema<unknown>>>(
     shape: S,
-  ): Schema<{ [K in keyof S]: Infer<S[K]> }> {
+  ): Schema<ObjectOut<S>> {
     return {
       description: 'objeto',
       check(value, path, issues) {
@@ -176,12 +180,21 @@ export const v = {
         for (const k of Object.keys(src)) {
           if (!(k in shape)) issues.push({ path: path ? `${path}.${k}` : k, message: 'campo desconocido (¿errata?)' });
         }
-        return issues.length === before ? (out as { [K in keyof S]: Infer<S[K]> }) : undefined;
+        return issues.length === before ? (out as ObjectOut<S>) : undefined;
       },
     };
   },
 
-  optional<T>(inner: Schema<T>): Schema<T | undefined> {
+  nullable<T>(inner: Schema<T>): Schema<T | null> {
+    return {
+      description: `${inner.description} o null`,
+      check(value, path, issues) {
+        return value === null ? null : (inner.check(value, path, issues) as T | null);
+      },
+    };
+  },
+
+  optional<T>(inner: Schema<T>): OptionalSchema<T> {
     const schema: OptionalSchema<T> = {
       description: `${inner.description} (opcional)`,
       optional: true,

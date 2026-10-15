@@ -82,6 +82,9 @@
     ],
     "cycle_arrow": [
       "KeyX"
+    ],
+    "inventory": [
+      "KeyI"
     ]
   }
 }

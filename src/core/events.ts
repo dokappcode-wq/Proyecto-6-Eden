@@ -48,10 +48,16 @@ export interface GameEvents {
   'weather:changed': { biome: string; type: string };
   'weather:lightning_warning': Record<string, never>;
   'combat:arrow_type': { name: string; count: number };
+  'food:buff': { name: string; active: boolean };
+  'food:cooked': { name: string; dubious: boolean };
+  'player:blessed': { kind: 'heart' | 'stamina' };
+  'armor:upgraded': { name: string; level: number };
+  'glider:upgraded': { name: string };
   'debug:teleport': { name: string };
   'enemy:defeated': { entity: number; enemy: string; family: string; x: number; y: number; z: number };
   'item:picked': { item: string; name: string; count: number };
   'item:inventory_full': { name: string };
+  'pickup:gathered': { sourceId: string };
 
   'interaction:focus': { id: string; prompt: string } | null;
   interact: { id: string; kind: InteractableKind };

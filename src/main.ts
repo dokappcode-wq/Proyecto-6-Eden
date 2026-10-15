@@ -22,6 +22,9 @@ import { CombatSystem, createCombatState } from './systems/CombatSystem';
 import { ElementSystem } from './systems/ElementSystem';
 import { EncounterSystem } from './systems/EncounterSystem';
 import { WeatherSystem } from './systems/WeatherSystem';
+import { GatheringSystem } from './systems/GatheringSystem';
+import { ProgressionSystem } from './systems/ProgressionSystem';
+import { Menu } from './ui/Menu';
 import { EnemySystem } from './systems/EnemySystem';
 import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
@@ -83,7 +86,7 @@ async function boot(): Promise<void> {
   world.add(playerEntity, 'player', { control: 'capsule', scriptTime: 0, cameraYaw: 0, health: createHealth(hp.startHearts, hp.fragmentsPerHeart) });
   world.add(playerEntity, 'character', createCharacterState(0, 0, 0, 0, data.player.stamina.base, data.player.swim.airSeconds));
   world.add(playerEntity, 'combat', createCombatState(createEquipment()));
-  const catalog = new Catalog(data.weapons, data.items);
+  const catalog = new Catalog(data.weapons, data.items, data.armor);
 
   const camDir = new THREE.Vector3();
   const hud = new Hud(
@@ -140,14 +143,16 @@ async function boot(): Promise<void> {
     debugRay: (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit),
     // La lluvia moja las paredes (escalar resbala) y reduce el control del planeador.
     wetness: () => weather.wetness,
+    iceGrip: () => progression.stats.iceGrip > 0,
   };
   const camEnv = {
     terrainHeight: (x: number, z: number) => terrain.height(x, z),
     raycastColliders: (ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number) => colliders.raycast(ox, oy, oz, dx, dy, dz, max),
   };
+  // Configuración efectiva del jugador: copia de los datos que la armadura y la comida modifican.
   const movementParams: MovementParams = {
-    player: data.player,
-    ledge: data.ledgeBoost,
+    player: structuredClone(data.player),
+    ledge: structuredClone(data.ledgeBoost),
     glider: data.glider,
     gliderMods: gliderModifiers([]),
     ledgeRequiresHold: data.settings.accessibility.ledgeBoostRequiresHold,
@@ -198,6 +203,7 @@ async function boot(): Promise<void> {
       collected: () => [...pickups.collected],
       chestsOpened: () => [...encounters.chestsOpened],
       bossesDefeated: () => [...enemies.defeatedBosses],
+      progression: () => ({ ...progression.save(ctx), gathered: gathering.save() }),
     },
     ctx,
   );
@@ -222,6 +228,7 @@ async function boot(): Promise<void> {
       movement: data.player.movement,
       elements: data.elements,
       rain: () => weather.rain,
+      stealth: () => progression.stats.stealth,
       skyLight: () => {
         environment.clock.sample(sky);
         // Luz por la altura del sol (la luna deja algo de visibilidad).
@@ -235,7 +242,24 @@ async function boot(): Promise<void> {
   const pickups = new PickupSystem(playerEntity, catalog, data.loot, data.player.combat.inventory, terrain, (x, z, y) => enemies.groundAt(x, z, y), renderer.scene, ctx);
   const encounters = new EncounterSystem(data.encounters, encounterProps, enemies, pickups, playerSystem, terrain, () => environment.clock.sample(sky).isNight, renderer.scene, ctx);
   const combat = new CombatSystem(
-    { playerEntity, cfg: data.player.combat, stamina: data.player.stamina, catalog, player: playerSystem, enemies, pickups, camera: cameraCtl, threeCamera: renderer.camera, colliders, terrain, fx, projectiles, elementsCfg: data.elements, rain: () => weather.rain },
+    {
+      playerEntity,
+      cfg: movementParams.player.combat,
+      stamina: movementParams.player.stamina,
+      catalog,
+      player: playerSystem,
+      enemies,
+      pickups,
+      camera: cameraCtl,
+      threeCamera: renderer.camera,
+      colliders,
+      terrain,
+      fx,
+      projectiles,
+      elementsCfg: data.elements,
+      rain: () => weather.rain,
+      stats: () => progression.stats,
+    },
     ctx,
   );
   // --- elementos y clima
@@ -275,11 +299,29 @@ async function boot(): Promise<void> {
       camera: renderer.camera,
       scene: renderer.scene,
       fx,
-      // La Fase 6 (armaduras y comida) amplía estas resistencias.
-      resist: () => ({ cold: 0, heat: 0, insulated: false }),
+      resist: () => ({ cold: progression.stats.coldResist, heat: progression.stats.heatResist, insulated: progression.stats.insulated > 0 }),
     },
     ctx,
   );
+  // --- equipo y progresión
+  const progression = new ProgressionSystem(
+    {
+      data,
+      playerEntity,
+      catalog,
+      effective: { player: movementParams.player, ledge: movementParams.ledge, setGliderMods: (m) => (movementParams.gliderMods = m) },
+      terrain,
+      colliders,
+      scene: renderer.scene,
+      visual,
+      biome: () => weather.biome,
+      isDark: () => weather.biome === 'underground' || environment.clock.sample(sky).isNight,
+      player: playerSystem,
+    },
+    ctx,
+  );
+  const gathering = new GatheringSystem(data.gathering, data.terrain, terrain, colliders, pickups, playerEntity, () => environment.clock.day + environment.clock.hour / 24, ctx);
+  const menu = new Menu(ctx, { playerEntity, catalog, progression, pickups, limits: data.player.combat.inventory, canvas: renderer.canvas });
   cameraSystem.lookSink = (dx, dy) => {
     if (!world.require(playerEntity, 'combat').wheelOpen) return false;
     combat.wheelLook(dx, dy);
@@ -322,6 +364,7 @@ async function boot(): Promise<void> {
     },
     keyLabel,
     flightIndicators: data.settings.accessibility.flightIndicators,
+    airSeconds: () => movementParams.player.swim.airSeconds,
   });
 
   const projectPoint = new THREE.Vector3();
@@ -371,6 +414,8 @@ async function boot(): Promise<void> {
     .addSystem({ name: 'ai-debug', fixedUpdate: (c) => debug.isVisible && enemies.debugCones(c, (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit)) })
     .addSystem(combat.post)
     .addSystem(pickups)
+    .addSystem(gathering)
+    .addSystem(progression)
     .addSystem(encounters)
     .addSystem(progress)
     .addSystem(gate)
@@ -422,6 +467,11 @@ async function boot(): Promise<void> {
   });
   debug.addProvider('IA', () => `${enemies.debugLabel(ctx)}  proyectiles ${projectiles.list.length}`);
   debug.addProvider('clima', () => `${weather.biomeName} · ${weather.local.type} ${(weather.local.intensity * 100).toFixed(0)}%  viento ${Math.hypot(weather.windVector.x, weather.windVector.z).toFixed(1)} m/s  lluvia ${weather.rain.toFixed(2)} mojado ${weather.wetness.toFixed(2)}  ${weather.temperature.toFixed(1)}°C (${weather.band})  fuego ${elements.fire.burning} celdas  hielo ${elements.ice.platforms.length}  (F9 cambia el tiempo)`);
+  debug.addProvider('equipo', () => {
+    const st = progression.stats;
+    const sets = progression.summary.sets.map((x) => `${x.name} ${x.pieces}/${x.total}`).join(', ');
+    return `defensa ${Math.round(st.defense)}  sets: ${sets || '—'}  comida: ${progression.buff ? `${progression.buff.effect} ${progression.buff.potency} (${Math.ceil(progression.buff.remaining)} s)` : '—'}  vigor máx ${world.require(playerEntity, 'character').stamina.max}  (I abre el inventario)`;
+  });
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
     return `${done}/${total}  actual: ${tutorial.tracker.current()?.id ?? 'libre'}`;
@@ -452,6 +502,12 @@ async function boot(): Promise<void> {
   const choice = await hud.showTitle(save !== null);
   hud.hideScreen();
 
+  // Objetos colocados: los del valle, los del mundo y las semillas escondidas.
+  const worldPickups = [
+    ...data.valley.pickups,
+    ...data.encounters.pickups,
+    ...data.progression.seeds.map(([x, z, y], i) => ({ id: `seed_${i}`, item: 'forest_seed', count: 1, position: [x, z] as [number, number], yOffset: y })),
+  ];
   const noProgress = { towerActivated: false, templeOpened: false, templeCompleted: false, hasGlider: false };
   if (choice === 'continue' && save) {
     tutorial.reset(ctx, save.tutorial);
@@ -463,7 +519,11 @@ async function boot(): Promise<void> {
     else playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, save.progress, save.gateOpen);
     world.require(playerEntity, 'combat').equipment = restoreEquipment(save.equipment, catalog);
-    pickups.spawnValley(ctx, [...data.valley.pickups, ...data.encounters.pickups], save.collected);
+    pickups.spawnValley(ctx, worldPickups, save.collected);
+    progression.restore(ctx, save.progression ?? null);
+    gathering.restore(ctx, save.progression?.gathered ?? {});
+    // Partidas anteriores a la Fase 6: ropa de superviviente.
+    if (world.require(playerEntity, 'combat').equipment.armor.length === 0) progression.giveStartingArmor(ctx);
     const p = world.require(playerEntity, 'player');
     p.health.maxFragments = save.health.maxFragments;
     p.health.fragments = Math.min(save.health.fragments, save.health.maxFragments);
@@ -476,7 +536,10 @@ async function boot(): Promise<void> {
     playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, noProgress, false);
     world.require(playerEntity, 'combat').equipment = createEquipment();
-    pickups.spawnValley(ctx, [...data.valley.pickups, ...data.encounters.pickups], []);
+    pickups.spawnValley(ctx, worldPickups, []);
+    progression.restore(ctx, null);
+    gathering.restore(ctx, {});
+    progression.giveStartingArmor(ctx);
   }
   const worldSave = choice === 'continue' && save ? save.world : undefined;
   enemies.spawnAll(ctx, data.valley.enemySpawns, worldSave?.bossesDefeated ?? []);
@@ -489,7 +552,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather, progression, menu, gathering } });
   }
 }
 

@@ -27,9 +27,34 @@ const saveSchema = v.object({
     bow: v.number({ integer: true }),
     shield: v.number({ integer: true }),
     items: v.record(v.number({ min: 0, integer: true })),
+    armor: v.optional(v.array(v.object({ id: v.string({ minLength: 1 }), level: v.number({ min: 0, integer: true }), worn: v.boolean() }))),
+    meals: v.optional(
+      v.array(
+        v.object({
+          recipe: v.string(),
+          name: v.string(),
+          heal: v.number({ min: 0 }),
+          effect: v.nullable(v.string()),
+          potency: v.number({ min: 0 }),
+          seconds: v.number({ min: 0 }),
+          count: v.number({ min: 1, integer: true }),
+        }),
+      ),
+    ),
+    slotBonus: v.optional(v.object({ weapons: v.number({ min: 0, integer: true }), bows: v.number({ min: 0, integer: true }), shields: v.number({ min: 0, integer: true }) })),
   }),
   /** Objetos del valle ya recogidos. */
   collected: v.array(v.string()),
+  /** Progresión: vigor máximo, planeador, comida activa y plantas recogidas (Fase 6). */
+  progression: v.optional(
+    v.object({
+      staminaMax: v.number({ min: 1 }),
+      gliderUpgrades: v.array(v.string()),
+      tint: v.string(),
+      buff: v.nullable(v.object({ effect: v.string(), potency: v.number({ min: 0 }), remaining: v.number() })),
+      gathered: v.record(v.number()),
+    }),
+  ),
   /** Mundo: cofres de campamento abiertos y jefes derrotados (v4). */
   world: v.optional(v.object({ chestsOpened: v.array(v.string()), bossesDefeated: v.array(v.string()) })),
 });

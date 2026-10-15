@@ -514,6 +514,156 @@
         404
       ],
       "yOffset": 0.3
+    },
+    {
+      "id": "ap_climber_head",
+      "item": "climber_head",
+      "count": 1,
+      "position": [
+        -36,
+        280
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_climber_torso",
+      "item": "climber_torso",
+      "count": 1,
+      "position": [
+        150,
+        380
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_climber_legs",
+      "item": "climber_legs",
+      "count": 1,
+      "position": [
+        -160,
+        560
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_climber_boots",
+      "item": "climber_boots",
+      "count": 1,
+      "position": [
+        60,
+        780
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_polar_head",
+      "item": "polar_head",
+      "count": 1,
+      "position": [
+        0,
+        -1000
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_polar_torso",
+      "item": "polar_torso",
+      "count": 1,
+      "position": [
+        120,
+        -1300
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_warm_cloak",
+      "item": "warm_cloak",
+      "count": 1,
+      "position": [
+        -30,
+        300
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_desert_head",
+      "item": "desert_head",
+      "count": 1,
+      "position": [
+        1500,
+        200
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_desert_torso",
+      "item": "desert_torso",
+      "count": 1,
+      "position": [
+        1700,
+        -100
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_hunter_head",
+      "item": "hunter_head",
+      "count": 1,
+      "position": [
+        -1500,
+        200
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_hunter_torso",
+      "item": "hunter_torso",
+      "count": 1,
+      "position": [
+        -1700,
+        -200
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_mariner_head",
+      "item": "mariner_head",
+      "count": 1,
+      "position": [
+        24,
+        360
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_insulated_head",
+      "item": "insulated_head",
+      "count": 1,
+      "position": [
+        -60,
+        380
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_wind_cape",
+      "item": "wind_cape",
+      "count": 1,
+      "position": [
+        240,
+        210
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "ap_hunter_charm",
+      "item": "hunter_charm",
+      "count": 1,
+      "position": [
+        188,
+        526
+      ],
+      "yOffset": 0.3
     }
   ]
 }

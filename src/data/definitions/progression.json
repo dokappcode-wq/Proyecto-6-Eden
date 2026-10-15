@@ -1,0 +1,223 @@
+{
+  "offering": {
+    "orbsPerBlessing": 4,
+    "staminaPerBlessing": 20
+  },
+  "seedSlotCosts": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    10
+  ],
+  "altars": [
+    {
+      "id": "altar_valley",
+      "kind": "offering",
+      "name": "Estatua de la Ofrenda",
+      "position": [
+        -36,
+        58
+      ]
+    },
+    {
+      "id": "altar_lake",
+      "kind": "offering",
+      "name": "Estatua de la Ofrenda",
+      "position": [
+        -60,
+        300
+      ]
+    },
+    {
+      "id": "fountain_lake",
+      "kind": "fountain",
+      "name": "Fuente de las Raíces",
+      "position": [
+        -44,
+        312
+      ]
+    },
+    {
+      "id": "workshop_lake",
+      "kind": "workshop",
+      "name": "Taller del Planeador",
+      "position": [
+        -28,
+        318
+      ]
+    },
+    {
+      "id": "pot_capsule",
+      "kind": "cooking",
+      "name": "Olla de la cápsula",
+      "position": [
+        6,
+        -8
+      ]
+    },
+    {
+      "id": "pot_lake",
+      "kind": "cooking",
+      "name": "Olla junto al lago",
+      "position": [
+        -36,
+        322
+      ]
+    }
+  ],
+  "seeds": [
+    [
+      -60,
+      -140,
+      4
+    ],
+    [
+      150,
+      -60,
+      1
+    ],
+    [
+      -170,
+      60,
+      0.5
+    ],
+    [
+      95,
+      110,
+      3
+    ],
+    [
+      -20,
+      170,
+      1
+    ],
+    [
+      40,
+      -170,
+      6
+    ],
+    [
+      130,
+      40,
+      0.5
+    ],
+    [
+      -120,
+      -20,
+      2
+    ],
+    [
+      200,
+      300,
+      0
+    ],
+    [
+      -150,
+      380,
+      0
+    ],
+    [
+      260,
+      420,
+      0
+    ],
+    [
+      -80,
+      520,
+      0
+    ],
+    [
+      60,
+      600,
+      0
+    ],
+    [
+      -200,
+      250,
+      0
+    ],
+    [
+      330,
+      500,
+      0
+    ],
+    [
+      0,
+      700,
+      0
+    ]
+  ],
+  "gliderUpgradeCosts": {
+    "reinforced_cloth": [
+      {
+        "item": "hawk_feather",
+        "count": 3
+      },
+      {
+        "item": "slime_jelly",
+        "count": 5
+      }
+    ],
+    "wide_wings": [
+      {
+        "item": "hawk_feather",
+        "count": 6
+      },
+      {
+        "item": "golem_crystal",
+        "count": 1
+      }
+    ],
+    "storm_frame": [
+      {
+        "item": "shock_jelly",
+        "count": 4
+      },
+      {
+        "item": "golem_crystal",
+        "count": 2
+      }
+    ]
+  },
+  "gliderTints": [
+    {
+      "id": "classic",
+      "name": "Clásico",
+      "color": "#efe6d2",
+      "cost": 0
+    },
+    {
+      "id": "sky",
+      "name": "Cielo",
+      "color": "#8fd3ff",
+      "cost": 2
+    },
+    {
+      "id": "ember",
+      "name": "Brasa",
+      "color": "#ff8a3a",
+      "cost": 2
+    },
+    {
+      "id": "forest",
+      "name": "Bosque",
+      "color": "#6fbf4a",
+      "cost": 2
+    },
+    {
+      "id": "night",
+      "name": "Noche",
+      "color": "#3a3f6b",
+      "cost": 3
+    }
+  ],
+  "startingArmor": [
+    "survivor_torso",
+    "survivor_legs",
+    "survivor_boots"
+  ]
+}

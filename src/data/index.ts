@@ -1,6 +1,10 @@
 import airflowJson from './definitions/airflow.json';
 import dayNightJson from './definitions/daynight.json';
+import armorJson from './definitions/armor.json';
 import biomesJson from './definitions/biomes.json';
+import gatheringJson from './definitions/gathering.json';
+import progressionJson from './definitions/progression.json';
+import recipesJson from './definitions/recipes.json';
 import elementsJson from './definitions/elements.json';
 import enemiesJson from './definitions/enemies.json';
 import encountersJson from './definitions/encounters.json';
@@ -24,6 +28,12 @@ import {
   dayNightConfigSchema,
   enemiesConfigSchema,
   biomesConfigSchema,
+  armorConfigSchema,
+  recipesConfigSchema,
+  progressionConfigSchema,
+  gatheringConfigSchema,
+  STAT_KEYS,
+  FOOD_EFFECTS,
   elementsConfigSchema,
   WEATHER_TYPES,
   BIOME_IDS,
@@ -46,6 +56,10 @@ import {
   type DayNightConfig,
   type EnemiesConfig,
   type BiomesConfig,
+  type ArmorConfig,
+  type RecipesConfig,
+  type ProgressionConfig,
+  type GatheringConfig,
   type ElementsConfig,
   type EncountersConfig,
   type ItemsConfig,
@@ -82,6 +96,10 @@ export interface GameData {
   enemies: EnemiesConfig;
   encounters: EncountersConfig;
   biomes: BiomesConfig;
+  armor: ArmorConfig;
+  recipes: RecipesConfig;
+  progression: ProgressionConfig;
+  gathering: GatheringConfig;
   elements: ElementsConfig;
   items: ItemsConfig;
   loot: LootTablesConfig;
@@ -106,6 +124,10 @@ export interface RawGameData {
   enemies: unknown;
   encounters: unknown;
   biomes: unknown;
+  armor: unknown;
+  recipes: unknown;
+  progression: unknown;
+  gathering: unknown;
   elements: unknown;
   items: unknown;
   loot: unknown;
@@ -129,6 +151,10 @@ export const BUNDLED_DATA: RawGameData = {
   enemies: enemiesJson,
   encounters: encountersJson,
   biomes: biomesJson,
+  armor: armorJson,
+  recipes: recipesJson,
+  progression: progressionJson,
+  gathering: gatheringJson,
   elements: elementsJson,
   items: itemsJson,
   loot: lootTablesJson,
@@ -157,6 +183,10 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     enemies: parse(enemiesConfigSchema, raw.enemies, 'enemies.json'),
     encounters: parse(encountersConfigSchema, raw.encounters, 'encounters.json'),
     biomes: parse(biomesConfigSchema, raw.biomes, 'biomes.json'),
+    armor: parse(armorConfigSchema, raw.armor, 'armor.json'),
+    recipes: parse(recipesConfigSchema, raw.recipes, 'recipes.json'),
+    progression: parse(progressionConfigSchema, raw.progression, 'progression.json'),
+    gathering: parse(gatheringConfigSchema, raw.gathering, 'gathering.json'),
     elements: parse(elementsConfigSchema, raw.elements, 'elements.json'),
     items: parse(itemsConfigSchema, raw.items, 'items.json'),
     loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
@@ -226,13 +256,15 @@ function checkConsistency(d: GameData): void {
   const shieldIds = new Set(d.weapons.shields.map((w) => w.id));
   const itemIds = new Set(d.items.items.map((i) => i.id));
   const enemyIds = new Set(d.enemies.enemies.map((e) => e.id));
+  const armorIds = new Set([...d.armor.sets.flatMap((st) => st.pieces.map((p) => p.id)), ...d.armor.accessories.map((p) => p.id)]);
+  const anyItem = (id: string) => weaponIds.has(id) || shieldIds.has(id) || itemIds.has(id) || armorIds.has(id);
   if (!weaponIds.has('fists')) issues.push({ path: 'weapons.weapons', message: 'falta el arma "fists" (manos desnudas)' });
   d.weapons.weapons.forEach((w, i) => {
     if (w.category === 'bow' && !w.bow) issues.push({ path: `weapons.weapons[${i}].bow`, message: 'un arco necesita la sección "bow"' });
     if (w.category !== 'bow' && w.category !== 'fists' && w.combo.length !== 3) issues.push({ path: `weapons.weapons[${i}].combo`, message: 'el combo ligero debe tener 3 golpes' });
   });
   d.valley.pickups.forEach((p, i) => {
-    if (!weaponIds.has(p.item) && !shieldIds.has(p.item) && !itemIds.has(p.item)) issues.push({ path: `valley.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
+    if (!anyItem(p.item)) issues.push({ path: `valley.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
   });
   d.valley.enemySpawns.forEach((sp, i) => {
     if (!enemyIds.has(sp.enemy)) issues.push({ path: `valley.enemySpawns[${i}].enemy`, message: `enemigo "${sp.enemy}" no definido` });
@@ -267,7 +299,7 @@ function checkConsistency(d: GameData): void {
   });
   en.groups.forEach((g, i) => enemyRef(g.enemy, `encounters.groups[${i}].enemy`));
   en.pickups.forEach((p, i) => {
-    if (!weaponIds.has(p.item) && !shieldIds.has(p.item) && !itemIds.has(p.item)) issues.push({ path: `encounters.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
+    if (!anyItem(p.item)) issues.push({ path: `encounters.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
   });
   // Biomas: los 8, con pesos de tiempo conocidos.
   const biomeSeen = new Set(d.biomes.biomes.map((b) => b.id));
@@ -278,6 +310,43 @@ function checkConsistency(d: GameData): void {
   });
   for (const w of Object.keys(d.elements.temperature.weather)) if (!(WEATHER_TYPES as readonly string[]).includes(w)) issues.push({ path: `elements.temperature.weather.${w}`, message: 'tiempo desconocido' });
   if (d.elements.weather.maxSeconds < d.elements.weather.minSeconds) issues.push({ path: 'elements.weather', message: 'maxSeconds < minSeconds' });
+  // Armaduras, recetas, progresión y recolección.
+  const statKeys = new Set<string>(STAT_KEYS);
+  const seenArmor = new Set<string>();
+  const checkPiece = (p: { id: string; effects: Record<string, number> }, path: string) => {
+    if (seenArmor.has(p.id)) issues.push({ path, message: `pieza duplicada "${p.id}"` });
+    seenArmor.add(p.id);
+    for (const k of Object.keys(p.effects)) if (!statKeys.has(k)) issues.push({ path: `${path}.effects.${k}`, message: 'efecto desconocido' });
+  };
+  d.armor.sets.forEach((st, i) => {
+    st.pieces.forEach((p, j) => checkPiece(p, `armor.sets[${i}].pieces[${j}]`));
+    st.bonus.forEach((b, j) => {
+      for (const k of Object.keys(b.effects)) if (!statKeys.has(k)) issues.push({ path: `armor.sets[${i}].bonus[${j}].${k}`, message: 'efecto desconocido' });
+      if (b.pieces > st.pieces.length) issues.push({ path: `armor.sets[${i}].bonus[${j}]`, message: 'más piezas que el set' });
+    });
+    st.upgradeItems.forEach((it, j) => {
+      if (!itemIds.has(it)) issues.push({ path: `armor.sets[${i}].upgradeItems[${j}]`, message: `objeto "${it}" no definido` });
+    });
+  });
+  d.armor.accessories.forEach((p, j) => {
+    checkPiece(p, `armor.accessories[${j}]`);
+    if (p.slot !== 'cape' && p.slot !== 'charm') issues.push({ path: `armor.accessories[${j}].slot`, message: 'los accesorios van en capa o tótem' });
+  });
+  for (const k of Object.keys(d.recipes.effects)) if (!(FOOD_EFFECTS as readonly string[]).includes(k)) issues.push({ path: `recipes.effects.${k}`, message: 'efecto desconocido' });
+  for (const k of FOOD_EFFECTS) if (!(k in d.recipes.effects)) issues.push({ path: 'recipes.effects', message: `falta el efecto "${k}"` });
+  d.progression.startingArmor.forEach((id, i) => {
+    if (!armorIds.has(id)) issues.push({ path: `progression.startingArmor[${i}]`, message: `pieza "${id}" no definida` });
+  });
+  const gliderIds = new Set(d.glider.upgrades.map((u) => u.id));
+  for (const [id, costs] of Object.entries(d.progression.gliderUpgradeCosts)) {
+    if (!gliderIds.has(id)) issues.push({ path: `progression.gliderUpgradeCosts.${id}`, message: 'mejora del planeador inexistente' });
+    costs.forEach((c, i) => {
+      if (!itemIds.has(c.item)) issues.push({ path: `progression.gliderUpgradeCosts.${id}[${i}]`, message: `objeto "${c.item}" no definido` });
+    });
+  }
+  d.gathering.rules.forEach((r, i) => {
+    if (!d.items.items.find((it) => it.id === r.item)?.food) issues.push({ path: `gathering.rules[${i}].item`, message: `"${r.item}" no es un ingrediente` });
+  });
   d.weapons.weapons.forEach((w, i) => {
     if (w.category === 'staff' && !w.staff) issues.push({ path: `weapons.weapons[${i}].staff`, message: 'un bastón necesita la sección "staff"' });
   });
@@ -292,7 +361,7 @@ function checkConsistency(d: GameData): void {
   });
   for (const [table, rows] of Object.entries(d.loot.tables)) {
     rows.forEach((r, i) => {
-      if (!itemIds.has(r.item) && !weaponIds.has(r.item) && !shieldIds.has(r.item)) issues.push({ path: `loot_tables.${table}[${i}].item`, message: `objeto "${r.item}" no definido` });
+      if (!anyItem(r.item)) issues.push({ path: `loot_tables.${table}[${i}].item`, message: `objeto "${r.item}" no definido` });
       if (r.max < r.min) issues.push({ path: `loot_tables.${table}[${i}]`, message: 'max < min' });
     });
   }

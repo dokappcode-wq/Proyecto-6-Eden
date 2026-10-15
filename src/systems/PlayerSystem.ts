@@ -320,8 +320,13 @@ export class PlayerSystem implements System {
   }
 
   /** Daño externo (enemigos): devuelve true si muere. */
+  /** Ajuste del daño recibido (defensa de la armadura); lo conecta la progresión. */
+  damageFilter: ((amount: number, cause: DamageCause) => number) | null = null;
+
   damagePlayer(ctx: GameContext, amount: number, cause: DamageCause): boolean {
     if (this.deathTimer >= 0) return false;
+    if (this.damageFilter) amount = this.damageFilter(amount, cause);
+    if (amount <= 0) return false;
     this.camera.addShake(clamp(amount / 6, 0.25, 0.8));
     return this.hurt(ctx, amount, cause);
   }

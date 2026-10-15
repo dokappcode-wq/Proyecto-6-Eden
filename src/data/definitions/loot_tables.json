@@ -164,6 +164,12 @@
         "chance": 1,
         "min": 1,
         "max": 2
+      },
+      {
+        "item": "guardian_head",
+        "chance": 1,
+        "min": 1,
+        "max": 1
       }
     ],
     "golem_giant": [
@@ -186,6 +192,12 @@
         "chance": 1,
         "min": 1,
         "max": 3
+      },
+      {
+        "item": "bird_meat",
+        "chance": 0.8,
+        "min": 1,
+        "max": 2
       }
     ],
     "camp_plains_chest": [
@@ -206,6 +218,12 @@
         "chance": 1,
         "min": 10,
         "max": 15
+      },
+      {
+        "item": "ancestral_orb",
+        "chance": 1,
+        "min": 2,
+        "max": 2
       }
     ],
     "camp_west_chest": [
@@ -226,6 +244,12 @@
         "chance": 1,
         "min": 1,
         "max": 1
+      },
+      {
+        "item": "ancestral_orb",
+        "chance": 1,
+        "min": 2,
+        "max": 2
       }
     ],
     "boss_colossus": [
@@ -243,6 +267,18 @@
       },
       {
         "item": "thunder_rod",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "heart_container",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "guardian_torso",
         "chance": 1,
         "min": 1,
         "max": 1

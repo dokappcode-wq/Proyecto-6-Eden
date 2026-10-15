@@ -656,16 +656,31 @@ const enemySchema = v.object({
 export const enemiesConfigSchema = v.object({ enemies: v.array(enemySchema, { minLength: 1 }) });
 
 // ---------------------------------------------------------------- items.json / loot_tables.json
+export const FOOD_MODELS = ['fruit', 'mushroom', 'flower', 'herb', 'meat', 'critter', 'part'] as const;
+export const FOOD_EFFECTS = ['hearty', 'stamina', 'endurance', 'cold', 'heat', 'attack', 'defense', 'stealth', 'speed', 'shock'] as const;
+
 export const itemsConfigSchema = v.object({
   items: v.array(
     v.object({
       id: v.string({ minLength: 1 }),
       name: v.string({ minLength: 1 }),
-      category: v.oneOf(['ammo', 'material'] as const),
+      category: v.oneOf(['ammo', 'material', 'ingredient', 'key'] as const),
       stack: v.number({ min: 1, integer: true }),
       color,
       /** Flechas elementales. */
       element: v.optional(v.oneOf(ELEMENTS)),
+      /** Ingredientes (y partes de monstruo para elixires). */
+      food: v.optional(
+        v.object({
+          /** Fragmentos de corazón que cura crudo. */
+          heal: v.number({ min: 0 }),
+          tags: v.array(v.string({ minLength: 1 })),
+          model: v.oneOf(FOOD_MODELS),
+          effect: v.optional(v.oneOf(FOOD_EFFECTS)),
+          potency: v.number({ min: 0 }),
+          seconds: v.number({ min: 0 }),
+        }),
+      ),
     }),
   ),
 });
@@ -821,6 +836,85 @@ export const elementsConfigSchema = v.object({
   weather: v.object({ minSeconds: v.number({ min: 5 }), maxSeconds: v.number({ min: 5 }), transitionSeconds: v.number({ min: 0.5 }) }),
 });
 
+// ---------------------------------------------------------------- armor.json
+export const ARMOR_SLOTS = ['head', 'torso', 'legs', 'boots', 'cape', 'charm'] as const;
+/** Efectos de equipo y comida (sumables). */
+export const STAT_KEYS = [
+  'defense', 'climbSpeed', 'climbStamina', 'climbJump', 'ledgeCost', 'ledgeFree', 'chainUnlimited', 'glideStamina', 'glideFall', 'glideWind', 'freeGlide',
+  'coldResist', 'heatResist', 'stealth', 'bowDamage', 'glideBowCost', 'poisonResist', 'shockResist', 'insulated', 'swimSpeed', 'swimStamina', 'breath',
+  'stunResist', 'darkVision', 'light', 'perfectWindow', 'iceGrip', 'sandSpeed', 'attack', 'speed',
+] as const;
+
+const armorPieceSchema = v.object({
+  id: v.string({ minLength: 1 }),
+  slot: v.oneOf(ARMOR_SLOTS),
+  name: v.string({ minLength: 1 }),
+  defense: v.number({ min: 0 }),
+  effects: v.record(v.number()),
+  model: v.object({ kind: v.string({ minLength: 1 }), color }),
+});
+
+export const armorConfigSchema = v.object({
+  slots: v.array(v.oneOf(ARMOR_SLOTS), { length: 6 }),
+  /** Niveles de mejora en las fuentes. */
+  levels: v.number({ min: 1, max: 6, integer: true }),
+  sets: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      description: v.string({ minLength: 1 }),
+      rarity: v.oneOf(RARITIES),
+      /** Materiales para mejorarlo (principal y secundario). */
+      upgradeItems: v.array(v.string({ minLength: 1 }), { length: 2 }),
+      pieces: v.array(armorPieceSchema, { minLength: 1 }),
+      /** Bonificación por número de piezas puestas. */
+      bonus: v.array(v.object({ pieces: v.number({ min: 2, max: 6, integer: true }), effects: v.record(v.number()) })),
+    }),
+    { minLength: 10 },
+  ),
+  accessories: v.array(armorPieceSchema),
+});
+
+// ---------------------------------------------------------------- recipes.json
+export const recipesConfigSchema = v.object({
+  cooking: v.object({
+    healMultiplier: v.number({ min: 1 }),
+    maxSeconds: v.number({ min: 1 }),
+    secondsPerIngredient: v.number({ min: 0 }),
+    monsterSeconds: v.number({ min: 0 }),
+    potencyPerLevel: v.number({ min: 0.5 }),
+    maxIngredients: v.number({ min: 1, max: 10, integer: true }),
+    dubiousHeal: v.number({ min: 0 }),
+  }),
+  effects: v.record(v.object({ name: v.string({ minLength: 1 }), kind: v.oneOf(['instant', 'timed'] as const), per: v.number({ min: 0 }) })),
+  recipes: v.array(v.object({ id: v.string({ minLength: 1 }), name: v.string({ minLength: 1 }), requires: v.array(v.string({ minLength: 1 })), allow: v.array(v.string({ minLength: 1 })) }), { minLength: 1 }),
+});
+
+// ---------------------------------------------------------------- progression.json
+export const ALTAR_KINDS = ['offering', 'fountain', 'workshop', 'cooking'] as const;
+const cost = v.array(v.object({ item: v.string({ minLength: 1 }), count: v.number({ min: 1, integer: true }) }));
+
+export const progressionConfigSchema = v.object({
+  offering: v.object({ orbsPerBlessing: v.number({ min: 1, integer: true }), staminaPerBlessing: v.number({ min: 1 }) }),
+  /** Semillas por cada hueco extra de armas/arcos/escudos. */
+  seedSlotCosts: v.array(v.number({ min: 1, integer: true }), { minLength: 1 }),
+  altars: v.array(v.object({ id: v.string({ minLength: 1 }), kind: v.oneOf(ALTAR_KINDS), name: v.string({ minLength: 1 }), position: vec2 })),
+  /** Semillas escondidas: [x, z, altura sobre el suelo]. */
+  seeds: v.array(vec3),
+  gliderUpgradeCosts: v.record(cost),
+  gliderTints: v.array(v.object({ id: v.string({ minLength: 1 }), name: v.string({ minLength: 1 }), color, cost: v.number({ min: 0, integer: true }) }), { minLength: 1 }),
+  startingArmor: v.array(v.string({ minLength: 1 })),
+});
+
+// ---------------------------------------------------------------- gathering.json
+export const gatheringConfigSchema = v.object({
+  cellSize: v.number({ min: 8 }),
+  /** Celdas alrededor del jugador con plantas (radio en celdas). */
+  radius: v.number({ min: 1, max: 6, integer: true }),
+  regrowDays: v.number({ min: 0 }),
+  rules: v.array(v.object({ item: v.string({ minLength: 1 }), biomes: v.array(v.oneOf(BIOME_IDS), { minLength: 1 }), perCell: v.number({ min: 0 }) })),
+});
+
 // ---------------------------------------------------------------- tutorial.json
 export const TRIGGER_KINDS = ['interact', 'reach', 'read', 'climb', 'defeat', 'temple', 'glide_land'] as const;
 
@@ -894,3 +988,13 @@ export type BiomeDef = BiomesConfig['biomes'][number];
 export type BiomeId = (typeof BIOME_IDS)[number];
 export type WeatherType = (typeof WEATHER_TYPES)[number];
 export type ElementsConfig = Infer<typeof elementsConfigSchema>;
+export type ArmorConfig = Infer<typeof armorConfigSchema>;
+export type ArmorPiece = Infer<typeof armorPieceSchema>;
+export type ArmorSlot = (typeof ARMOR_SLOTS)[number];
+export type StatKey = (typeof STAT_KEYS)[number];
+export type RecipesConfig = Infer<typeof recipesConfigSchema>;
+export type FoodEffect = (typeof FOOD_EFFECTS)[number];
+export type ProgressionConfig = Infer<typeof progressionConfigSchema>;
+export type AltarKind = (typeof ALTAR_KINDS)[number];
+export type GatheringConfig = Infer<typeof gatheringConfigSchema>;
+export type ItemDef = ItemsConfig['items'][number];

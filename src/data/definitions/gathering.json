@@ -1,0 +1,130 @@
+{
+  "cellSize": 64,
+  "radius": 2,
+  "regrowDays": 1,
+  "rules": [
+    {
+      "item": "apple",
+      "biomes": [
+        "plains",
+        "forest"
+      ],
+      "perCell": 1.2
+    },
+    {
+      "item": "vital_mushroom",
+      "biomes": [
+        "forest",
+        "plains"
+      ],
+      "perCell": 0.9
+    },
+    {
+      "item": "golden_truffle",
+      "biomes": [
+        "forest"
+      ],
+      "perCell": 0.15
+    },
+    {
+      "item": "breath_flower",
+      "biomes": [
+        "plains",
+        "mountains"
+      ],
+      "perCell": 0.6
+    },
+    {
+      "item": "vigor_mushroom",
+      "biomes": [
+        "mountains",
+        "forest"
+      ],
+      "perCell": 0.4
+    },
+    {
+      "item": "ember_pepper",
+      "biomes": [
+        "mountains",
+        "forest",
+        "plains"
+      ],
+      "perCell": 0.35
+    },
+    {
+      "item": "frost_melon",
+      "biomes": [
+        "desert"
+      ],
+      "perCell": 0.8
+    },
+    {
+      "item": "fury_root",
+      "biomes": [
+        "forest",
+        "plains"
+      ],
+      "perCell": 0.3
+    },
+    {
+      "item": "shell_mushroom",
+      "biomes": [
+        "mountains",
+        "plains"
+      ],
+      "perCell": 0.3
+    },
+    {
+      "item": "shadow_flower",
+      "biomes": [
+        "forest",
+        "plains"
+      ],
+      "perCell": 0.3
+    },
+    {
+      "item": "swift_herb",
+      "biomes": [
+        "plains"
+      ],
+      "perCell": 0.4
+    },
+    {
+      "item": "volt_fruit",
+      "biomes": [
+        "desert"
+      ],
+      "perCell": 0.4
+    },
+    {
+      "item": "honey",
+      "biomes": [
+        "forest"
+      ],
+      "perCell": 0.1
+    },
+    {
+      "item": "cold_cricket",
+      "biomes": [
+        "desert",
+        "plains"
+      ],
+      "perCell": 0.2
+    },
+    {
+      "item": "sleepy_beetle",
+      "biomes": [
+        "forest"
+      ],
+      "perCell": 0.2
+    },
+    {
+      "item": "quick_lizard",
+      "biomes": [
+        "plains",
+        "desert"
+      ],
+      "perCell": 0.2
+    }
+  ]
+}

@@ -24,6 +24,8 @@ export interface Stimulus {
   speed: number;
   /** Radio del ruido que hace ahora mismo (m). */
   noise: number;
+  /** Multiplicador de lo visible que es (equipo de sigilo < 1, armadura pesada > 1). */
+  visibility?: number;
 }
 
 export interface PerceptionEnv {
@@ -52,7 +54,7 @@ export function sightRange(s: SensesDef, t: Stimulus, env: PerceptionEnv): numbe
     r *= NIGHT_SIGHT + (1 - NIGHT_SIGHT) * clamp01(env.light);
     if (t.crouching) r *= CROUCH_SIGHT;
   }
-  return r * (1 - 0.35 * clamp01(env.rain));
+  return r * (1 - 0.35 * clamp01(env.rain)) * (t.visibility ?? 1);
 }
 
 /** ¿El punto (x,z) está dentro del cono de visión? */

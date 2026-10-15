@@ -25,6 +25,7 @@ npm run build      # typecheck + build de producción
 | Rodar al aterrizar | Ctrl o Alt justo antes de tocar el suelo (mitad de daño) |
 | Andar / agacharse | Bloq Mayús / Ctrl o C |
 | Interactuar · recoger armas | E |
+| Inventario (pausa) | I · clic para equipar/comer · clic derecho suelta un arma |
 | Atacar | Clic izq. (combo de 3) · mantener = ataque cargado / especial del arma · en el aire = ataque en picado |
 | Esquivar | Alt izq. o V (justo antes del golpe = esquiva perfecta + ráfaga) |
 | Apuntar arco / escudo | Clic der. (con arco: clic izq. tensa y suelta; en el aire = tiempo bala) · con escudo: subirlo justo a tiempo = parry |
@@ -51,6 +52,15 @@ Clima por bioma (lluvia, tormenta, nieve, tormenta de arena, niebla), temperatur
 calor del desierto de día; el fuego calienta). Antorcha, bastones elementales y flechas de fuego/hielo/eléctricas.
 Datos en `biomes.json` y `elements.json`.
 
+## Equipo y progresión (Fase 6)
+
+Armaduras en 6 huecos (cabeza, torso, piernas, botas, capa, tótem) con 10 sets y bonificación por 2/3/4 piezas,
+mejorables hasta ★4 en la Fuente de las Raíces. Ingredientes silvestres que rebrotan, cocina de hasta 5 ingredientes
+(recetas por datos), comida con efectos (calor, frescor, fuerza, defensa, sigilo, velocidad, corazones y vigor extra).
+Orbes ancestrales → +1 corazón o +vigor en la Estatua de la Ofrenda; semillas → huecos extra y tintes en el Taller del
+Planeador, que también instala sus mejoras. Junto al lago de aterrizaje están la fuente, el taller, una estatua y una olla.
+Datos en `armor.json`, `recipes.json`, `progression.json` y `gathering.json`.
+
 ## Estructura
 
 ```
@@ -60,6 +70,7 @@ src/
   player/    controlador del personaje, cámara, modelo y animación
   systems/   sistemas ECS (jugador, cámara, entorno, interacción, tutorial, guardado...)
   world/     terreno por chunks, colisiones, agua, cielo, props y el Valle de la Cápsula
+  items/     estadísticas del equipo y cocina
   combat/    inventario, daño, defensa, combos, arco, proyectiles, modelos de armas y efectos
   ai/        IA de enemigos: percepción, estados, campamentos, slimes, goblins, golems, halcones y sus visuales
   ui/        HUD, HUD de combate y overlay de debug

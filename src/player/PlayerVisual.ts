@@ -91,14 +91,24 @@ export class PlayerVisual {
   private shieldModel: THREE.Group | null = null;
   private loadoutKey = '';
   private readonly swingTrail = new WingTrail('#ffffff', 14);
+  // Materiales que cambia la armadura (color por pieza) y el tinte del planeador.
+  private readonly suitMat = new THREE.MeshStandardMaterial({ color: '#5a8199', roughness: 0.7 });
+  private readonly legMat = new THREE.MeshStandardMaterial({ color: '#3a4d5a', roughness: 0.8 });
+  private readonly bootMat = new THREE.MeshStandardMaterial({ color: '#e0892e', roughness: 0.6 });
+  private readonly clothMat = new THREE.MeshStandardMaterial({ color: '#efe6d2', emissive: '#6d675a', emissiveIntensity: 0.6, roughness: 0.85, side: THREE.DoubleSide });
+  private readonly headGear = new THREE.Group();
+  private readonly capeGear = new THREE.Group();
+  private readonly charmGear = new THREE.Group();
+  private armorKey = '';
   private chargeGlow = 0;
 
   constructor() {
     this.root.name = 'player';
     this.root.add(this.body);
-    const suit = new THREE.MeshStandardMaterial({ color: '#5a8199', roughness: 0.7 });
-    const suitDark = new THREE.MeshStandardMaterial({ color: '#3a4d5a', roughness: 0.8 });
+    const suit = this.suitMat;
+    const suitDark = this.legMat;
     const accent = new THREE.MeshStandardMaterial({ color: '#e0892e', roughness: 0.6 });
+    const boot = this.bootMat;
     const skin = new THREE.MeshStandardMaterial({ color: '#d9a982', roughness: 0.8 });
     const hair = new THREE.MeshStandardMaterial({ color: '#3a2a1e', roughness: 0.9 });
 
@@ -114,7 +124,7 @@ export class PlayerVisual {
       const g = new THREE.Group();
       g.position.set(side * 0.12, 0.92, 0);
       g.add(part(new THREE.BoxGeometry(0.17, 0.82, 0.2), suitDark, 0, -0.41, 0));
-      g.add(part(new THREE.BoxGeometry(0.19, 0.14, 0.3), accent, 0, -0.86, 0.04));
+      g.add(part(new THREE.BoxGeometry(0.19, 0.14, 0.3), boot, 0, -0.86, 0.04));
       this.body.add(g);
       return g;
     };
@@ -133,6 +143,8 @@ export class PlayerVisual {
     this.head = part(new THREE.SphereGeometry(0.13, 16, 12), skin, 0, 0.8, 0.01);
     this.torso.add(this.head);
     this.head.add(part(new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 0.015, -0.01));
+    this.head.add(this.headGear);
+    this.torso.add(this.capeGear, this.charmGear);
 
     const makeArm = (side: number) => {
       const g = new THREE.Group();
@@ -173,7 +185,7 @@ export class PlayerVisual {
     this.torso.add(this.wings);
     this.wings.add(part(new THREE.CylinderGeometry(0.025, 0.025, 1.2, 8).rotateZ(Math.PI / 2), ancestral, 0, 0, 0.12));
     // Emisivo suave: la tela se ve clara también por debajo (cara en sombra al planear).
-    const cloth = new THREE.MeshStandardMaterial({ color: '#efe6d2', emissive: '#6d675a', emissiveIntensity: 0.6, roughness: 0.85, side: THREE.DoubleSide });
+    const cloth = this.clothMat;
     const makeWing = (side: number) => {
       const g = new THREE.Group();
       const shape = new THREE.Shape();
@@ -224,6 +236,80 @@ export class PlayerVisual {
       this.shieldModel.rotation.y = -Math.PI / 2;
       this.forearmL.add(this.shieldModel);
     }
+  }
+
+  /**
+   * Aspecto de la armadura: color de torso, piernas y botas, pieza de cabeza (silueta propia),
+   * capa y amuleto. Sin pieza en un hueco, se ve la ropa de superviviente.
+   */
+  setArmor(look: Record<string, { kind: string; color: string }>): void {
+    const key = JSON.stringify(look);
+    if (key === this.armorKey) return;
+    this.armorKey = key;
+    this.suitMat.color.set(look.torso?.color ?? '#5a8199');
+    this.legMat.color.set(look.legs?.color ?? '#3a4d5a');
+    this.bootMat.color.set(look.boots?.color ?? '#e0892e');
+    const plate = look.torso?.kind === 'plate';
+    this.suitMat.metalness = plate ? 0.55 : 0;
+    this.suitMat.roughness = plate ? 0.35 : 0.7;
+    for (const g of [this.headGear, this.capeGear, this.charmGear]) {
+      for (const c of [...g.children]) {
+        c.removeFromParent();
+        if (c instanceof THREE.Mesh) c.geometry.dispose();
+      }
+    }
+    const mat = (color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
+    const add = (g: THREE.Group, geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number) => {
+      const mesh = new THREE.Mesh(geo, m);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      g.add(mesh);
+      return mesh;
+    };
+    const head = look.head;
+    if (head) {
+      const m = mat(head.color, head.kind === 'crown' ? { emissive: head.color, emissiveIntensity: 0.8, metalness: 0.4 } : head.kind === 'helm' ? { metalness: 0.5, roughness: 0.35 } : {});
+      switch (head.kind) {
+        case 'hood':
+          add(this.headGear, new THREE.SphereGeometry(0.16, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), m, 0, 0.01, -0.015);
+          break;
+        case 'helm':
+          add(this.headGear, new THREE.SphereGeometry(0.155, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), m, 0, 0.02, 0);
+          add(this.headGear, new THREE.BoxGeometry(0.03, 0.12, 0.05), m, 0, 0.0, 0.15);
+          break;
+        case 'turban':
+          add(this.headGear, new THREE.TorusGeometry(0.12, 0.05, 8, 16).rotateX(Math.PI / 2), m, 0, 0.07, 0);
+          add(this.headGear, new THREE.SphereGeometry(0.11, 10, 8), m, 0, 0.12, -0.02);
+          break;
+        case 'crown':
+          for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            add(this.headGear, new THREE.ConeGeometry(0.025, 0.12, 4), m, Math.sin(a) * 0.12, 0.13, Math.cos(a) * 0.12);
+          }
+          add(this.headGear, new THREE.TorusGeometry(0.125, 0.015, 6, 16).rotateX(Math.PI / 2), m, 0, 0.08, 0);
+          break;
+        case 'goggles':
+          for (const sx of [-1, 1]) add(this.headGear, new THREE.CylinderGeometry(0.04, 0.04, 0.03, 10).rotateX(Math.PI / 2), m, sx * 0.05, 0.03, 0.12);
+          add(this.headGear, new THREE.TorusGeometry(0.135, 0.012, 6, 16).rotateX(Math.PI / 2), mat('#222222'), 0, 0.03, 0);
+          break;
+        case 'lamp':
+          add(this.headGear, new THREE.SphereGeometry(0.15, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), m, 0, 0.02, 0);
+          add(this.headGear, new THREE.CylinderGeometry(0.035, 0.04, 0.05, 8).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#fff3c0' }), 0, 0.1, 0.13);
+          break;
+        default:
+          // Cinta / gorro sencillo.
+          add(this.headGear, new THREE.TorusGeometry(0.13, 0.025, 6, 16).rotateX(Math.PI / 2), m, 0, 0.06, 0);
+      }
+    }
+    if (look.cape) {
+      const cape = add(this.capeGear, new THREE.PlaneGeometry(0.5, 0.95, 1, 4).translate(0, -0.47, 0), mat(look.cape.color, { side: THREE.DoubleSide }), 0, 0.68, -0.17);
+      cape.rotation.x = 0.12;
+    }
+    if (look.charm) add(this.charmGear, new THREE.OctahedronGeometry(0.045, 0), mat(look.charm.color, { emissive: look.charm.color, emissiveIntensity: 0.7 }), 0, 0.5, 0.15);
+  }
+
+  setGliderTint(color: string): void {
+    this.clothMat.color.set(color);
   }
 
   /** Antorcha encendida o apagada (muestra u oculta la llama del arma en mano). */

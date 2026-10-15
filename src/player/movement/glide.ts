@@ -16,6 +16,8 @@ export interface GliderModifiers {
   staminaMultiplier: number;
   fallMultiplier: number;
   windMultiplier: number;
+  /** Segundos de planeo sin gasto tras cada despliegue. */
+  freeSeconds: number;
 }
 
 export function gliderModifiers(upgrades: readonly GliderUpgrade[]): GliderModifiers {
@@ -24,8 +26,9 @@ export function gliderModifiers(upgrades: readonly GliderUpgrade[]): GliderModif
       staminaMultiplier: m.staminaMultiplier * u.staminaMultiplier,
       fallMultiplier: m.fallMultiplier * u.fallMultiplier,
       windMultiplier: m.windMultiplier * u.windMultiplier,
+      freeSeconds: m.freeSeconds,
     }),
-    { staminaMultiplier: 1, fallMultiplier: 1, windMultiplier: 1 },
+    { staminaMultiplier: 1, fallMultiplier: 1, windMultiplier: 1, freeSeconds: 0 },
   );
 }
 
@@ -48,6 +51,7 @@ export function beginGlide(s: CharacterState, cfg: GliderConfig): void {
   g.heading = horiz > 1 ? Math.atan2(s.vx, s.vz) : s.yaw;
   g.speed = Math.max(horiz, cfg.forwardSpeed * 0.55);
   g.deployT = -cfg.deploySeconds; // negativo = animación de despliegue en curso
+  g.airtime = 0;
   g.bank = 0;
   g.dive = 0;
   g.flare = 0;
@@ -126,7 +130,9 @@ export function stepGlide(
   s.vz = Math.cos(g.heading) * g.speed + g.windZ;
   s.yaw = g.heading;
 
-  const free = g.inThermal && cfg.thermal.staminaFree;
+  g.airtime += dt;
+  // Gratis dentro de una corriente o durante los primeros segundos (set ancestral).
+  const free = (g.inThermal && cfg.thermal.staminaFree) || g.airtime < mods.freeSeconds;
   if (!free && !spendRate(s.stamina, cfg.staminaPerSecond * mods.staminaMultiplier, dt, 'glide', staminaCfg)) {
     return { exhausted: true };
   }

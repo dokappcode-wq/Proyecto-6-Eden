@@ -12,28 +12,64 @@
       "name": "Gelatina de slime",
       "category": "material",
       "stack": 99,
-      "color": "#7fe36a"
+      "color": "#7fe36a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "toxic_jelly",
       "name": "Gelatina tóxica",
       "category": "material",
       "stack": 99,
-      "color": "#b07be6"
+      "color": "#b07be6",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "shock_jelly",
       "name": "Gelatina eléctrica",
       "category": "material",
       "stack": 99,
-      "color": "#ffe56a"
+      "color": "#ffe56a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "goblin_fang",
       "name": "Colmillo de goblin",
       "category": "material",
       "stack": 99,
-      "color": "#e9e1c8"
+      "color": "#e9e1c8",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "stone_shard",
@@ -47,14 +83,32 @@
       "name": "Cristal de golem",
       "category": "material",
       "stack": 99,
-      "color": "#5ff0ff"
+      "color": "#5ff0ff",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "hawk_feather",
       "name": "Pluma de halcón",
       "category": "material",
       "stack": 99,
-      "color": "#b98a5a"
+      "color": "#b98a5a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "monster"
+        ],
+        "model": "part",
+        "potency": 0,
+        "seconds": 30
+      }
     },
     {
       "id": "fire_arrow",
@@ -79,6 +133,321 @@
       "stack": 50,
       "color": "#ffe56a",
       "element": "shock"
+    },
+    {
+      "id": "apple",
+      "name": "Manzana",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#d8342a",
+      "food": {
+        "heal": 2,
+        "tags": [
+          "fruit"
+        ],
+        "model": "fruit",
+        "potency": 0,
+        "seconds": 0
+      }
+    },
+    {
+      "id": "vital_mushroom",
+      "name": "Seta vital",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#d98a5a",
+      "food": {
+        "heal": 4,
+        "tags": [
+          "mushroom"
+        ],
+        "model": "mushroom",
+        "potency": 0,
+        "seconds": 0
+      }
+    },
+    {
+      "id": "golden_truffle",
+      "name": "Trufa dorada",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#f2cf4a",
+      "food": {
+        "heal": 4,
+        "tags": [
+          "mushroom"
+        ],
+        "model": "mushroom",
+        "potency": 1,
+        "seconds": 0,
+        "effect": "hearty"
+      }
+    },
+    {
+      "id": "breath_flower",
+      "name": "Flor del aliento",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#9fe36a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "flower"
+        ],
+        "model": "flower",
+        "potency": 1,
+        "seconds": 0,
+        "effect": "stamina"
+      }
+    },
+    {
+      "id": "vigor_mushroom",
+      "name": "Seta de brío",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#e8d26a",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "mushroom"
+        ],
+        "model": "mushroom",
+        "potency": 1,
+        "seconds": 0,
+        "effect": "endurance"
+      }
+    },
+    {
+      "id": "ember_pepper",
+      "name": "Pimiento brasa",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#ff4a2a",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "fruit",
+          "spice"
+        ],
+        "model": "fruit",
+        "potency": 1,
+        "seconds": 150,
+        "effect": "cold"
+      }
+    },
+    {
+      "id": "frost_melon",
+      "name": "Melón de escarcha",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#8fe9ff",
+      "food": {
+        "heal": 2,
+        "tags": [
+          "fruit"
+        ],
+        "model": "fruit",
+        "potency": 1,
+        "seconds": 150,
+        "effect": "heat"
+      }
+    },
+    {
+      "id": "fury_root",
+      "name": "Raíz de furia",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#a0402a",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "herb"
+        ],
+        "model": "herb",
+        "potency": 1,
+        "seconds": 60,
+        "effect": "attack"
+      }
+    },
+    {
+      "id": "shell_mushroom",
+      "name": "Seta coraza",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#8a8f94",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "mushroom"
+        ],
+        "model": "mushroom",
+        "potency": 1,
+        "seconds": 60,
+        "effect": "defense"
+      }
+    },
+    {
+      "id": "shadow_flower",
+      "name": "Flor de sombra",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#6b3fa0",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "flower"
+        ],
+        "model": "flower",
+        "potency": 1,
+        "seconds": 120,
+        "effect": "stealth"
+      }
+    },
+    {
+      "id": "swift_herb",
+      "name": "Hierba veloz",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#4ad6a0",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "herb"
+        ],
+        "model": "herb",
+        "potency": 1,
+        "seconds": 60,
+        "effect": "speed"
+      }
+    },
+    {
+      "id": "volt_fruit",
+      "name": "Fruta voltio",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#ffe14a",
+      "food": {
+        "heal": 1,
+        "tags": [
+          "fruit"
+        ],
+        "model": "fruit",
+        "potency": 1,
+        "seconds": 120,
+        "effect": "shock"
+      }
+    },
+    {
+      "id": "honey",
+      "name": "Miel dorada",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#f2a93a",
+      "food": {
+        "heal": 6,
+        "tags": [
+          "sweet"
+        ],
+        "model": "fruit",
+        "potency": 1,
+        "seconds": 0,
+        "effect": "stamina"
+      }
+    },
+    {
+      "id": "bird_meat",
+      "name": "Carne de ave",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#e09080",
+      "food": {
+        "heal": 4,
+        "tags": [
+          "meat"
+        ],
+        "model": "meat",
+        "potency": 0,
+        "seconds": 0
+      }
+    },
+    {
+      "id": "cold_cricket",
+      "name": "Grillo helado",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#9ad8ff",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "critter"
+        ],
+        "model": "critter",
+        "potency": 1,
+        "seconds": 60,
+        "effect": "heat"
+      }
+    },
+    {
+      "id": "sleepy_beetle",
+      "name": "Escarabajo dormilón",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#5a4a8a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "critter"
+        ],
+        "model": "critter",
+        "potency": 1,
+        "seconds": 90,
+        "effect": "stealth"
+      }
+    },
+    {
+      "id": "quick_lizard",
+      "name": "Lagartija veloz",
+      "category": "ingredient",
+      "stack": 99,
+      "color": "#5ac94a",
+      "food": {
+        "heal": 0,
+        "tags": [
+          "critter"
+        ],
+        "model": "critter",
+        "potency": 1,
+        "seconds": 60,
+        "effect": "speed"
+      }
+    },
+    {
+      "id": "ancestral_orb",
+      "name": "Orbe ancestral",
+      "category": "key",
+      "stack": 999,
+      "color": "#1fd6ff"
+    },
+    {
+      "id": "forest_seed",
+      "name": "Semilla del bosque",
+      "category": "key",
+      "stack": 999,
+      "color": "#7ee36b"
+    },
+    {
+      "id": "heart_container",
+      "name": "Corazón completo",
+      "category": "key",
+      "stack": 99,
+      "color": "#ff5b6e"
+    },
+    {
+      "id": "stamina_vessel",
+      "name": "Vasija de vigor",
+      "category": "key",
+      "stack": 99,
+      "color": "#7ee36b"
     }
   ]
 }

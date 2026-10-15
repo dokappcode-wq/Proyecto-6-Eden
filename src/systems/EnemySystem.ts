@@ -58,6 +58,8 @@ export interface EnemyDeps {
   elements: ElementsConfig;
   /** Lluvia 0..1 en la posición del jugador (vista y oído peores). */
   rain: () => number;
+  /** Sigilo del equipo y la comida (0.3 = 30 % menos visible y ruidoso; negativo = más). */
+  stealth: () => number;
   /** Luz ambiente 0 (noche) .. 1 (día). */
   skyLight: () => number;
   hour: () => number;
@@ -631,8 +633,13 @@ export class EnemySystem implements System {
       crouching: ctx.input.isDown('crouch') && ch.grounded && !ch.swimming,
       airborne: pv.airborne && pv.y - pv.groundY > 1.2,
       speed: Math.hypot(ch.vx, ch.vz),
-      noise: this.currentNoise(ctx),
+      noise: this.currentNoise(ctx) * this.stealthFactor(),
+      visibility: this.stealthFactor(),
     };
+  }
+
+  private stealthFactor(): number {
+    return Math.max(0.35, Math.min(1.5, 1 - this.d.stealth()));
   }
 
   /** Luz en una posición: el cielo, o la hoguera de un campamento de noche. */

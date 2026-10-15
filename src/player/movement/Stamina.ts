@@ -13,21 +13,23 @@ export interface StaminaState {
   lastSource: string;
   /** Gasto acumulado en este frame (debug). */
   spentThisStep: number;
+  /** Stamina extra temporal (comida de resistencia): se gasta primero y no se recarga. */
+  bonus: number;
 }
 
 export function createStamina(max: number): StaminaState {
-  return { current: max, max, exhausted: false, lockTimer: 0, sinceSpend: 999, lastSource: '', spentThisStep: 0 };
+  return { current: max, max, exhausted: false, lockTimer: 0, sinceSpend: 999, lastSource: '', spentThisStep: 0, bonus: 0 };
 }
 
 /** Puede empezar una acción que cuesta stamina. */
 export function canUse(s: StaminaState): boolean {
-  return !s.exhausted && s.current > 0;
+  return !s.exhausted && s.current + s.bonus > 0;
 }
 
 /** Gasto puntual. Devuelve false (sin gastar) si no alcanza o está agotado. */
 export function spend(s: StaminaState, amount: number, source: string, cfg: StaminaConfig): boolean {
   if (amount <= 0) return true;
-  if (!canUse(s) || s.current < amount) return false;
+  if (!canUse(s) || s.current + s.bonus < amount) return false;
   drain(s, amount, source, cfg);
   return true;
 }
@@ -39,8 +41,8 @@ export function spend(s: StaminaState, amount: number, source: string, cfg: Stam
 export function spendRate(s: StaminaState, perSecond: number, dt: number, source: string, cfg: StaminaConfig): boolean {
   if (perSecond <= 0) return true;
   if (!canUse(s)) return false;
-  drain(s, Math.min(s.current, perSecond * dt), source, cfg);
-  return s.current > 0;
+  drain(s, Math.min(s.current + s.bonus, perSecond * dt), source, cfg);
+  return s.current + s.bonus > 0;
 }
 
 /** Recarga: tras `recoverDelay` sin gastar; bloqueada `exhaustedLockout` s al agotarse. */
@@ -57,6 +59,9 @@ export function updateStamina(s: StaminaState, dt: number, cfg: StaminaConfig): 
 }
 
 function drain(s: StaminaState, amount: number, source: string, cfg: StaminaConfig): void {
+  const fromBonus = Math.min(s.bonus, amount);
+  s.bonus -= fromBonus;
+  amount -= fromBonus;
   s.current = Math.max(0, s.current - amount);
   s.sinceSpend = 0;
   s.lastSource = source;
@@ -71,15 +76,21 @@ export interface HealthState {
   /** En cuartos de corazón. */
   fragments: number;
   maxFragments: number;
+  /** Corazones extra temporales (amarillos, de la comida de vitalidad): se pierden primero. */
+  extra: number;
 }
 
 export function createHealth(hearts: number, fragmentsPerHeart: number): HealthState {
-  return { fragments: hearts * fragmentsPerHeart, maxFragments: hearts * fragmentsPerHeart };
+  return { fragments: hearts * fragmentsPerHeart, maxFragments: hearts * fragmentsPerHeart, extra: 0 };
 }
 
 /** Aplica daño y devuelve true si el jugador muere. */
 export function damage(h: HealthState, fragments: number): boolean {
-  h.fragments = Math.max(0, h.fragments - Math.max(0, Math.round(fragments)));
+  let left = Math.max(0, Math.round(fragments));
+  const fromExtra = Math.min(h.extra, left);
+  h.extra -= fromExtra;
+  left -= fromExtra;
+  h.fragments = Math.max(0, h.fragments - left);
   return h.fragments <= 0;
 }
 

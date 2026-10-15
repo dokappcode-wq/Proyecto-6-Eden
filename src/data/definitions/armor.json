@@ -1,0 +1,856 @@
+{
+  "slots": [
+    "head",
+    "torso",
+    "legs",
+    "boots",
+    "cape",
+    "charm"
+  ],
+  "levels": 4,
+  "sets": [
+    {
+      "id": "survivor",
+      "name": "Superviviente",
+      "description": "Ropa sacada de la nave. Sin bonificación, pero cómoda.",
+      "rarity": "common",
+      "upgradeItems": [
+        "slime_jelly",
+        "goblin_fang"
+      ],
+      "pieces": [
+        {
+          "id": "survivor_torso",
+          "slot": "torso",
+          "name": "Chaqueta de superviviente",
+          "defense": 1,
+          "effects": {},
+          "model": {
+            "kind": "suit",
+            "color": "#5a8199"
+          }
+        },
+        {
+          "id": "survivor_legs",
+          "slot": "legs",
+          "name": "Pantalón de superviviente",
+          "defense": 1,
+          "effects": {},
+          "model": {
+            "kind": "suit",
+            "color": "#3a4d5a"
+          }
+        },
+        {
+          "id": "survivor_boots",
+          "slot": "boots",
+          "name": "Botas de superviviente",
+          "defense": 1,
+          "effects": {},
+          "model": {
+            "kind": "boot",
+            "color": "#e0892e"
+          }
+        }
+      ],
+      "bonus": []
+    },
+    {
+      "id": "climber",
+      "name": "Escalador",
+      "description": "Trepa más rápido y gasta menos; mejor Impulso de Borde y planeo.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "hawk_feather",
+        "stone_shard"
+      ],
+      "pieces": [
+        {
+          "id": "climber_head",
+          "slot": "head",
+          "name": "Cinta de escalador",
+          "defense": 2,
+          "effects": {
+            "climbSpeed": 0.12,
+            "climbStamina": 0.08
+          },
+          "model": {
+            "kind": "band",
+            "color": "#c94f3a"
+          }
+        },
+        {
+          "id": "climber_torso",
+          "slot": "torso",
+          "name": "Chaleco de escalador",
+          "defense": 2,
+          "effects": {
+            "climbSpeed": 0.12,
+            "climbStamina": 0.08
+          },
+          "model": {
+            "kind": "vest",
+            "color": "#c9773a"
+          }
+        },
+        {
+          "id": "climber_legs",
+          "slot": "legs",
+          "name": "Mallas de escalador",
+          "defense": 2,
+          "effects": {
+            "climbSpeed": 0.12,
+            "climbStamina": 0.08
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#6b4b30"
+          }
+        },
+        {
+          "id": "climber_boots",
+          "slot": "boots",
+          "name": "Pies de gato",
+          "defense": 2,
+          "effects": {
+            "climbSpeed": 0.12,
+            "climbStamina": 0.08
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#3a2a1e"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "ledgeCost": 0.4
+          }
+        },
+        {
+          "pieces": 3,
+          "effects": {
+            "climbJump": 0.3
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "glideStamina": 0.25
+          }
+        }
+      ]
+    },
+    {
+      "id": "desert",
+      "name": "Desierto",
+      "description": "Telas ligeras contra el calor; de día cuesta más verte.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "shock_jelly",
+        "goblin_fang"
+      ],
+      "pieces": [
+        {
+          "id": "desert_head",
+          "slot": "head",
+          "name": "Turbante del desierto",
+          "defense": 2,
+          "effects": {
+            "heatResist": 7
+          },
+          "model": {
+            "kind": "turban",
+            "color": "#e8d39a"
+          }
+        },
+        {
+          "id": "desert_torso",
+          "slot": "torso",
+          "name": "Túnica del desierto",
+          "defense": 2,
+          "effects": {
+            "heatResist": 7
+          },
+          "model": {
+            "kind": "robe",
+            "color": "#d9a35f"
+          }
+        },
+        {
+          "id": "desert_legs",
+          "slot": "legs",
+          "name": "Bombachos del desierto",
+          "defense": 2,
+          "effects": {
+            "heatResist": 5
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#c98a4a"
+          }
+        },
+        {
+          "id": "desert_boots",
+          "slot": "boots",
+          "name": "Sandalias del desierto",
+          "defense": 1,
+          "effects": {
+            "heatResist": 3,
+            "sandSpeed": 0.2
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#8a5a32"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "stealth": 0.12
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "heatResist": 8,
+            "stealth": 0.12
+          }
+        }
+      ]
+    },
+    {
+      "id": "polar",
+      "name": "Polar",
+      "description": "Abrigo de montaña: frío, hielo y viento.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "hawk_feather",
+        "golem_crystal"
+      ],
+      "pieces": [
+        {
+          "id": "polar_head",
+          "slot": "head",
+          "name": "Gorro polar",
+          "defense": 3,
+          "effects": {
+            "coldResist": 7
+          },
+          "model": {
+            "kind": "hood",
+            "color": "#eef4fa"
+          }
+        },
+        {
+          "id": "polar_torso",
+          "slot": "torso",
+          "name": "Abrigo polar",
+          "defense": 3,
+          "effects": {
+            "coldResist": 8
+          },
+          "model": {
+            "kind": "coat",
+            "color": "#8a9bb0"
+          }
+        },
+        {
+          "id": "polar_legs",
+          "slot": "legs",
+          "name": "Calzas polares",
+          "defense": 3,
+          "effects": {
+            "coldResist": 6
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#5f6f86"
+          }
+        },
+        {
+          "id": "polar_boots",
+          "slot": "boots",
+          "name": "Botas de crampones",
+          "defense": 3,
+          "effects": {
+            "coldResist": 4,
+            "iceGrip": 1
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#3a4252"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "iceGrip": 1
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "glideWind": 0.5,
+            "coldResist": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "delver",
+      "name": "Explorador subterráneo",
+      "description": "Lámpara propia, visión en la oscuridad y filtros contra el veneno.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "toxic_jelly",
+        "golem_crystal"
+      ],
+      "pieces": [
+        {
+          "id": "delver_head",
+          "slot": "head",
+          "name": "Casco con lámpara",
+          "defense": 3,
+          "effects": {
+            "light": 1,
+            "darkVision": 0.3
+          },
+          "model": {
+            "kind": "lamp",
+            "color": "#c9a64a"
+          }
+        },
+        {
+          "id": "delver_torso",
+          "slot": "torso",
+          "name": "Peto de espeleólogo",
+          "defense": 3,
+          "effects": {
+            "poisonResist": 0.3
+          },
+          "model": {
+            "kind": "vest",
+            "color": "#6b5a3a"
+          }
+        },
+        {
+          "id": "delver_legs",
+          "slot": "legs",
+          "name": "Rodilleras de espeleólogo",
+          "defense": 2,
+          "effects": {
+            "poisonResist": 0.2
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#4a3d2a"
+          }
+        },
+        {
+          "id": "delver_boots",
+          "slot": "boots",
+          "name": "Botas de cueva",
+          "defense": 2,
+          "effects": {
+            "darkVision": 0.2
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#2a2218"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "darkVision": 0.5
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "poisonResist": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "hunter",
+      "name": "Cazador",
+      "description": "Pasa desapercibido en el bosque y dispara mejor, también planeando.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "hawk_feather",
+        "slime_jelly"
+      ],
+      "pieces": [
+        {
+          "id": "hunter_head",
+          "slot": "head",
+          "name": "Capucha de cazador",
+          "defense": 2,
+          "effects": {
+            "bowDamage": 0.12
+          },
+          "model": {
+            "kind": "hood",
+            "color": "#3d6b35"
+          }
+        },
+        {
+          "id": "hunter_torso",
+          "slot": "torso",
+          "name": "Jubón de cazador",
+          "defense": 2,
+          "effects": {
+            "stealth": 0.12
+          },
+          "model": {
+            "kind": "vest",
+            "color": "#4f7a34"
+          }
+        },
+        {
+          "id": "hunter_legs",
+          "slot": "legs",
+          "name": "Calzas de cazador",
+          "defense": 2,
+          "effects": {
+            "stealth": 0.08
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#3a5230"
+          }
+        },
+        {
+          "id": "hunter_boots",
+          "slot": "boots",
+          "name": "Botas de cazador",
+          "defense": 2,
+          "effects": {
+            "stealth": 0.08
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#5b4532"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "glideBowCost": 0.5
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "bowDamage": 0.25
+          }
+        }
+      ]
+    },
+    {
+      "id": "guardian",
+      "name": "Guardián",
+      "description": "Armadura pesada de golem: aguanta todo, pero hace ruido y el planeador cae más rápido.",
+      "rarity": "rare",
+      "upgradeItems": [
+        "stone_shard",
+        "golem_crystal"
+      ],
+      "pieces": [
+        {
+          "id": "guardian_head",
+          "slot": "head",
+          "name": "Yelmo de guardián",
+          "defense": 6,
+          "effects": {
+            "stunResist": 0.15,
+            "stealth": -0.08,
+            "glideFall": 0.1
+          },
+          "model": {
+            "kind": "helm",
+            "color": "#7d756a"
+          }
+        },
+        {
+          "id": "guardian_torso",
+          "slot": "torso",
+          "name": "Coraza de guardián",
+          "defense": 7,
+          "effects": {
+            "stunResist": 0.15,
+            "stealth": -0.08,
+            "glideFall": 0.1
+          },
+          "model": {
+            "kind": "plate",
+            "color": "#928c7f"
+          }
+        },
+        {
+          "id": "guardian_legs",
+          "slot": "legs",
+          "name": "Grebas de guardián",
+          "defense": 6,
+          "effects": {
+            "stunResist": 0.1,
+            "stealth": -0.06,
+            "glideFall": 0.1
+          },
+          "model": {
+            "kind": "plate",
+            "color": "#6e6b62"
+          }
+        },
+        {
+          "id": "guardian_boots",
+          "slot": "boots",
+          "name": "Botas de guardián",
+          "defense": 5,
+          "effects": {
+            "stealth": -0.06,
+            "glideFall": 0.1
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#5c564e"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "stunResist": 0.2
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "stunResist": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "insulated",
+      "name": "Aislante",
+      "description": "Goma y cristal: las descargas apenas te afectan y los rayos no te buscan.",
+      "rarity": "rare",
+      "upgradeItems": [
+        "shock_jelly",
+        "golem_crystal"
+      ],
+      "pieces": [
+        {
+          "id": "insulated_head",
+          "slot": "head",
+          "name": "Capucha aislante",
+          "defense": 2,
+          "effects": {
+            "shockResist": 0.25
+          },
+          "model": {
+            "kind": "hood",
+            "color": "#f2d64b"
+          }
+        },
+        {
+          "id": "insulated_torso",
+          "slot": "torso",
+          "name": "Traje aislante",
+          "defense": 2,
+          "effects": {
+            "shockResist": 0.25
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#e0c23a"
+          }
+        },
+        {
+          "id": "insulated_legs",
+          "slot": "legs",
+          "name": "Perneras aislantes",
+          "defense": 2,
+          "effects": {
+            "shockResist": 0.25
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#b89a2a"
+          }
+        },
+        {
+          "id": "insulated_boots",
+          "slot": "boots",
+          "name": "Botas de goma",
+          "defense": 2,
+          "effects": {
+            "shockResist": 0.25
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#2a2a2a"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "insulated": 1
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "shockResist": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "mariner",
+      "name": "Marino",
+      "description": "Nada más rápido y aguanta mucho más la respiración.",
+      "rarity": "fine",
+      "upgradeItems": [
+        "slime_jelly",
+        "hawk_feather"
+      ],
+      "pieces": [
+        {
+          "id": "mariner_head",
+          "slot": "head",
+          "name": "Gafas de buceo",
+          "defense": 1,
+          "effects": {
+            "breath": 8
+          },
+          "model": {
+            "kind": "goggles",
+            "color": "#36d6e7"
+          }
+        },
+        {
+          "id": "mariner_torso",
+          "slot": "torso",
+          "name": "Camisola marinera",
+          "defense": 2,
+          "effects": {
+            "swimSpeed": 0.15
+          },
+          "model": {
+            "kind": "vest",
+            "color": "#1f8fbf"
+          }
+        },
+        {
+          "id": "mariner_legs",
+          "slot": "legs",
+          "name": "Pantalón marinero",
+          "defense": 2,
+          "effects": {
+            "swimSpeed": 0.15
+          },
+          "model": {
+            "kind": "suit",
+            "color": "#14406e"
+          }
+        },
+        {
+          "id": "mariner_boots",
+          "slot": "boots",
+          "name": "Aletas",
+          "defense": 1,
+          "effects": {
+            "swimSpeed": 0.2
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#3fd0c9"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "breath": 10
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "swimStamina": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "ancestral",
+      "name": "Ancestral",
+      "description": "Tecnología de las ruinas: vuelo y bordes sin esfuerzo.",
+      "rarity": "legendary",
+      "upgradeItems": [
+        "golem_crystal",
+        "stone_shard"
+      ],
+      "pieces": [
+        {
+          "id": "ancestral_head",
+          "slot": "head",
+          "name": "Diadema ancestral",
+          "defense": 5,
+          "effects": {
+            "glideStamina": 0.1
+          },
+          "model": {
+            "kind": "crown",
+            "color": "#1fd6ff"
+          }
+        },
+        {
+          "id": "ancestral_torso",
+          "slot": "torso",
+          "name": "Coraza ancestral",
+          "defense": 6,
+          "effects": {
+            "glideStamina": 0.1
+          },
+          "model": {
+            "kind": "plate",
+            "color": "#4a5560"
+          }
+        },
+        {
+          "id": "ancestral_legs",
+          "slot": "legs",
+          "name": "Grebas ancestrales",
+          "defense": 5,
+          "effects": {
+            "glideStamina": 0.1
+          },
+          "model": {
+            "kind": "plate",
+            "color": "#3d4c58"
+          }
+        },
+        {
+          "id": "ancestral_boots",
+          "slot": "boots",
+          "name": "Botas ancestrales",
+          "defense": 5,
+          "effects": {
+            "glideStamina": 0.1
+          },
+          "model": {
+            "kind": "boot",
+            "color": "#1fd6ff"
+          }
+        }
+      ],
+      "bonus": [
+        {
+          "pieces": 2,
+          "effects": {
+            "ledgeFree": 1
+          }
+        },
+        {
+          "pieces": 3,
+          "effects": {
+            "freeGlide": 5
+          }
+        },
+        {
+          "pieces": 4,
+          "effects": {
+            "perfectWindow": 0.08,
+            "chainUnlimited": 1
+          }
+        }
+      ]
+    }
+  ],
+  "accessories": [
+    {
+      "id": "wind_cape",
+      "slot": "cape",
+      "name": "Capa de viento",
+      "defense": 1,
+      "effects": {
+        "glideWind": 0.3,
+        "glideStamina": 0.1
+      },
+      "model": {
+        "kind": "cape",
+        "color": "#8fd3ff"
+      }
+    },
+    {
+      "id": "warm_cloak",
+      "slot": "cape",
+      "name": "Manto de lana",
+      "defense": 2,
+      "effects": {
+        "coldResist": 10
+      },
+      "model": {
+        "kind": "cape",
+        "color": "#9a5a3a"
+      }
+    },
+    {
+      "id": "storm_totem",
+      "slot": "charm",
+      "name": "Tótem de la tormenta",
+      "defense": 0,
+      "effects": {
+        "insulated": 1
+      },
+      "model": {
+        "kind": "charm",
+        "color": "#fff27a"
+      }
+    },
+    {
+      "id": "hunter_charm",
+      "slot": "charm",
+      "name": "Colmillo del cazador",
+      "defense": 0,
+      "effects": {
+        "bowDamage": 0.1
+      },
+      "model": {
+        "kind": "charm",
+        "color": "#e9e1c8"
+      }
+    },
+    {
+      "id": "heart_charm",
+      "slot": "charm",
+      "name": "Amuleto del corazón",
+      "defense": 3,
+      "effects": {},
+      "model": {
+        "kind": "charm",
+        "color": "#ff5b6e"
+      }
+    }
+  ]
+}

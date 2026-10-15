@@ -78,6 +78,8 @@ export interface GlideState {
   inThermal: boolean;
   windX: number;
   windZ: number;
+  /** Segundos desde el último despliegue (planeo gratis del set ancestral). */
+  airtime: number;
 }
 
 export interface CharacterState {
@@ -169,7 +171,7 @@ export function createCharacterState(x: number, y: number, z: number, yaw = 0, m
     sinkTimer: 0,
     climb: { nx: 0, ny: 0, nz: 1, material: '', jumpTimer: 0, jumpX: 0, jumpY: 0 },
     ledge: { phase: 'contact', t: 0, sx: x, sy: y, sz: z, cx: x, cy: y, cz: z, tx: x, ty: y, tz: z, nx: 0, nz: 1, exitSpeed: 0, exitX: 0, exitZ: 0, fromClimb: false, paid: true },
-    glide: { heading: yaw, speed: 0, deployT: 0, bank: 0, dive: 0, flare: 0, inThermal: false, windX: 0, windZ: 0 },
+    glide: { heading: yaw, speed: 0, deployT: 0, bank: 0, dive: 0, flare: 0, inThermal: false, windX: 0, windZ: 0, airtime: 0 },
     hasGlider: false,
     time: 0,
     lastLedgeEnd: -999,

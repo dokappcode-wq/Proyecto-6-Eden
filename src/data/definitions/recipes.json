@@ -1,0 +1,144 @@
+{
+  "cooking": {
+    "healMultiplier": 2,
+    "maxSeconds": 1800,
+    "secondsPerIngredient": 30,
+    "monsterSeconds": 30,
+    "potencyPerLevel": 2,
+    "maxIngredients": 5,
+    "dubiousHeal": 2
+  },
+  "effects": {
+    "hearty": {
+      "name": "Vitalidad",
+      "kind": "instant",
+      "per": 4
+    },
+    "stamina": {
+      "name": "Energía",
+      "kind": "instant",
+      "per": 20
+    },
+    "endurance": {
+      "name": "Resistencia",
+      "kind": "instant",
+      "per": 20
+    },
+    "cold": {
+      "name": "Calor interno",
+      "kind": "timed",
+      "per": 8
+    },
+    "heat": {
+      "name": "Frescor",
+      "kind": "timed",
+      "per": 8
+    },
+    "attack": {
+      "name": "Fuerza",
+      "kind": "timed",
+      "per": 0.1
+    },
+    "defense": {
+      "name": "Robustez",
+      "kind": "timed",
+      "per": 4
+    },
+    "stealth": {
+      "name": "Sigilo",
+      "kind": "timed",
+      "per": 0.12
+    },
+    "speed": {
+      "name": "Velocidad",
+      "kind": "timed",
+      "per": 0.1
+    },
+    "shock": {
+      "name": "Aislamiento",
+      "kind": "timed",
+      "per": 0.3
+    }
+  },
+  "recipes": [
+    {
+      "id": "elixir",
+      "name": "Elixir",
+      "requires": [
+        "critter",
+        "monster"
+      ],
+      "allow": [
+        "critter",
+        "monster"
+      ]
+    },
+    {
+      "id": "mushroom_skewer",
+      "name": "Brocheta de setas",
+      "requires": [
+        "mushroom"
+      ],
+      "allow": [
+        "mushroom"
+      ]
+    },
+    {
+      "id": "baked_fruit",
+      "name": "Fruta asada",
+      "requires": [
+        "fruit"
+      ],
+      "allow": [
+        "fruit",
+        "spice",
+        "sweet"
+      ]
+    },
+    {
+      "id": "meat_skewer",
+      "name": "Brocheta de carne",
+      "requires": [
+        "meat"
+      ],
+      "allow": [
+        "meat",
+        "spice"
+      ]
+    },
+    {
+      "id": "meat_stew",
+      "name": "Estofado del explorador",
+      "requires": [
+        "meat",
+        "mushroom"
+      ],
+      "allow": []
+    },
+    {
+      "id": "herb_salad",
+      "name": "Ensalada de hierbas",
+      "requires": [
+        "herb"
+      ],
+      "allow": [
+        "herb",
+        "flower"
+      ]
+    },
+    {
+      "id": "honey_treat",
+      "name": "Dulce de miel",
+      "requires": [
+        "sweet"
+      ],
+      "allow": []
+    },
+    {
+      "id": "mixed_plate",
+      "name": "Plato variado",
+      "requires": [],
+      "allow": []
+    }
+  ]
+}

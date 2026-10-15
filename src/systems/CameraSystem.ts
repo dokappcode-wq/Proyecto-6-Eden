@@ -52,6 +52,8 @@ export class CameraSystem implements System {
     const look = input.consumeLook();
     const zoom = input.consumeWheel();
 
+    // Con un menú abierto la cámara se queda quieta.
+    if (ctx.session.mode === 'menu') return;
     if (ctx.session.mode !== 'play') {
       const a = time.elapsed * 0.035 + 2.2;
       const o = this.titleOrbit;

@@ -8,7 +8,7 @@ const CSS = /* css */ `
 #phud .hearts svg { width: 24px; height: 22px; }
 #phud .hearts.hit { animation: phud-shake .35s; }
 @keyframes phud-shake { 0%,100% { transform: none } 25% { transform: translateX(-4px) } 50% { transform: translateX(4px) } 75% { transform: translateX(-2px) } }
-#phud .wheel { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; transition: opacity .35s; }
+#phud .wheel { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; transition: opacity .35s; }
 #phud .wheel circle { fill: none; stroke-linecap: round; }
 #phud .air { position: absolute; left: 50%; bottom: 96px; width: 180px; height: 6px; margin-left: -90px; border-radius: 3px; background: rgba(5,18,28,.6); overflow: hidden; display: none; }
 #phud .air i { display: block; height: 100%; background: #8fe9ff; }
@@ -33,6 +33,8 @@ export interface PlayerHudSources {
   flight(): { height: number; windX: number; windZ: number; thermal: boolean; heading: number } | null;
   keyLabel(action: string): string;
   flightIndicators: boolean;
+  /** Segundos de aire bajo el agua (cambia con el equipo). */
+  airSeconds?(): number;
 }
 
 /**
@@ -123,18 +125,21 @@ export class PlayerHud implements System {
     const ch = ctx.world.require(this.playerEntity, 'character');
 
     // Corazones (cuartos).
-    const key = `${p.health.fragments}/${p.health.maxFragments}`;
+    const key = `${p.health.fragments}/${p.health.maxFragments}/${p.health.extra}`;
     if (key !== this.lastHearts) {
       this.lastHearts = key;
       const n = Math.ceil(p.health.maxFragments / 4);
       let html = '';
       for (let i = 0; i < n; i++) html += heartSvg(clamp(p.health.fragments - i * 4, 0, 4));
+      // Corazones extra (amarillos).
+      const extra = Math.ceil(p.health.extra / 4);
+      for (let i = 0; i < extra; i++) html += heartSvg(clamp(p.health.extra - i * 4, 0, 4), '#ffd23a');
       this.hearts.innerHTML = html;
     }
 
     // Rueda de stamina: visible al gastar, se oculta cuando lleva un rato llena.
     const st = ch.stamina;
-    const full = st.current >= st.max - 0.01 && !st.exhausted;
+    const full = st.current >= st.max - 0.01 && !st.exhausted && st.bonus <= 0;
     this.wheelIdle = full ? this.wheelIdle + dt : 0;
     const anchor = this.src.wheelAnchor();
     const show = anchor !== null && this.wheelIdle < 1.2 && p.control !== 'capsule';
@@ -143,11 +148,24 @@ export class PlayerHud implements System {
       this.wheel.style.left = `${anchor.x}px`;
       this.wheel.style.top = `${anchor.y}px`;
       const color = st.exhausted ? '#ff4b4b' : ch.mode === 'glide' || st.lastSource === 'glide' ? '#1fd6ff' : '#7ee36b';
-      const k = st.current / st.max;
-      const c = 2 * Math.PI * 17;
-      this.wheel.innerHTML =
-        `<svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="17" stroke="rgba(5,18,28,.55)" stroke-width="7"/>` +
-        `<circle cx="23" cy="23" r="17" stroke="${color}" stroke-width="5" stroke-dasharray="${(k * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 23 23)"/></svg>`;
+      // Un anillo por cada 100 de stamina (hasta 3) y un arco amarillo para la extra.
+      const per = ctx.data.player.stamina.perRing;
+      const rings = Math.max(1, Math.ceil(st.max / per - 0.001));
+      let svg = '<svg viewBox="0 0 64 64">';
+      for (let r = 0; r < rings; r++) {
+        const rad = 17 + r * 6.5;
+        const cap = Math.min(per, st.max - r * per);
+        const k = clamp((st.current - r * per) / per, 0, cap / per);
+        const c = 2 * Math.PI * rad;
+        svg += `<circle cx="32" cy="32" r="${rad}" stroke="rgba(5,18,28,.55)" stroke-width="${r === 0 ? 7 : 5}" stroke-dasharray="${((cap / per) * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>`;
+        svg += `<circle cx="32" cy="32" r="${rad}" stroke="${color}" stroke-width="${r === 0 ? 5 : 3.5}" stroke-dasharray="${(k * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>`;
+      }
+      if (st.bonus > 0) {
+        const rad = 17 + rings * 6.5;
+        const c = 2 * Math.PI * rad;
+        svg += `<circle cx="32" cy="32" r="${rad}" stroke="#ffd23a" stroke-width="3.5" stroke-dasharray="${(Math.min(1, st.bonus / per) * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>`;
+      }
+      this.wheel.innerHTML = svg + '</svg>';
     }
 
     // Aire al bucear.
@@ -172,7 +190,7 @@ export class PlayerHud implements System {
   }
 
   private airMax(ctx: GameContext): number {
-    return ctx.data.player.swim.airSeconds;
+    return this.src.airSeconds?.() ?? ctx.data.player.swim.airSeconds;
   }
 
   private currentFade(): number {
@@ -187,7 +205,7 @@ export class PlayerHud implements System {
   }
 }
 
-function heartSvg(quarters: number): string {
+function heartSvg(quarters: number, color = '#ff5b6e'): string {
   // Corazón con relleno por cuartos (recorte por ángulo).
   const fill = quarters / 4;
   const id = `h${Math.random().toString(36).slice(2, 8)}`;
@@ -201,7 +219,7 @@ function heartSvg(quarters: number): string {
   return (
     `<svg viewBox="0 0 24 22"><defs><clipPath id="${id}">${clip}</clipPath></defs>` +
     `<path d="${heart}" fill="rgba(5,18,28,.55)" stroke="#f6d7d7" stroke-width="1.2"/>` +
-    `<path d="${heart}" fill="#ff5b6e" clip-path="url(#${id})"/></svg>`
+    `<path d="${heart}" fill="${color}" clip-path="url(#${id})"/></svg>`
   );
 }
 

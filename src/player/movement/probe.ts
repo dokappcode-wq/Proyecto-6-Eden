@@ -12,6 +12,8 @@ export interface WorldQuery {
   materials: MaterialsConfig;
   /** Lo mojadas que están las superficies (lluvia): 0..1. Hace resbalar al escalar. */
   wetness?(): number;
+  /** Agarre en hielo (crampones): el hielo no resbala al escalar. */
+  iceGrip?(): boolean;
   /** Visualización opcional de rayos (debug F3). */
   debugRay?(ax: number, ay: number, az: number, bx: number, by: number, bz: number, hit: boolean): void;
 }
