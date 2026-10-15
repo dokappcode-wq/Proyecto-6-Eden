@@ -90,6 +90,12 @@ export interface GameEvents {
   'raft:board': { id: string; active: boolean };
   'breakable:destroyed': { id: string };
   'hud:note': { text: string; tone: 'good' | 'bad' | 'info' };
+
+  // --- Fase 8: torres y mapa
+  'tower:scan': { id: string; phase: 'start' | 'end' };
+  'tower:discovered': { id: string };
+  'player:traveled': { id: string };
+  'map:open': { open: boolean };
 }
 
 export type GameEventBus = EventBus<GameEvents>;

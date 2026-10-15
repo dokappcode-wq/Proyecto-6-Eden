@@ -1,0 +1,11 @@
+{
+  "regions": [
+    { "id": "valley", "name": "Valle de la Cápsula", "layer": "surface", "biome": "plains", "bounds": [-212, -212, 212, 212] },
+    { "id": "ascent", "name": "Islas del Ascenso", "layer": "sky", "biome": "sky", "bounds": [-200, 250, -100, 350] },
+    { "id": "mountains", "name": "Cumbres de Escarcha", "layer": "surface", "biome": "mountains", "bounds": [-4096, -4096, 4096, -1200] },
+    { "id": "forest", "name": "Bosque de Umbría", "layer": "surface", "biome": "forest", "bounds": [-4096, -1200, -1600, 4096] },
+    { "id": "desert", "name": "Desierto de Ámbar", "layer": "surface", "biome": "desert", "bounds": [1600, -1200, 4096, 4096] },
+    { "id": "plains", "name": "Llanuras de Albor", "layer": "surface", "biome": "plains", "bounds": [-1600, -1200, 1600, 4096] },
+    { "id": "depths", "name": "Las Profundidades", "layer": "underground", "biome": "underground", "bounds": [-4096, -4096, 4096, 4096] }
+  ]
+}

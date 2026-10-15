@@ -20,6 +20,7 @@ export interface SaveSources {
   bossesDefeated(): string[];
   progression(): NonNullable<SaveData['progression']>;
   mobility(): NonNullable<SaveData['mobility']>;
+  map(): NonNullable<SaveData['map']>;
 }
 
 /**
@@ -52,6 +53,8 @@ export class SaveSystem implements System {
     ctx.bus.on('armor:upgraded', () => this.save(ctx, 'auto'));
     ctx.bus.on('food:cooked', () => this.save(ctx, 'auto'));
     ctx.bus.on('mount:tamed', () => this.save(ctx, 'auto'));
+    ctx.bus.on('tower:scan', ({ phase }) => phase === 'end' && this.save(ctx, 'auto'));
+    ctx.bus.on('player:traveled', () => this.save(ctx, 'auto'));
     ctx.bus.on('breakable:destroyed', () => this.save(ctx, 'auto'));
   }
 
@@ -78,6 +81,7 @@ export class SaveSystem implements System {
       world: { chestsOpened: this.sources.chestsOpened(), bossesDefeated: this.sources.bossesDefeated() },
       progression: this.sources.progression(),
       mobility: this.sources.mobility(),
+      map: this.sources.map(),
     });
     if (ok && kind === 'manual') ctx.bus.emit('game:saved', { slot: MAIN_SLOT });
   }

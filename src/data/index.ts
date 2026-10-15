@@ -4,6 +4,8 @@ import armorJson from './definitions/armor.json';
 import biomesJson from './definitions/biomes.json';
 import gatheringJson from './definitions/gathering.json';
 import mobilityJson from './definitions/mobility.json';
+import towersJson from './definitions/towers.json';
+import regionsJson from './definitions/regions.json';
 import progressionJson from './definitions/progression.json';
 import recipesJson from './definitions/recipes.json';
 import elementsJson from './definitions/elements.json';
@@ -34,6 +36,8 @@ import {
   progressionConfigSchema,
   gatheringConfigSchema,
   mobilityConfigSchema,
+  towersConfigSchema,
+  regionsConfigSchema,
   RUNE_IDS,
   MOUNT_KINDS,
   STAT_KEYS,
@@ -65,6 +69,8 @@ import {
   type ProgressionConfig,
   type GatheringConfig,
   type MobilityConfig,
+  type TowersConfig,
+  type RegionsConfig,
   type ElementsConfig,
   type EncountersConfig,
   type ItemsConfig,
@@ -106,6 +112,8 @@ export interface GameData {
   progression: ProgressionConfig;
   gathering: GatheringConfig;
   mobility: MobilityConfig;
+  towers: TowersConfig;
+  regions: RegionsConfig;
   elements: ElementsConfig;
   items: ItemsConfig;
   loot: LootTablesConfig;
@@ -135,6 +143,8 @@ export interface RawGameData {
   progression: unknown;
   gathering: unknown;
   mobility: unknown;
+  towers: unknown;
+  regions: unknown;
   elements: unknown;
   items: unknown;
   loot: unknown;
@@ -163,6 +173,8 @@ export const BUNDLED_DATA: RawGameData = {
   progression: progressionJson,
   gathering: gatheringJson,
   mobility: mobilityJson,
+  towers: towersJson,
+  regions: regionsJson,
   elements: elementsJson,
   items: itemsJson,
   loot: lootTablesJson,
@@ -196,6 +208,8 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     progression: parse(progressionConfigSchema, raw.progression, 'progression.json'),
     gathering: parse(gatheringConfigSchema, raw.gathering, 'gathering.json'),
     mobility: parse(mobilityConfigSchema, raw.mobility, 'mobility.json'),
+    towers: parse(towersConfigSchema, raw.towers, 'towers.json'),
+    regions: parse(regionsConfigSchema, raw.regions, 'regions.json'),
     elements: parse(elementsConfigSchema, raw.elements, 'elements.json'),
     items: parse(itemsConfigSchema, raw.items, 'items.json'),
     loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
@@ -396,6 +410,15 @@ function checkConsistency(d: GameData): void {
   mob.islands.forEach((b, i) => {
     if (!(b.chestLoot in d.loot.tables)) issues.push({ path: `mobility.islands[${i}].chestLoot`, message: `tabla "${b.chestLoot}" no definida` });
   });
+
+  // Torres: ids únicos; la del valle la construye el valle (mismo id).
+  const towerIds = new Set<string>();
+  d.towers.towers.forEach((t, i) => {
+    if (towerIds.has(t.id)) issues.push({ path: `towers.towers[${i}].id`, message: `id "${t.id}" repetido` });
+    towerIds.add(t.id);
+    if (t.builtin && t.id !== d.valley.tower.id) issues.push({ path: `towers.towers[${i}].builtin`, message: 'solo la torre del valle es "builtin"' });
+  });
+  if (!towerIds.has(d.valley.tower.id)) issues.push({ path: 'towers.towers', message: `falta la torre del valle "${d.valley.tower.id}"` });
 
   if (issues.length > 0) throw new DataValidationError('coherencia entre datos', issues);
 }

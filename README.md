@@ -25,6 +25,7 @@ npm run build      # typecheck + build de producción
 | Rodar al aterrizar | Ctrl o Alt justo antes de tocar el suelo (mitad de daño) |
 | Andar / agacharse | Bloq Mayús / Ctrl o C |
 | Interactuar · recoger armas | E |
+| Mapa (pausa) | M · rueda = zoom, arrastrar = mover, clic = marcador (clic sobre él lo quita), clic en una torre/templo = viajar · capas Cielo/Superficie/Subterráneo |
 | Inventario (pausa) | I · clic para equipar/comer · clic derecho suelta un arma |
 | Atacar | Clic izq. (combo de 3) · mantener = ataque cargado / especial del arma · en el aire = ataque en picado |
 | Esquivar | Alt izq. o V (justo antes del golpe = esquiva perfecta + ráfaga) |
@@ -76,6 +77,13 @@ o la cadena de anclas del garfio. Física de objetos: cajas de madera y de hierr
 explosivos (el fuego, las flechas de fuego y la antorcha los prenden; estallan en cadena) y rocas agrietadas que solo
 rompen las explosiones. Manadas de monturas (veloz, resistente y tanque) en llanuras, bosque y desierto; balsas de vela
 en el lago. Pads de salto, columnas y elevadores. Datos en `mobility.json`.
+
+## Torres y mapa (Fase 8)
+
+Todo el mapa empieza en niebla: el jugador revela lo que tiene cerca (más cuanto más alto vuela) y las 8 torres de
+reconocimiento (ruinas, vegetal, volcánica y de hielo; su haz cian se ve desde lejos y las marca en el mapa y la brújula)
+revelan regiones de borde orgánico. Activarlas lanza el escaneo (haz, ondas de luz y cámara aérea) y abre el mapa con la
+zona nueva. Torres activadas y templos visitados permiten viajar (no en combate). Datos en `towers.json` y `regions.json`.
 
 ## Estructura
 

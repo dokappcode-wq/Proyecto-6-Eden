@@ -1033,6 +1033,51 @@ export const mobilityConfigSchema = v.object({
   }),
 });
 
+// ---------------------------------------------------------------- towers.json / regions.json
+export const TOWER_VARIANTS = ['ruins', 'ice', 'volcanic', 'vegetal', 'underground'] as const;
+export const MAP_LAYERS = ['sky', 'surface', 'underground'] as const;
+
+export const towersConfigSchema = v.object({
+  fog: v.object({
+    /** Celdas por lado de la niebla de guerra (todo el mundo). */
+    resolution: v.number({ min: 32, max: 1024, integer: true }),
+    playerRadius: v.number({ min: 1 }),
+    /** Metros extra de visión por metro de altura sobre el suelo. */
+    heightBonus: v.number({ min: 0 }),
+    maxPlayerRadius: v.number({ min: 1 }),
+    /** Distancia a la que se ve el haz de una torre (aparece en el mapa y la brújula). */
+    discoverDistance: v.number({ min: 10 }),
+  }),
+  scan: v.object({ seconds: v.number({ min: 1 }), waves: v.number({ min: 1, max: 8, integer: true }) }),
+  towers: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      position: vec2,
+      variant: v.oneOf(TOWER_VARIANTS),
+      height: v.number({ min: 10 }),
+      revealRadius: v.number({ min: 50 }),
+      /** La construye otro sistema (la torre del valle). */
+      builtin: v.optional(v.boolean()),
+    }),
+    { minLength: 1 },
+  ),
+});
+
+export const regionsConfigSchema = v.object({
+  regions: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      layer: v.oneOf(MAP_LAYERS),
+      biome: v.oneOf(BIOME_IDS),
+      /** [minX, minZ, maxX, maxZ]; la primera región que contiene el punto gana. */
+      bounds: v.array(v.number(), { length: 4 }) as Schema<[number, number, number, number]>,
+    }),
+    { minLength: 1 },
+  ),
+});
+
 // ---------------------------------------------------------------- tutorial.json
 export const TRIGGER_KINDS = ['interact', 'reach', 'read', 'climb', 'defeat', 'temple', 'glide_land'] as const;
 
@@ -1117,6 +1162,11 @@ export type AltarKind = (typeof ALTAR_KINDS)[number];
 export type GatheringConfig = Infer<typeof gatheringConfigSchema>;
 export type ItemDef = ItemsConfig['items'][number];
 export type MobilityConfig = Infer<typeof mobilityConfigSchema>;
+export type TowersConfig = Infer<typeof towersConfigSchema>;
+export type TowerDef = TowersConfig['towers'][number];
+export type TowerVariant = (typeof TOWER_VARIANTS)[number];
+export type RegionsConfig = Infer<typeof regionsConfigSchema>;
+export type MapLayer = (typeof MAP_LAYERS)[number];
 export type BodyKindDef = Infer<typeof bodyKindSchema>;
 export type RuneId = (typeof RUNE_IDS)[number];
 export type RuneDef = MobilityConfig['runes'][number];

@@ -1,0 +1,104 @@
+{
+  "fog": {
+    "resolution": 512,
+    "playerRadius": 70,
+    "heightBonus": 0.6,
+    "maxPlayerRadius": 220,
+    "discoverDistance": 1300
+  },
+  "scan": {
+    "seconds": 6.5,
+    "waves": 3
+  },
+  "towers": [
+    {
+      "id": "tower_valley",
+      "name": "Torre del Valle",
+      "position": [
+        110,
+        -100
+      ],
+      "variant": "ruins",
+      "height": 42,
+      "revealRadius": 520,
+      "builtin": true
+    },
+    {
+      "id": "tower_plains",
+      "name": "Torre del Llano",
+      "position": [
+        -60,
+        700
+      ],
+      "variant": "ruins",
+      "height": 46,
+      "revealRadius": 950
+    },
+    {
+      "id": "tower_winds",
+      "name": "Torre de los Vientos",
+      "position": [
+        700,
+        250
+      ],
+      "variant": "ruins",
+      "height": 44,
+      "revealRadius": 850
+    },
+    {
+      "id": "tower_forest",
+      "name": "Torre del Bosque Antiguo",
+      "position": [
+        -1900,
+        300
+      ],
+      "variant": "vegetal",
+      "height": 52,
+      "revealRadius": 950
+    },
+    {
+      "id": "tower_roots",
+      "name": "Torre de las Raíces",
+      "position": [
+        -2600,
+        -300
+      ],
+      "variant": "vegetal",
+      "height": 48,
+      "revealRadius": 900
+    },
+    {
+      "id": "tower_ash",
+      "name": "Torre de Ceniza",
+      "position": [
+        1900,
+        350
+      ],
+      "variant": "volcanic",
+      "height": 50,
+      "revealRadius": 950
+    },
+    {
+      "id": "tower_dunes",
+      "name": "Torre de las Dunas",
+      "position": [
+        2600,
+        900
+      ],
+      "variant": "volcanic",
+      "height": 46,
+      "revealRadius": 900
+    },
+    {
+      "id": "tower_frost",
+      "name": "Torre de Escarcha",
+      "position": [
+        200,
+        -2000
+      ],
+      "variant": "ice",
+      "height": 48,
+      "revealRadius": 1000
+    }
+  ]
+}

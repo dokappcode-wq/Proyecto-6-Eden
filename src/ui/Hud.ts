@@ -46,6 +46,8 @@ const CSS = /* css */ `
 export interface CompassMarker {
   x: number;
   z: number;
+  /** Color del rombo (cian por defecto). */
+  color?: string;
 }
 
 /**
@@ -131,7 +133,18 @@ export class Hud implements System {
 
   addMarker(marker: CompassMarker): void {
     const e = el('div', this.strip.parentElement as HTMLElement, 'compass-marker');
+    if (marker.color) {
+      e.style.background = marker.color;
+      e.style.boxShadow = `0 0 8px ${marker.color}`;
+    }
     this.markers.push({ marker, el: e });
+  }
+
+  removeMarker(marker: CompassMarker): void {
+    const i = this.markers.findIndex((m) => m.marker === marker);
+    if (i < 0) return;
+    this.markers[i].el.remove();
+    this.markers.splice(i, 1);
   }
 
   showLoading(): void {

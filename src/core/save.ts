@@ -65,6 +65,15 @@ const saveSchema = v.object({
       chests: v.array(v.string()),
     }),
   ),
+  /** Mapa (Fase 8): torres activadas, niebla de guerra (RLE), marcadores y templos visitados. */
+  map: v.optional(
+    v.object({
+      towers: v.array(v.string()),
+      fog: v.string(),
+      markers: v.array(v.object({ x: v.number(), z: v.number(), color: v.string() })),
+      temples: v.array(v.string()),
+    }),
+  ),
 });
 
 export type SaveData = Infer<typeof saveSchema>;

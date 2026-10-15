@@ -29,6 +29,8 @@ import { MobilityHud } from './ui/MobilityHud';
 import { MobilitySystem } from './systems/MobilitySystem';
 import { MountSystem } from './systems/MountSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
+import { MapSystem } from './systems/MapSystem';
+import { MapScreen } from './ui/MapScreen';
 import { EnemySystem } from './systems/EnemySystem';
 import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
@@ -209,6 +211,7 @@ async function boot(): Promise<void> {
       bossesDefeated: () => [...enemies.defeatedBosses],
       progression: () => ({ ...progression.save(ctx), gathered: gathering.save() }),
       mobility: () => ({ mounts: mounts.saveOwned(), broken: physics.brokenIds, chests: mobility.openedChests }),
+      map: () => mapSys.save(),
     },
     ctx,
   );
@@ -384,6 +387,56 @@ async function boot(): Promise<void> {
     },
     ctx,
   );
+  // --- torres y mapa (Fase 8)
+  const mapSys = new MapSystem(
+    {
+      towers: data.towers,
+      regions: data.regions,
+      terrainCfg: data.terrain,
+      terrain,
+      colliders,
+      scene: renderer.scene,
+      playerEntity,
+      player: playerSystem,
+      camera: cameraSystem,
+      threeCamera: renderer.camera,
+      valleyTowerTop: valley.tower.activationWorld.clone(),
+      compass: { add: (m) => hud.addMarker(m), remove: (m) => hud.removeMarker(m) },
+      inCombat: () => {
+        const t = world.require(playerEntity, 'transform');
+        for (const e of world.query('enemy')) {
+          const en = world.require(e, 'enemy');
+          if (en.deadT < 0 && en.brain.state === 'combat' && Math.hypot(en.brain.x - t.x, en.brain.z - t.z) < 60) return true;
+        }
+        return false;
+      },
+      openMap: (focus) => mapScreen.open(focus),
+    },
+    ctx,
+  );
+  const mapScreen = new MapScreen(ctx, { map: mapSys, playerEntity, canvas: renderer.canvas, keyLabel });
+  // Puntos de interés del mapa (los de fases siguientes se añaden igual).
+  {
+    const ground = (x: number, z: number) => terrain.height(x, z);
+    const [tx, tz] = data.valley.temple.position;
+    const toCenter = Math.atan2(-tx, -tz);
+    mapSys.addPoi({
+      id: data.valley.temple.id,
+      kind: 'temple',
+      name: 'Templo del Valle',
+      x: tx,
+      z: tz,
+      layer: 'surface',
+      travel: { x: tx + Math.sin(toCenter) * 9, y: ground(tx + Math.sin(toCenter) * 9, tz + Math.cos(toCenter) * 9), z: tz + Math.cos(toCenter) * 9, yaw: toCenter + Math.PI },
+      unlocked: () => mapSys.visitedTemples.has(data.valley.temple.id),
+    });
+    for (const c of data.encounters.camps) mapSys.addPoi({ id: c.id, kind: 'camp', name: c.name, x: c.center[0], z: c.center[1], layer: 'surface' });
+    for (const b of data.encounters.bosses) mapSys.addPoi({ id: b.id, kind: 'ruins', name: 'Arena del Coloso', x: b.position[0], z: b.position[1], layer: 'surface' });
+    for (const a of data.progression.altars) if (a.kind !== 'cooking') mapSys.addPoi({ id: a.id, kind: 'station', name: a.name, x: a.position[0], z: a.position[1], layer: 'surface' });
+    for (const i of data.mobility.islands) mapSys.addPoi({ id: i.id, kind: 'island', name: i.name, x: i.position[0], z: i.position[1], layer: 'sky' });
+    mapSys.addPoi({ id: 'ruins_ascent', kind: 'ruins', name: 'Ruinas del Ascenso', x: -100, z: 330, layer: 'surface' });
+    for (const b of data.mobility.breakables) mapSys.addPoi({ id: b.id, kind: 'cave', name: 'Roca agrietada', x: b.position[0], z: b.position[1], layer: 'surface' });
+  }
   const gathering = new GatheringSystem(data.gathering, data.terrain, terrain, colliders, pickups, playerEntity, () => environment.clock.day + environment.clock.hour / 24, ctx);
   const menu = new Menu(ctx, { playerEntity, catalog, progression, pickups, limits: data.player.combat.inventory, canvas: renderer.canvas });
   cameraSystem.lookSink = (dx, dy) => {
@@ -497,6 +550,7 @@ async function boot(): Promise<void> {
     .addSystem(progression)
     .addSystem(encounters)
     .addSystem(progress)
+    .addSystem(mapSys)
     .addSystem(gate)
     .addSystem(tutorial)
     .addSystem(saveSystem)
@@ -557,12 +611,12 @@ async function boot(): Promise<void> {
     const mount = mounts.active;
     return `objetos ${live}  runa ${mobility.rune.name}  botas ${mobility.boots.charges}  ${mobility.grappling ? 'GARFIO ' : ''}${mobility.surfing ? 'SURF ' : ''}${mount ? `montura ${mount.name} ${mount.motion.speed.toFixed(1)} m/s ` : ''}${mounts.activeRaft ? 'BALSA ' : ''}domadas ${mounts.saveOwned().length}  (F10 desbloquea todo)`;
   });
+  debug.addProvider('mapa', () => `torres ${mapSys.towers.filter((t) => t.activated).length}/${mapSys.towers.length} activadas, ${mapSys.towers.filter((t) => t.discovered).length} vistas  descubierto ${(mapSys.fog.fraction * 100).toFixed(1)} %  marcadores ${mapSys.markers.length}  (M abre el mapa)`);
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
     return `${done}/${total}  actual: ${tutorial.tracker.current()?.id ?? 'libre'}`;
   });
 
-  hud.addMarker({ x: valley.towerTop.x, z: valley.towerTop.z });
 
   // --- carga inicial: terreno alrededor del valle antes de mostrar nada
   playerSystem.placeInCapsule(ctx);
@@ -607,6 +661,7 @@ async function boot(): Promise<void> {
     pickups.spawnValley(ctx, worldPickups, save.collected);
     progression.restore(ctx, save.progression ?? null);
     gathering.restore(ctx, save.progression?.gathered ?? {});
+    mapSys.restore(ctx, save.map ?? null, save.progress.towerActivated);
     physics.restoreBroken(save.mobility?.broken ?? []);
     mobility.restoreChests(ctx, save.mobility?.chests ?? []);
     mounts.restoreOwned(ctx, save.mobility?.mounts ?? []);
@@ -627,6 +682,7 @@ async function boot(): Promise<void> {
     pickups.spawnValley(ctx, worldPickups, []);
     progression.restore(ctx, null);
     gathering.restore(ctx, {});
+    mapSys.restore(ctx, null, false);
     physics.restoreBroken([]);
     mobility.restoreChests(ctx, []);
     mounts.restoreOwned(ctx, []);
@@ -643,7 +699,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather, progression, menu, gathering, physics, mobility, mounts } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather, progression, menu, gathering, physics, mobility, mounts, map: mapSys, mapScreen } });
   }
 }
 

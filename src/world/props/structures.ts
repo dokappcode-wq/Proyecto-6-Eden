@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createRng } from '../../core/math';
+import type { TowerVariant } from '../../data/schemas';
 import { ANCESTRAL_CYAN, buildTrees, makeRockGeometry, materials } from './kit';
 
 /** Colisionador en el espacio local del prop (el ValleyBuilder lo pasa a mundo). */
@@ -214,18 +215,107 @@ export interface TowerProp extends PropResult {
   setActivated(on: boolean): void;
 }
 
-export function buildTower(height: number, beamHeight: number): TowerProp {
+/** Materiales de cada variante de torre (ruinas, hielo, volcánica, vegetal, subterránea). */
+const TOWER_LOOKS: Record<TowerVariant, { base: THREE.Material; core: THREE.Material; pillar: THREE.Material; ledge: THREE.Material }> = {
+  ruins: { base: materials.stoneDark, core: materials.ancestral, pillar: materials.stone, ledge: materials.stoneDark },
+  ice: {
+    base: new THREE.MeshStandardMaterial({ color: '#c9dbe6', roughness: 0.5 }),
+    core: new THREE.MeshStandardMaterial({ color: '#7fb4d6', roughness: 0.2, metalness: 0.1, emissive: '#1d4f6e', emissiveIntensity: 0.4 }),
+    pillar: new THREE.MeshStandardMaterial({ color: '#d9ecf6', roughness: 0.35 }),
+    ledge: new THREE.MeshStandardMaterial({ color: '#eef6fb', roughness: 0.8 }),
+  },
+  volcanic: {
+    base: new THREE.MeshStandardMaterial({ color: '#2e2a28', roughness: 0.95, flatShading: true }),
+    core: new THREE.MeshStandardMaterial({ color: '#3a302c', roughness: 0.8, emissive: '#ff5a1a', emissiveIntensity: 0.12 }),
+    pillar: new THREE.MeshStandardMaterial({ color: '#4a3f38', roughness: 0.95, flatShading: true }),
+    ledge: new THREE.MeshStandardMaterial({ color: '#5c4d42', roughness: 0.95 }),
+  },
+  vegetal: { base: materials.stoneDark, core: materials.bark, pillar: new THREE.MeshStandardMaterial({ color: '#7a6a52', roughness: 0.95 }), ledge: materials.bark },
+  underground: {
+    base: new THREE.MeshStandardMaterial({ color: '#2a2438', roughness: 0.9 }),
+    core: new THREE.MeshStandardMaterial({ color: '#3b2f5c', roughness: 0.4, emissive: '#7a4dff', emissiveIntensity: 0.25 }),
+    pillar: new THREE.MeshStandardMaterial({ color: '#463c5e', roughness: 0.85 }),
+    ledge: new THREE.MeshStandardMaterial({ color: '#2f2842', roughness: 0.9 }),
+  },
+};
+
+/** Decoración propia de cada variante (sin colisión). */
+function towerDecor(variant: TowerVariant, platformY: number, rng: () => number): THREE.Group {
+  const g = new THREE.Group();
+  switch (variant) {
+    case 'ruins':
+      for (let i = 0; i < 6; i++) {
+        const a = rng() * Math.PI * 2;
+        const r = 8 + rng() * 5;
+        const b = mesh(box(1 + rng() * 1.5, 0.8 + rng(), 1 + rng() * 1.5), materials.stone, Math.cos(a) * r, 0.4, Math.sin(a) * r);
+        b.rotation.set(rng() * 0.4, rng() * 3, rng() * 0.4);
+        g.add(b);
+      }
+      break;
+    case 'ice': {
+      const ice = new THREE.MeshStandardMaterial({ color: '#dff4ff', roughness: 0.1, transparent: true, opacity: 0.85 });
+      for (let i = 0; i < 18; i++) {
+        const a = rng() * Math.PI * 2;
+        const y = 6 + rng() * (platformY - 8);
+        const c = mesh(new THREE.ConeGeometry(0.18, 1 + rng() * 1.6, 5).rotateX(Math.PI), ice, Math.cos(a) * 2.8, y, Math.sin(a) * 2.8, false);
+        g.add(c);
+      }
+      g.add(mesh(new THREE.CylinderGeometry(6.4, 6.4, 0.3, 12), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }), 0, platformY + 1.32, 0));
+      break;
+    }
+    case 'volcanic': {
+      const lava = new THREE.MeshBasicMaterial({ color: '#ff7a2a' });
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const crack = mesh(box(0.15, 3 + rng() * 2, 0.15), lava, Math.cos(a) * 6.9, 1.6, Math.sin(a) * 6.9, false);
+        crack.rotation.z = (rng() - 0.5) * 0.6;
+        g.add(crack);
+        const spike = mesh(new THREE.ConeGeometry(0.8, 4 + rng() * 4, 5), TOWER_LOOKS.volcanic.pillar, Math.cos(a + 0.3) * (9 + rng() * 3), 1.5, Math.sin(a + 0.3) * (9 + rng() * 3));
+        g.add(spike);
+      }
+      break;
+    }
+    case 'vegetal': {
+      const vine = new THREE.MeshStandardMaterial({ color: '#3f7f34', roughness: 0.9 });
+      for (let y = 4; y < platformY - 2; y += 3.2) {
+        const t = mesh(new THREE.TorusGeometry(2.75, 0.22, 5, 18, Math.PI * 1.3), vine, 0, y, 0);
+        t.rotation.set(Math.PI / 2 + (rng() - 0.5) * 0.4, 0, rng() * Math.PI * 2);
+        g.add(t);
+      }
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        g.add(mesh(new THREE.IcosahedronGeometry(2 + rng(), 0), materials.leaves, Math.cos(a) * 5, platformY + 2.2 + rng(), Math.sin(a) * 5));
+      }
+      break;
+    }
+    case 'underground': {
+      const crystal = new THREE.MeshStandardMaterial({ color: '#b48cff', emissive: '#7a4dff', emissiveIntensity: 1.2, roughness: 0.2 });
+      for (let i = 0; i < 10; i++) {
+        const a = rng() * Math.PI * 2;
+        const r = 7 + rng() * 4;
+        const c = mesh(new THREE.OctahedronGeometry(0.6 + rng() * 0.8, 0), crystal, Math.cos(a) * r, 0.8, Math.sin(a) * r, false);
+        c.scale.y = 2 + rng() * 2;
+        g.add(c);
+      }
+      break;
+    }
+  }
+  return g;
+}
+
+export function buildTower(height: number, beamHeight: number, variant: TowerVariant = 'ruins'): TowerProp {
   const root = new THREE.Group();
   root.name = 'recon_tower';
   const colliders: LocalCollider[] = [];
   const platformY = height - 6;
+  const look = TOWER_LOOKS[variant];
 
   // Base anclada al terreno.
-  root.add(mesh(new THREE.CylinderGeometry(6.2, 7.2, 4.5, 8), materials.stoneDark, 0, 1.5, 0));
+  root.add(mesh(new THREE.CylinderGeometry(6.2, 7.2, 4.5, 8), look.base, 0, 1.5, 0));
   colliders.push({ kind: 'cylinder', x: 0, z: 0, radius: 6.8, yMin: -2, yMax: 3.75, material: 'stone' });
 
   // Núcleo con anillos de runas (energía interna).
-  root.add(mesh(new THREE.CylinderGeometry(2.2, 2.6, platformY - 3.75, 10), materials.ancestral, 0, 3.75 + (platformY - 3.75) / 2, 0));
+  root.add(mesh(new THREE.CylinderGeometry(2.2, 2.6, platformY - 3.75, 10), look.core, 0, 3.75 + (platformY - 3.75) / 2, 0));
   colliders.push({ kind: 'cylinder', x: 0, z: 0, radius: 2.6, yMin: 3.75, yMax: platformY, material: 'ancestral' });
   const runeRings: THREE.Mesh[] = [];
   for (let y = 8; y < platformY - 1; y += 6) {
@@ -239,12 +329,12 @@ export function buildTower(height: number, beamHeight: number): TowerProp {
     const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
     const px = Math.cos(a) * 4.6;
     const pz = Math.sin(a) * 4.6;
-    const pillar = mesh(box(1.3, platformY - 3.75, 1.3), materials.stone, px, 3.75 + (platformY - 3.75) / 2, pz);
+    const pillar = mesh(box(1.3, platformY - 3.75, 1.3), look.pillar, px, 3.75 + (platformY - 3.75) / 2, pz);
     pillar.rotation.y = -a;
     root.add(pillar);
     colliders.push({ kind: 'box', x: px, y: 3.75 + (platformY - 3.75) / 2, z: pz, hx: 0.65, hy: (platformY - 3.75) / 2, hz: 0.65, rotY: -a, material: 'stone' });
     for (let y = 9 + i * 1.5; y < platformY - 2; y += 7) {
-      const ledge = mesh(box(2.2, 0.4, 2.2), materials.stoneDark, px * 1.08, y, pz * 1.08);
+      const ledge = mesh(box(2.2, 0.4, 2.2), look.ledge, px * 1.08, y, pz * 1.08);
       ledge.rotation.y = -a;
       root.add(ledge);
       colliders.push({ kind: 'box', x: px * 1.08, y, z: pz * 1.08, hx: 1.1, hy: 0.2, hz: 1.1, rotY: -a, material: 'stone' });
@@ -254,6 +344,8 @@ export function buildTower(height: number, beamHeight: number): TowerProp {
     strut.rotation.set(Math.sin(a) * 0.55, 0, -Math.cos(a) * 0.55);
     root.add(strut);
   }
+
+  root.add(towerDecor(variant, platformY, createRng(Math.round(height * 97) + variant.length)));
 
   // Plataforma de activación + sala de control.
   root.add(mesh(new THREE.CylinderGeometry(6, 5.4, 1.2, 12), materials.stone, 0, platformY + 0.6, 0));

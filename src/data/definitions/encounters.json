@@ -483,6 +483,34 @@
         -50,
         346
       ]
+    },
+    {
+      "name": "Torre del Llano",
+      "position": [
+        -48,
+        700
+      ]
+    },
+    {
+      "name": "Torre del Bosque Antiguo",
+      "position": [
+        -1888,
+        300
+      ]
+    },
+    {
+      "name": "Torre de Ceniza",
+      "position": [
+        1912,
+        350
+      ]
+    },
+    {
+      "name": "Torre de Escarcha",
+      "position": [
+        212,
+        -2000
+      ]
     }
   ],
   "pickups": [
