@@ -46,6 +46,18 @@
       "height": 34,
       "lift": 4.5,
       "launch": 0
+    },
+    {
+      "id": "isle_beam",
+      "kind": "ancestral_vent",
+      "position": [
+        -123,
+        300
+      ],
+      "radius": 7,
+      "height": 128,
+      "lift": 9,
+      "launch": 18
     }
   ]
 }

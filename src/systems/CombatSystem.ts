@@ -97,6 +97,12 @@ export function createCombatState(equipment: CombatState['equipment']): CombatSt
  * `pre` (antes del movimiento: entrada, ataques, arco, escudo, escalas de tiempo) y
  * `post` (después: impactos, ataques enemigos, proyectiles, pisotón y picado).
  */
+/** Ids negativos = objetos físicos (para no chocar con las entidades). */
+export interface BodyTargets {
+  segment(ax: number, ay: number, az: number, bx: number, by: number, bz: number): { id: number; tHit: number } | null;
+  hit(ctx: GameContext, id: number, pr: Projectile, x: number, y: number, z: number): void;
+}
+
 export class CombatSystem {
   readonly pre: System;
   readonly post: System;
@@ -110,6 +116,8 @@ export class CombatSystem {
   /** Sistemas elementales (fuego, hielo, electricidad); se conecta tras crearse. */
   elements: ElementSystem | null = null;
   private lastSwing = -1;
+  /** Objetos físicos como blancos de los proyectiles del jugador (los conecta la física). */
+  bodyTargets: BodyTargets | null = null;
 
   constructor(
     private readonly d: CombatDeps,
@@ -129,6 +137,49 @@ export class CombatSystem {
       c.poisonT = 0;
       c.shockT = 0;
     });
+  }
+
+  /** Golpe cuerpo a cuerpo activo (para empujar objetos) y su daño base. */
+  get meleeWindow(): HitWindow | null {
+    return this.window;
+  }
+
+  meleeDamage(ctx: GameContext): number {
+    return this.meleeDef(ctx.world.require(this.d.playerEntity, 'combat')).damage;
+  }
+
+  /** Explosión o ráfaga del entorno: daño y empuje a enemigos (y al jugador si `hurtsPlayer`). */
+  explosion(ctx: GameContext, x: number, y: number, z: number, radius: number, damage: number, knockback: number, element: Element, hurtsPlayer: boolean): void {
+    const c = ctx.world.require(this.d.playerEntity, 'combat');
+    for (const e of ctx.world.query('enemy')) {
+      const en = ctx.world.require(e, 'enemy');
+      if (en.deadT >= 0) continue;
+      const b = en.brain;
+      const def = this.d.enemies.def(en.defId);
+      const d = Math.hypot(b.x - x, b.y + def.height * 0.5 - y, b.z - z);
+      if (d > radius + def.radius) continue;
+      const k = Math.max(0.3, 1 - d / (radius + def.radius));
+      const dmg = Math.round(damage * k);
+      const killed = this.d.enemies.hit(ctx, e, dmg, { fromX: x, fromZ: z, knockback: knockback * k, stagger: dmg > 0 || knockback > 4, stun: 0.3 });
+      if (dmg > 0) ctx.bus.emit('combat:hit', { x: b.x, y: b.y + def.height * 0.6, z: b.z, damage: dmg, kind: 'heavy', sneak: false, weak: false, tags: def.tags });
+      if (element !== 'physical' && dmg > 0) this.applyEnemyElement(ctx, e, element);
+      if (killed) this.onKilled(ctx, e, def);
+    }
+    if (!hurtsPlayer) return;
+    const ch = ctx.world.require(this.d.playerEntity, 'character');
+    const d = Math.hypot(ch.x - x, ch.y + 0.9 - y, ch.z - z);
+    if (d < radius + 0.4 && damage > 0) this.hurtPlayer(ctx, c, Math.max(1, Math.round(damage * Math.max(0.4, 1 - d / (radius + 0.4)))), element, knockback, x, z, true);
+  }
+
+  /** Desgaste del escudo (surf). Devuelve false si no hay escudo o se ha roto. */
+  wearShield(ctx: GameContext): boolean {
+    const c = ctx.world.require(this.d.playerEntity, 'combat');
+    const sh = equipped(c.equipment, 'shield');
+    if (!sh) return false;
+    const ch = ctx.world.require(this.d.playerEntity, 'character');
+    const r = wear(c.equipment, this.d.catalog, sh.uid, 1, this.d.cfg.durabilityWarning);
+    this.reportWear(ctx, sh.uid, r, ch);
+    return r !== 'broken';
   }
 
   /** Movimiento de ratón mientras la rueda está abierta (la cámara no gira). */
@@ -908,6 +959,12 @@ export class CombatSystem {
   }
 
   private onProjectileHit(ctx: GameContext, c: CombatState, pr: Projectile, id: number, x: number, y: number, z: number): void {
+    if (id < 0) {
+      this.bodyTargets?.hit(ctx, id, pr, x, y, z);
+      if (pr.kind === 'thrown') this.dropThrown(ctx, pr, x, y, z);
+      else if (pr.element) this.elements?.applyAt(ctx, pr.element, x, y, z, pr.element === 'fire' ? 1 : 0);
+      return;
+    }
     if (id === this.d.playerEntity) {
       // Proyectil enemigo contra el jugador: escudo (parry o espejo) lo devuelve.
       const ch = ctx.world.require(this.d.playerEntity, 'character');
@@ -988,6 +1045,7 @@ export class CombatSystem {
       raycastScene: (ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number) => Math.min(this.sceneRaycast(ox, oy, oz, dx, dy, dz, max), this.waterRaycast(ox, oy, oz, dx, dy, dz, max)),
       hitTarget: (p: Projectile, ax: number, ay: number, az: number, bx: number, by: number, bz: number) => {
         let best: { id: number; tHit: number } | null = null;
+        if (p.owner === 'player' && this.bodyTargets) best = this.bodyTargets.segment(ax, ay, az, bx, by, bz);
         if (p.owner === 'player') {
           for (const e of ctx.world.query('enemy')) {
             const en = ctx.world.require(e, 'enemy');

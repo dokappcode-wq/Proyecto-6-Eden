@@ -283,6 +283,40 @@
         "min": 1,
         "max": 1
       }
+    ],
+    "rubble_cache": [
+      {
+        "item": "ancestral_orb",
+        "chance": 0.6,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "stone_shard",
+        "chance": 0.9,
+        "min": 2,
+        "max": 4
+      },
+      {
+        "item": "golem_crystal",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "island_chest": [
+      {
+        "item": "zephyr_boots",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "item": "ancestral_orb",
+        "chance": 1,
+        "min": 2,
+        "max": 2
+      }
     ]
   }
 }

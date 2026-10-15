@@ -55,7 +55,7 @@
       "F3"
     ],
     "debug_time_fast": [
-      "KeyT"
+      "F4"
     ],
     "debug_open_gate": [
       "F6"
@@ -85,6 +85,39 @@
     ],
     "inventory": [
       "KeyI"
+    ],
+    "boots": [
+      "KeyF"
+    ],
+    "grapple": [
+      "KeyG"
+    ],
+    "wind_bomb": [
+      "KeyB"
+    ],
+    "surf": [
+      "KeyH"
+    ],
+    "whistle": [
+      "KeyJ"
+    ],
+    "rune_use": [
+      "KeyT"
+    ],
+    "rune_1": [
+      "Digit1"
+    ],
+    "rune_2": [
+      "Digit2"
+    ],
+    "rune_3": [
+      "Digit3"
+    ],
+    "rune_4": [
+      "Digit4"
+    ],
+    "debug_mobility": [
+      "F10"
     ]
   }
 }

@@ -3,6 +3,7 @@ import dayNightJson from './definitions/daynight.json';
 import armorJson from './definitions/armor.json';
 import biomesJson from './definitions/biomes.json';
 import gatheringJson from './definitions/gathering.json';
+import mobilityJson from './definitions/mobility.json';
 import progressionJson from './definitions/progression.json';
 import recipesJson from './definitions/recipes.json';
 import elementsJson from './definitions/elements.json';
@@ -32,6 +33,9 @@ import {
   recipesConfigSchema,
   progressionConfigSchema,
   gatheringConfigSchema,
+  mobilityConfigSchema,
+  RUNE_IDS,
+  MOUNT_KINDS,
   STAT_KEYS,
   FOOD_EFFECTS,
   elementsConfigSchema,
@@ -60,6 +64,7 @@ import {
   type RecipesConfig,
   type ProgressionConfig,
   type GatheringConfig,
+  type MobilityConfig,
   type ElementsConfig,
   type EncountersConfig,
   type ItemsConfig,
@@ -100,6 +105,7 @@ export interface GameData {
   recipes: RecipesConfig;
   progression: ProgressionConfig;
   gathering: GatheringConfig;
+  mobility: MobilityConfig;
   elements: ElementsConfig;
   items: ItemsConfig;
   loot: LootTablesConfig;
@@ -128,6 +134,7 @@ export interface RawGameData {
   recipes: unknown;
   progression: unknown;
   gathering: unknown;
+  mobility: unknown;
   elements: unknown;
   items: unknown;
   loot: unknown;
@@ -155,6 +162,7 @@ export const BUNDLED_DATA: RawGameData = {
   recipes: recipesJson,
   progression: progressionJson,
   gathering: gatheringJson,
+  mobility: mobilityJson,
   elements: elementsJson,
   items: itemsJson,
   loot: lootTablesJson,
@@ -187,6 +195,7 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     recipes: parse(recipesConfigSchema, raw.recipes, 'recipes.json'),
     progression: parse(progressionConfigSchema, raw.progression, 'progression.json'),
     gathering: parse(gatheringConfigSchema, raw.gathering, 'gathering.json'),
+    mobility: parse(mobilityConfigSchema, raw.mobility, 'mobility.json'),
     elements: parse(elementsConfigSchema, raw.elements, 'elements.json'),
     items: parse(itemsConfigSchema, raw.items, 'items.json'),
     loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
@@ -365,6 +374,28 @@ function checkConsistency(d: GameData): void {
       if (r.max < r.min) issues.push({ path: `loot_tables.${table}[${i}]`, message: 'max < min' });
     });
   }
+
+  // Movilidad: objetos que desbloquean habilidades, runas completas y referencias.
+  const mob = d.mobility;
+  const keyItem = (id: string, path: string) => {
+    if (d.items.items.find((it) => it.id === id)?.category !== 'key') issues.push({ path, message: `"${id}" debe ser un objeto clave` });
+  };
+  keyItem(mob.grapple.item, 'mobility.grapple.item');
+  keyItem(mob.boots.item, 'mobility.boots.item');
+  keyItem(mob.windBomb.item, 'mobility.windBomb.item');
+  mob.runes.forEach((r, i) => keyItem(r.item, `mobility.runes[${i}].item`));
+  for (const id of RUNE_IDS) if (!mob.runes.some((r) => r.id === id)) issues.push({ path: 'mobility.runes', message: `falta la runa "${id}"` });
+  for (const k of MOUNT_KINDS) if (!(k in mob.mounts.kinds)) issues.push({ path: 'mobility.mounts.kinds', message: `falta la montura "${k}"` });
+  mob.bodies.forEach((b, i) => {
+    if (!(b.kind in mob.bodyKinds)) issues.push({ path: `mobility.bodies[${i}].kind`, message: `tipo de objeto "${b.kind}" no definido` });
+  });
+  if (!('bomb' in mob.bodyKinds)) issues.push({ path: 'mobility.bodyKinds', message: 'falta el tipo "bomb" (runa bomba)' });
+  mob.breakables.forEach((b, i) => {
+    if (!(b.loot in d.loot.tables)) issues.push({ path: `mobility.breakables[${i}].loot`, message: `tabla "${b.loot}" no definida` });
+  });
+  mob.islands.forEach((b, i) => {
+    if (!(b.chestLoot in d.loot.tables)) issues.push({ path: `mobility.islands[${i}].chestLoot`, message: `tabla "${b.chestLoot}" no definida` });
+  });
 
   if (issues.length > 0) throw new DataValidationError('coherencia entre datos', issues);
 }

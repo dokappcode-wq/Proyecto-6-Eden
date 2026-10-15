@@ -78,6 +78,18 @@ export interface GameEvents {
 
   'game:saved': { slot: string };
   'world:loaded': { chunks: number; colliders: number };
+
+  // --- Fase 7: movilidad
+  'world:explosion': { x: number; y: number; z: number; radius: number; kind: 'fire' | 'wind' | 'rune' };
+  'mobility:ability': { ability: 'boots' | 'grapple' | 'wind_bomb' | 'surf' | 'jump_pad' | 'elevator'; phase: 'start' | 'end' };
+  'rune:used': { rune: string; target: string };
+  'rune:selected': { rune: string; name: string };
+  'mount:tamed': { kind: string; name: string };
+  'mount:thrown': { kind: string };
+  'mount:ride': { kind: string; name: string; active: boolean };
+  'raft:board': { id: string; active: boolean };
+  'breakable:destroyed': { id: string };
+  'hud:note': { text: string; tone: 'good' | 'bad' | 'info' };
 }
 
 export type GameEventBus = EventBus<GameEvents>;

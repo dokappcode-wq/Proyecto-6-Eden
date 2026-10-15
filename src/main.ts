@@ -25,6 +25,10 @@ import { WeatherSystem } from './systems/WeatherSystem';
 import { GatheringSystem } from './systems/GatheringSystem';
 import { ProgressionSystem } from './systems/ProgressionSystem';
 import { Menu } from './ui/Menu';
+import { MobilityHud } from './ui/MobilityHud';
+import { MobilitySystem } from './systems/MobilitySystem';
+import { MountSystem } from './systems/MountSystem';
+import { PhysicsSystem } from './systems/PhysicsSystem';
 import { EnemySystem } from './systems/EnemySystem';
 import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
@@ -204,6 +208,7 @@ async function boot(): Promise<void> {
       chestsOpened: () => [...encounters.chestsOpened],
       bossesDefeated: () => [...enemies.defeatedBosses],
       progression: () => ({ ...progression.save(ctx), gathered: gathering.save() }),
+      mobility: () => ({ mounts: mounts.saveOwned(), broken: physics.brokenIds, chests: mobility.openedChests }),
     },
     ctx,
   );
@@ -320,6 +325,65 @@ async function boot(): Promise<void> {
     },
     ctx,
   );
+  // --- movilidad avanzada (Fase 7): física de objetos, herramientas, runas, monturas y balsas
+  const physics = new PhysicsSystem({
+    cfg: data.mobility,
+    playerEntity,
+    terrain,
+    colliders,
+    scene: renderer.scene,
+    fx,
+    combat,
+    elements,
+    enemies,
+    pickups,
+    player: playerSystem,
+    gravity: data.player.movement.gravity,
+    killY: playerSystem.killY,
+    shake: (a) => cameraCtl.addShake(a),
+  });
+  physics.spawnAll();
+  const mobility = new MobilitySystem(
+    {
+      cfg: data.mobility,
+      player: data.player,
+      stamina: movementParams.player.stamina,
+      playerEntity,
+      playerSystem,
+      physics,
+      elements,
+      enemies,
+      combat,
+      pickups,
+      catalog,
+      terrain,
+      colliders,
+      scene: renderer.scene,
+      fx,
+      camera: cameraCtl,
+      threeCamera: renderer.camera,
+      thermals: () => airflow.thermalList,
+    },
+    ctx,
+  );
+  const mounts = new MountSystem(
+    {
+      cfg: data.mobility,
+      player: data.player,
+      stamina: movementParams.player.stamina,
+      playerEntity,
+      playerSystem,
+      terrain,
+      colliders,
+      elements,
+      enemies,
+      combat,
+      scene: renderer.scene,
+      fx,
+      airflow: (x, y, z, out) => airflow.sample(x, y, z, out),
+    },
+    ctx,
+  );
   const gathering = new GatheringSystem(data.gathering, data.terrain, terrain, colliders, pickups, playerEntity, () => environment.clock.day + environment.clock.hour / 24, ctx);
   const menu = new Menu(ctx, { playerEntity, catalog, progression, pickups, limits: data.player.combat.inventory, canvas: renderer.canvas });
   cameraSystem.lookSink = (dx, dy) => {
@@ -399,6 +463,18 @@ async function boot(): Promise<void> {
     },
   );
 
+  const mobilityHud = new MobilityHud(
+    data.mobility,
+    mobility,
+    mounts,
+    (x, y, z) => {
+      projectPoint.set(x, y, z).project(renderer.camera);
+      if (projectPoint.z > 1) return null;
+      return { x: ((projectPoint.x + 1) / 2) * renderer.canvas.clientWidth, y: ((1 - projectPoint.y) / 2) * renderer.canvas.clientHeight };
+    },
+    keyLabel,
+  );
+
   const game = new Game(ctx);
   game
     .addSystem(new TransformSnapshotSystem())
@@ -408,9 +484,12 @@ async function boot(): Promise<void> {
     .addSystem(weather)
     .addSystem(interaction)
     .addSystem(combat.pre)
+    .addSystem(mobility)
     .addSystem(playerSystem)
+    .addSystem(mounts)
     .addSystem(enemies)
     .addSystem(elements)
+    .addSystem(physics)
     .addSystem({ name: 'ai-debug', fixedUpdate: (c) => debug.isVisible && enemies.debugCones(c, (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit)) })
     .addSystem(combat.post)
     .addSystem(pickups)
@@ -424,6 +503,7 @@ async function boot(): Promise<void> {
     .addSystem(hud)
     .addSystem(playerHud)
     .addSystem(combatHud)
+    .addSystem(mobilityHud)
     .addSystem(loadout)
     .addSystem(debug)
     .addSystem(renderSystem);
@@ -471,6 +551,11 @@ async function boot(): Promise<void> {
     const st = progression.stats;
     const sets = progression.summary.sets.map((x) => `${x.name} ${x.pieces}/${x.total}`).join(', ');
     return `defensa ${Math.round(st.defense)}  sets: ${sets || '—'}  comida: ${progression.buff ? `${progression.buff.effect} ${progression.buff.potency} (${Math.ceil(progression.buff.remaining)} s)` : '—'}  vigor máx ${world.require(playerEntity, 'character').stamina.max}  (I abre el inventario)`;
+  });
+  debug.addProvider('movilidad', () => {
+    const live = physics.bodies.filter((b) => b.alive).length;
+    const mount = mounts.active;
+    return `objetos ${live}  runa ${mobility.rune.name}  botas ${mobility.boots.charges}  ${mobility.grappling ? 'GARFIO ' : ''}${mobility.surfing ? 'SURF ' : ''}${mount ? `montura ${mount.name} ${mount.motion.speed.toFixed(1)} m/s ` : ''}${mounts.activeRaft ? 'BALSA ' : ''}domadas ${mounts.saveOwned().length}  (F10 desbloquea todo)`;
   });
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
@@ -522,6 +607,9 @@ async function boot(): Promise<void> {
     pickups.spawnValley(ctx, worldPickups, save.collected);
     progression.restore(ctx, save.progression ?? null);
     gathering.restore(ctx, save.progression?.gathered ?? {});
+    physics.restoreBroken(save.mobility?.broken ?? []);
+    mobility.restoreChests(ctx, save.mobility?.chests ?? []);
+    mounts.restoreOwned(ctx, save.mobility?.mounts ?? []);
     // Partidas anteriores a la Fase 6: ropa de superviviente.
     if (world.require(playerEntity, 'combat').equipment.armor.length === 0) progression.giveStartingArmor(ctx);
     const p = world.require(playerEntity, 'player');
@@ -539,6 +627,9 @@ async function boot(): Promise<void> {
     pickups.spawnValley(ctx, worldPickups, []);
     progression.restore(ctx, null);
     gathering.restore(ctx, {});
+    physics.restoreBroken([]);
+    mobility.restoreChests(ctx, []);
+    mounts.restoreOwned(ctx, []);
     progression.giveStartingArmor(ctx);
   }
   const worldSave = choice === 'continue' && save ? save.world : undefined;
@@ -552,7 +643,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather, progression, menu, gathering } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather, progression, menu, gathering, physics, mobility, mounts } });
   }
 }
 

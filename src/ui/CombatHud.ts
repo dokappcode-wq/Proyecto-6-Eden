@@ -135,6 +135,7 @@ export class CombatHud implements System {
     ctx.bus.on('combat:weapon_warning', ({ name }) => this.note(`${name} está a punto de romperse`, 'bad'));
     ctx.bus.on('combat:weapon_broken', ({ name }) => this.note(`¡${name} se ha roto!`, 'bad'));
     ctx.bus.on('combat:no_arrows', () => this.note('No te quedan flechas', 'bad'));
+    ctx.bus.on('hud:note', ({ text, tone }) => this.note(text, tone));
     ctx.bus.on('combat:equipped', ({ name }) => this.note(`Equipado: ${name}`, 'good'));
     ctx.bus.on('combat:flurry', ({ active }) => this.flurry.classList.toggle('on', active));
     ctx.bus.on('enemy:alarm', ({ name, horn }) => this.note(horn ? `¡Han tocado el cuerno en el ${name}!` : `Te han descubierto (${name})`, 'bad'));
@@ -287,7 +288,7 @@ export class CombatHud implements System {
     }
   }
 
-  private note(text: string, kind: 'good' | 'bad'): void {
+  private note(text: string, kind: 'good' | 'bad' | 'info'): void {
     const d = document.createElement('div');
     d.className = kind;
     d.textContent = text;

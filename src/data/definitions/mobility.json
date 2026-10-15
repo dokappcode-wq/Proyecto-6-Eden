@@ -1,0 +1,586 @@
+{
+  "grapple": {
+    "item": "grapple_hook",
+    "range": 36,
+    "aimCone": 18,
+    "reelSpeed": 24,
+    "swingLength": 7,
+    "pumpAccel": 9,
+    "releaseBoost": 5,
+    "pullSpeed": 14,
+    "maxPullMass": 45,
+    "cooldown": 0.4
+  },
+  "boots": {
+    "item": "zephyr_boots",
+    "jumpSpeed": 10.5,
+    "charges": 1,
+    "rechargeSeconds": 0.15,
+    "stamina": 6
+  },
+  "windBomb": {
+    "item": "gale_seed",
+    "radius": 7,
+    "force": 34,
+    "playerLift": 20,
+    "fuse": 1.1,
+    "throwSpeed": 15,
+    "cooldown": 3.5
+  },
+  "surf": {
+    "minSpeed": 1.2,
+    "gravityScale": 0.9,
+    "friction": {
+      "snow": 0.03,
+      "sand": 0.06,
+      "grass": 0.12,
+      "rock": 0.2,
+      "dirt": 0.15,
+      "ice": 0.01
+    },
+    "defaultFriction": 0.15,
+    "maxSpeed": 21,
+    "steer": 2.4,
+    "wearSeconds": 6
+  },
+  "runes": [
+    {
+      "id": "stasis",
+      "name": "Sello Quieto",
+      "item": "rune_stasis",
+      "description": "Detiene un objeto en el tiempo; los golpes que recibe se acumulan y lo lanzan al acabar.",
+      "range": 40,
+      "cooldown": 10,
+      "seconds": 6,
+      "power": 9,
+      "radius": 0,
+      "max": 1
+    },
+    {
+      "id": "frost",
+      "name": "Pilar Glacial",
+      "item": "rune_frost",
+      "description": "Alza un pilar de hielo sobre el agua (máx. 3).",
+      "range": 30,
+      "cooldown": 0.6,
+      "seconds": 240,
+      "power": 0,
+      "radius": 1.3,
+      "max": 3
+    },
+    {
+      "id": "magnet",
+      "name": "Tirón Férreo",
+      "item": "rune_magnet",
+      "description": "Agarra y mueve objetos metálicos con la mirada.",
+      "range": 32,
+      "cooldown": 0.3,
+      "seconds": 0,
+      "power": 22,
+      "radius": 0,
+      "max": 1
+    },
+    {
+      "id": "bomb",
+      "name": "Chispa Remota",
+      "item": "rune_bomb",
+      "description": "Coloca una bomba y la detona a distancia.",
+      "range": 6,
+      "cooldown": 3,
+      "seconds": 0,
+      "power": 6,
+      "radius": 4.2,
+      "max": 1
+    }
+  ],
+  "bodyKinds": {
+    "crate": {
+      "name": "Caja de madera",
+      "shape": "box",
+      "radius": 0.55,
+      "mass": 10,
+      "metal": false,
+      "floats": true,
+      "explosive": false,
+      "friction": 6,
+      "color": "#9a7044"
+    },
+    "metal_crate": {
+      "name": "Caja de hierro",
+      "shape": "box",
+      "radius": 0.6,
+      "mass": 30,
+      "metal": true,
+      "floats": false,
+      "explosive": false,
+      "friction": 7,
+      "color": "#8a96a3"
+    },
+    "iron_ball": {
+      "name": "Bola de hierro",
+      "shape": "sphere",
+      "radius": 0.65,
+      "mass": 40,
+      "metal": true,
+      "floats": false,
+      "explosive": false,
+      "friction": 0.4,
+      "color": "#7d8590"
+    },
+    "boulder": {
+      "name": "Roca",
+      "shape": "sphere",
+      "radius": 1.1,
+      "mass": 90,
+      "metal": false,
+      "floats": false,
+      "explosive": false,
+      "friction": 0.6,
+      "color": "#857c70"
+    },
+    "barrel": {
+      "name": "Barril explosivo",
+      "shape": "barrel",
+      "radius": 0.5,
+      "mass": 12,
+      "metal": false,
+      "floats": true,
+      "explosive": true,
+      "friction": 5,
+      "color": "#b0402e"
+    },
+    "bomb": {
+      "name": "Bomba rúnica",
+      "shape": "sphere",
+      "radius": 0.42,
+      "mass": 4,
+      "metal": false,
+      "floats": true,
+      "explosive": false,
+      "friction": 0.8,
+      "color": "#1fd6ff"
+    }
+  },
+  "bodies": [
+    {
+      "kind": "metal_crate",
+      "position": [
+        -110,
+        322
+      ]
+    },
+    {
+      "kind": "metal_crate",
+      "position": [
+        -112,
+        326
+      ]
+    },
+    {
+      "kind": "metal_crate",
+      "position": [
+        -112,
+        326
+      ],
+      "yOffset": 1.3
+    },
+    {
+      "kind": "crate",
+      "position": [
+        -94,
+        320
+      ]
+    },
+    {
+      "kind": "crate",
+      "position": [
+        -92,
+        318
+      ]
+    },
+    {
+      "kind": "crate",
+      "position": [
+        -26,
+        346
+      ]
+    },
+    {
+      "kind": "iron_ball",
+      "position": [
+        -104,
+        340
+      ]
+    },
+    {
+      "kind": "boulder",
+      "position": [
+        -122,
+        350
+      ]
+    },
+    {
+      "kind": "boulder",
+      "position": [
+        -126,
+        344
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        -98,
+        312
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        182,
+        506
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        185,
+        509
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        181,
+        510
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        -252,
+        628
+      ]
+    },
+    {
+      "kind": "barrel",
+      "position": [
+        -255,
+        631
+      ]
+    }
+  ],
+  "breakables": [
+    {
+      "id": "crack_hub",
+      "position": [
+        -118,
+        338
+      ],
+      "radius": 1.6,
+      "loot": "rubble_cache"
+    },
+    {
+      "id": "crack_plains",
+      "position": [
+        176,
+        566
+      ],
+      "radius": 1.8,
+      "loot": "rubble_cache"
+    },
+    {
+      "id": "crack_lake",
+      "position": [
+        -60,
+        392
+      ],
+      "radius": 1.5,
+      "loot": "rubble_cache"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "chain_1",
+      "position": [
+        -222,
+        300
+      ],
+      "y": 50,
+      "perch": true
+    },
+    {
+      "id": "chain_2",
+      "position": [
+        -206,
+        310
+      ],
+      "y": 72,
+      "perch": true
+    },
+    {
+      "id": "chain_3",
+      "position": [
+        -192,
+        298
+      ],
+      "y": 93,
+      "perch": true
+    },
+    {
+      "id": "chain_4",
+      "position": [
+        -180,
+        310
+      ],
+      "y": 114,
+      "perch": true
+    },
+    {
+      "id": "chain_5",
+      "position": [
+        -170.5,
+        299
+      ],
+      "y": 134,
+      "perch": true
+    },
+    {
+      "id": "hub_arch",
+      "position": [
+        -100,
+        344
+      ],
+      "y": 44,
+      "perch": false
+    },
+    {
+      "id": "lake_swing",
+      "position": [
+        -20,
+        330
+      ],
+      "y": 34,
+      "perch": false
+    }
+  ],
+  "jumpPads": [
+    {
+      "id": "pad_pillar",
+      "position": [
+        -84,
+        345
+      ],
+      "radius": 1.5,
+      "launch": 31,
+      "target": [
+        -80,
+        352
+      ]
+    },
+    {
+      "id": "pad_camp",
+      "position": [
+        170,
+        540
+      ],
+      "radius": 1.5,
+      "launch": 19
+    }
+  ],
+  "elevators": [
+    {
+      "id": "lift_island",
+      "position": [
+        -150,
+        323
+      ],
+      "top": 134,
+      "half": 2.2,
+      "speed": 7,
+      "wait": 2
+    }
+  ],
+  "islands": [
+    {
+      "id": "isle_ascent",
+      "name": "Isla del Ascenso",
+      "position": [
+        -150,
+        300
+      ],
+      "top": 134,
+      "radius": 20,
+      "chestLoot": "island_chest"
+    }
+  ],
+  "mounts": {
+    "kinds": {
+      "swift": {
+        "name": "Corcel de Brisa",
+        "speeds": [
+          2.2,
+          6,
+          11,
+          17
+        ],
+        "spurs": 3,
+        "spurSeconds": 1.6,
+        "spurRecharge": 3.5,
+        "temper": 0.75,
+        "turnRate": 2.8,
+        "jump": 7.5,
+        "maxSlopeDeg": 34,
+        "size": 1,
+        "ram": 0,
+        "color": "#c9a46a",
+        "mane": "#f2ead8"
+      },
+      "sturdy": {
+        "name": "Ciervo de Raíz",
+        "speeds": [
+          2,
+          5.5,
+          9.5,
+          14
+        ],
+        "spurs": 5,
+        "spurSeconds": 1.4,
+        "spurRecharge": 3,
+        "temper": 0.45,
+        "turnRate": 3.2,
+        "jump": 9,
+        "maxSlopeDeg": 44,
+        "size": 0.95,
+        "ram": 0,
+        "color": "#7a5232",
+        "mane": "#3a2a1c"
+      },
+      "tank": {
+        "name": "Bisonte Pétreo",
+        "speeds": [
+          1.6,
+          4.2,
+          7.5,
+          11
+        ],
+        "spurs": 6,
+        "spurSeconds": 1.8,
+        "spurRecharge": 4,
+        "temper": 0.3,
+        "turnRate": 2,
+        "jump": 4,
+        "maxSlopeDeg": 30,
+        "size": 1.35,
+        "ram": 4,
+        "color": "#5c564e",
+        "mane": "#2c2a28"
+      }
+    },
+    "herds": [
+      {
+        "id": "herd_plains_swift",
+        "kind": "swift",
+        "position": [
+          60,
+          560
+        ],
+        "count": 4,
+        "radius": 14
+      },
+      {
+        "id": "herd_plains_sturdy",
+        "kind": "sturdy",
+        "position": [
+          -60,
+          480
+        ],
+        "count": 3,
+        "radius": 12
+      },
+      {
+        "id": "herd_plains_tank",
+        "kind": "tank",
+        "position": [
+          120,
+          680
+        ],
+        "count": 2,
+        "radius": 10
+      },
+      {
+        "id": "herd_forest",
+        "kind": "sturdy",
+        "position": [
+          -1100,
+          400
+        ],
+        "count": 3,
+        "radius": 12
+      },
+      {
+        "id": "herd_desert_swift",
+        "kind": "swift",
+        "position": [
+          1100,
+          400
+        ],
+        "count": 3,
+        "radius": 14
+      },
+      {
+        "id": "herd_desert_tank",
+        "kind": "tank",
+        "position": [
+          1150,
+          600
+        ],
+        "count": 2,
+        "radius": 10
+      }
+    ],
+    "alertRadius": 13,
+    "sneakRadius": 4.5,
+    "whistleRange": 160,
+    "taming": {
+      "soothe": 0.16,
+      "decay": 0.08,
+      "staminaDrain": 14
+    }
+  },
+  "rafts": {
+    "list": [
+      {
+        "id": "raft_lake",
+        "position": [
+          -36,
+          352
+        ]
+      },
+      {
+        "id": "raft_lake_east",
+        "position": [
+          40,
+          380
+        ]
+      }
+    ],
+    "sail": 0.9,
+    "leeway": 0.12,
+    "paddle": 2.4,
+    "paddleStamina": 6,
+    "drag": 0.35,
+    "keel": 2.5,
+    "turnRate": 1.3,
+    "minDepth": 0.6
+  },
+  "pillars": [
+    {
+      "position": [
+        -80,
+        352
+      ],
+      "height": 14,
+      "radius": 2.4
+    }
+  ]
+}

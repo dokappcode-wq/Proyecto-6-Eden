@@ -44,6 +44,8 @@ export interface PlayerAnimInput {
   glideDeploy: number;
   underwater: boolean;
   combat: CombatPose | null;
+  /** Pose de vehículo (montura, garfio, surf, balsa). */
+  vehicle?: 'ride' | 'hang' | 'surf' | 'raft' | null;
 }
 
 const CYAN = new THREE.Color('#1fd6ff');
@@ -406,6 +408,40 @@ export class PlayerVisual {
       this.body.position.y -= (a.underwater ? 0.9 : 0.45) * this.swimK;
     }
 
+    // --- vehículos: montado, colgado del garfio, surf con escudo y balsa
+    if (a.vehicle === 'ride') {
+      const trot = Math.sin(this.time * (4 + a.speed * 0.6)) * Math.min(1, a.speed / 6);
+      legL = legR = -1.25;
+      armLx = armRx = -0.95;
+      armLz = -0.2;
+      armRz = 0.2;
+      torsoX = 0.12 + Math.min(0.35, a.speed * 0.02);
+      this.body.position.y += Math.abs(trot) * 0.06 - 0.32;
+    } else if (a.vehicle === 'hang') {
+      armLx = -3.05;
+      armRx = -2.85;
+      armLz = -0.12;
+      armRz = 0.25;
+      legL = 0.2 + Math.sin(this.time * 2.2) * 0.15;
+      legR = -0.15 - Math.sin(this.time * 2.2) * 0.15;
+      torsoX = -0.05;
+    } else if (a.vehicle === 'surf') {
+      legL = -0.55;
+      legR = 0.45;
+      armLx = -0.4;
+      armRx = -0.4;
+      armLz = -1.25;
+      armRz = 1.25;
+      torsoX = 0.3;
+      this.body.rotation.y = 1.1;
+      this.body.position.y -= 0.1;
+    } else if (a.vehicle === 'raft') {
+      armRx = -2.4;
+      armRz = 0.3;
+      legL = 0.15;
+      legR = -0.1;
+    }
+
     // --- planeo: brazos arriba sujetando la barra, cuerpo inclinado y alabeo
     if (this.glideK > 0.01) {
       const k = this.glideK;
@@ -423,7 +459,7 @@ export class PlayerVisual {
     // --- combate: ataques, carga, guardia, arco y picado
     let torsoY = 0;
     const c = a.combat;
-    const handsBusy = a.mode === 'climb' || a.mode === 'ledge' || a.mode === 'glide' || a.mode === 'swim';
+    const handsBusy = a.mode === 'climb' || a.mode === 'ledge' || a.mode === 'glide' || a.mode === 'swim' || a.vehicle === 'hang' || a.vehicle === 'surf';
     if (c && !handsBusy) {
       if (c.plunging) {
         armLx = armRx = -3.0;

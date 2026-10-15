@@ -401,6 +401,13 @@
       ]
     },
     {
+      "name": "Ruinas del Ascenso (movilidad)",
+      "position": [
+        -100,
+        322
+      ]
+    },
+    {
       "name": "Campamento goblin del Llano",
       "position": [
         150,
@@ -461,6 +468,20 @@
       "position": [
         232,
         196
+      ]
+    },
+    {
+      "name": "Manada de corceles",
+      "position": [
+        50,
+        545
+      ]
+    },
+    {
+      "name": "Balsa del lago",
+      "position": [
+        -50,
+        346
       ]
     }
   ],
@@ -664,6 +685,66 @@
         526
       ],
       "yOffset": 0.3
+    },
+    {
+      "id": "mp_grapple",
+      "item": "grapple_hook",
+      "count": 1,
+      "position": [
+        -96,
+        326
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "mp_gale",
+      "item": "gale_seed",
+      "count": 1,
+      "position": [
+        -98,
+        334
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "mp_rune_stasis",
+      "item": "rune_stasis",
+      "count": 1,
+      "position": [
+        -102,
+        328
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "mp_rune_bomb",
+      "item": "rune_bomb",
+      "count": 1,
+      "position": [
+        -104,
+        334
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "mp_rune_frost",
+      "item": "rune_frost",
+      "count": 1,
+      "position": [
+        -50,
+        346
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "mp_rune_magnet",
+      "item": "rune_magnet",
+      "count": 1,
+      "position": [
+        -80,
+        352
+      ],
+      "yOffset": 14.3
     }
   ]
 }

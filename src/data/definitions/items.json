@@ -448,6 +448,55 @@
       "category": "key",
       "stack": 99,
       "color": "#7ee36b"
+    },
+    {
+      "id": "grapple_hook",
+      "name": "Garfio de Raíz",
+      "category": "key",
+      "stack": 1,
+      "color": "#7ee3c0"
+    },
+    {
+      "id": "zephyr_boots",
+      "name": "Botas de Céfiro",
+      "category": "key",
+      "stack": 1,
+      "color": "#bfe8ff"
+    },
+    {
+      "id": "gale_seed",
+      "name": "Semilla de Vendaval",
+      "category": "key",
+      "stack": 1,
+      "color": "#a8f0d8"
+    },
+    {
+      "id": "rune_stasis",
+      "name": "Runa: Sello Quieto",
+      "category": "key",
+      "stack": 1,
+      "color": "#ffd34a"
+    },
+    {
+      "id": "rune_frost",
+      "name": "Runa: Pilar Glacial",
+      "category": "key",
+      "stack": 1,
+      "color": "#9fe4ff"
+    },
+    {
+      "id": "rune_magnet",
+      "name": "Runa: Tirón Férreo",
+      "category": "key",
+      "stack": 1,
+      "color": "#ff6a5a"
+    },
+    {
+      "id": "rune_bomb",
+      "name": "Runa: Chispa Remota",
+      "category": "key",
+      "stack": 1,
+      "color": "#1fd6ff"
     }
   ]
 }

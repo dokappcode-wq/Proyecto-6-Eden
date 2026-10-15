@@ -915,6 +915,124 @@ export const gatheringConfigSchema = v.object({
   rules: v.array(v.object({ item: v.string({ minLength: 1 }), biomes: v.array(v.oneOf(BIOME_IDS), { minLength: 1 }), perCell: v.number({ min: 0 }) })),
 });
 
+// ---------------------------------------------------------------- mobility.json
+export const BODY_SHAPES = ['sphere', 'box', 'barrel'] as const;
+export const RUNE_IDS = ['stasis', 'frost', 'magnet', 'bomb'] as const;
+export const MOUNT_KINDS = ['swift', 'sturdy', 'tank'] as const;
+
+const bodyKindSchema = v.object({
+  name: v.string({ minLength: 1 }),
+  shape: v.oneOf(BODY_SHAPES),
+  radius: v.number({ min: 0.2 }),
+  mass: v.number({ min: 0.1 }),
+  metal: v.boolean(),
+  floats: v.boolean(),
+  explosive: v.boolean(),
+  /** Rozamiento en el suelo (1/s); las esferas ruedan con la pendiente. */
+  friction: v.number({ min: 0 }),
+  color,
+});
+
+export const mobilityConfigSchema = v.object({
+  grapple: v.object({
+    item: v.string({ minLength: 1 }),
+    range: v.number({ min: 5 }),
+    /** Cono de búsqueda alrededor del centro de la cámara (grados). */
+    aimCone: v.number({ min: 1, max: 45 }),
+    reelSpeed: v.number({ min: 1 }),
+    swingLength: v.number({ min: 1 }),
+    pumpAccel: v.number({ min: 0 }),
+    releaseBoost: v.number({ min: 0 }),
+    pullSpeed: v.number({ min: 0 }),
+    maxPullMass: v.number({ min: 0 }),
+    cooldown: v.number({ min: 0 }),
+  }),
+  boots: v.object({ item: v.string({ minLength: 1 }), jumpSpeed: v.number({ min: 1 }), charges: v.number({ min: 1, integer: true }), rechargeSeconds: v.number({ min: 0 }), stamina: v.number({ min: 0 }) }),
+  windBomb: v.object({
+    item: v.string({ minLength: 1 }),
+    radius: v.number({ min: 1 }),
+    force: v.number({ min: 0 }),
+    playerLift: v.number({ min: 0 }),
+    fuse: v.number({ min: 0.1 }),
+    throwSpeed: v.number({ min: 1 }),
+    cooldown: v.number({ min: 0 }),
+  }),
+  surf: v.object({ minSpeed: v.number({ min: 0 }), gravityScale: v.number({ min: 0 }), friction: v.record(v.number({ min: 0 })), defaultFriction: v.number({ min: 0 }), maxSpeed: v.number({ min: 1 }), steer: v.number({ min: 0 }), wearSeconds: v.number({ min: 0.1 }) }),
+  runes: v.array(
+    v.object({
+      id: v.oneOf(RUNE_IDS),
+      name: v.string({ minLength: 1 }),
+      item: v.string({ minLength: 1 }),
+      description: v.string({ minLength: 1 }),
+      range: v.number({ min: 1 }),
+      cooldown: v.number({ min: 0 }),
+      /** Duración (detener en el tiempo) o vida (pilares de hielo). */
+      seconds: v.number({ min: 0 }),
+      /** Daño (bomba) o empuje por golpe (detener en el tiempo). */
+      power: v.number({ min: 0 }),
+      radius: v.number({ min: 0 }),
+      max: v.number({ min: 1, integer: true }),
+    }),
+  ),
+  bodyKinds: v.record(bodyKindSchema),
+  bodies: v.array(v.object({ kind: v.string({ minLength: 1 }), position: vec2, yOffset: v.optional(v.number()) })),
+  breakables: v.array(v.object({ id: v.string({ minLength: 1 }), position: vec2, radius: v.number({ min: 0.5 }), loot: v.string({ minLength: 1 }) })),
+  /** Anclas del garfio: `y` absoluta; `perch` = piedra flotante sobre la que se aterriza. */
+  anchors: v.array(v.object({ id: v.string({ minLength: 1 }), position: vec2, y: v.number(), perch: v.boolean() })),
+  /** Pads de salto: `target` (opcional) da el empuje horizontal para caer allí. */
+  jumpPads: v.array(v.object({ id: v.string({ minLength: 1 }), position: vec2, radius: v.number({ min: 0.5 }), launch: v.number({ min: 1 }), target: v.optional(vec2) })),
+  /** Columnas ancestrales (altura sobre el terreno). */
+  pillars: v.array(v.object({ position: vec2, height: v.number({ min: 1 }), radius: v.number({ min: 0.5 }) })),
+  /** Elevadores ancestrales: `top` es la altura absoluta de la parada superior. */
+  elevators: v.array(v.object({ id: v.string({ minLength: 1 }), position: vec2, top: v.number(), half: v.number({ min: 0.5 }), speed: v.number({ min: 0.5 }), wait: v.number({ min: 0 }) })),
+  islands: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      position: vec2,
+      /** Altura absoluta de la superficie. */
+      top: v.number(),
+      radius: v.number({ min: 4 }),
+      chestLoot: v.string({ minLength: 1 }),
+    }),
+  ),
+  mounts: v.object({
+    kinds: v.record(
+      v.object({
+        name: v.string({ minLength: 1 }),
+        speeds: v.array(v.number({ min: 0 }), { length: 4 }),
+        spurs: v.number({ min: 1, integer: true }),
+        spurSeconds: v.number({ min: 0.1 }),
+        spurRecharge: v.number({ min: 0.1 }),
+        temper: v.number({ min: 0, max: 1 }),
+        turnRate: v.number({ min: 0.1 }),
+        jump: v.number({ min: 0 }),
+        maxSlopeDeg: v.number({ min: 5, max: 80 }),
+        size: v.number({ min: 0.5 }),
+        ram: v.number({ min: 0 }),
+        color,
+        mane: color,
+      }),
+    ),
+    herds: v.array(v.object({ id: v.string({ minLength: 1 }), kind: v.oneOf(MOUNT_KINDS), position: vec2, count: v.number({ min: 1, integer: true }), radius: v.number({ min: 2 }) })),
+    alertRadius: v.number({ min: 1 }),
+    sneakRadius: v.number({ min: 0.5 }),
+    whistleRange: v.number({ min: 1 }),
+    taming: v.object({ soothe: v.number({ min: 0 }), decay: v.number({ min: 0 }), staminaDrain: v.number({ min: 0 }) }),
+  }),
+  rafts: v.object({
+    list: v.array(v.object({ id: v.string({ minLength: 1 }), position: vec2 })),
+    sail: v.number({ min: 0 }),
+    leeway: v.number({ min: 0 }),
+    paddle: v.number({ min: 0 }),
+    paddleStamina: v.number({ min: 0 }),
+    drag: v.number({ min: 0 }),
+    keel: v.number({ min: 0 }),
+    turnRate: v.number({ min: 0 }),
+    minDepth: v.number({ min: 0 }),
+  }),
+});
+
 // ---------------------------------------------------------------- tutorial.json
 export const TRIGGER_KINDS = ['interact', 'reach', 'read', 'climb', 'defeat', 'temple', 'glide_land'] as const;
 
@@ -998,3 +1116,9 @@ export type ProgressionConfig = Infer<typeof progressionConfigSchema>;
 export type AltarKind = (typeof ALTAR_KINDS)[number];
 export type GatheringConfig = Infer<typeof gatheringConfigSchema>;
 export type ItemDef = ItemsConfig['items'][number];
+export type MobilityConfig = Infer<typeof mobilityConfigSchema>;
+export type BodyKindDef = Infer<typeof bodyKindSchema>;
+export type RuneId = (typeof RUNE_IDS)[number];
+export type RuneDef = MobilityConfig['runes'][number];
+export type MountKind = (typeof MOUNT_KINDS)[number];
+export type MountKindDef = MobilityConfig['mounts']['kinds'][string];

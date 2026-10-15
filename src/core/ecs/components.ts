@@ -26,7 +26,7 @@ export interface Name {
   value: string;
 }
 
-export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower' | 'pickup' | 'chest' | 'station';
+export type InteractableKind = 'capsule' | 'inscription' | 'temple' | 'portal' | 'altar' | 'tower' | 'pickup' | 'chest' | 'station' | 'mount' | 'raft';
 
 export interface Interactable {
   id: string;

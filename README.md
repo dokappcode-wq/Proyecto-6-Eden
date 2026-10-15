@@ -34,7 +34,14 @@ npm run build      # typecheck + build de producción
 | Rueda de armas | Tab o Q (mantener; ratón o A/D para elegir) |
 | Fijar objetivo | Z o clic central |
 | Sigilo | Agachado (Ctrl/C): te ven desde menos lejos y casi no haces ruido; atacar a un enemigo desprevenido o dormido = crítico ×3 (dagas ×4) |
-| Debug | F3 (incluye conos de visión de la IA) · T (mantener) acelera el tiempo · F6 abre la salida del valle · F7 viaja al siguiente encuentro · F8 reaparecer · F9 cambia el tiempo |
+| Garfio de Raíz | G apuntando a una anilla (o a un objeto ligero para atraerlo) · en la cuerda: Espacio = columpio / soltarse con impulso, Ctrl = soltarse |
+| Botas de Céfiro | F en el aire (doble salto; se recargan al tocar suelo y una vez al plegar el planeador) |
+| Semilla de Vendaval | B la lanza (empuja objetos, enemigos, balsas y apaga llamas) · Ctrl+B a tus pies = salto de viento |
+| Surf con escudo | H con un escudo equipado (cuesta abajo; nieve y arena deslizan más) · Espacio salta · Ctrl termina |
+| Runas | 1 Sello Quieto · 2 Pilar Glacial · 3 Tirón Férreo · 4 Chispa Remota · T usa la runa elegida (otra vez T suelta el imán / detona la bomba) |
+| Monturas | Acércate agachado y pulsa E para domar (E repetido la calma) · W avanzar · Shift espuela · Espacio salto · Ctrl bajar · J silbar |
+| Balsa | E para subir · A/D girar · W remar · Shift iza/arría la vela · Espacio salta fuera |
+| Debug | F3 (incluye conos de visión de la IA) · F4 (mantener) acelera el tiempo · F6 abre la salida del valle · F7 viaja al siguiente encuentro · F8 reaparecer · F9 cambia el tiempo · F10 desbloquea herramientas y runas |
 
 Remapeo en caliente (modo dev, consola): `eden.ctx.input.rebind('jump', ['KeyJ'])`; se guarda en el navegador.
 
@@ -61,13 +68,22 @@ Orbes ancestrales → +1 corazón o +vigor en la Estatua de la Ofrenda; semillas
 Planeador, que también instala sus mejoras. Junto al lago de aterrizaje están la fuente, el taller, una estatua y una olla.
 Datos en `armor.json`, `recipes.json`, `progression.json` y `gathering.json`.
 
+## Movilidad avanzada (Fase 7)
+
+Ruinas del Ascenso (oeste del lago de aterrizaje, F7): Garfio de Raíz, Semilla de Vendaval y runas; las Botas de Céfiro
+esperan en el cofre de la Isla del Ascenso, a la que se llega por el rayo de ascenso (planeando), el elevador ancestral
+o la cadena de anclas del garfio. Física de objetos: cajas de madera y de hierro, bolas de hierro, rocas, barriles
+explosivos (el fuego, las flechas de fuego y la antorcha los prenden; estallan en cadena) y rocas agrietadas que solo
+rompen las explosiones. Manadas de monturas (veloz, resistente y tanque) en llanuras, bosque y desierto; balsas de vela
+en el lago. Pads de salto, columnas y elevadores. Datos en `mobility.json`.
+
 ## Estructura
 
 ```
 src/
   core/      bucle de paso fijo, ECS, bus de eventos, input, renderer, guardado
   data/      validador de esquemas, esquemas y definiciones JSON (todo el contenido)
-  player/    controlador del personaje, cámara, modelo y animación
+  player/    controlador del personaje, cámara, modelo, animación y movilidad (garfio, botas, surf, monturas, balsa)
   systems/   sistemas ECS (jugador, cámara, entorno, interacción, tutorial, guardado...)
   world/     terreno por chunks, colisiones, agua, cielo, props y el Valle de la Cápsula
   items/     estadísticas del equipo y cocina

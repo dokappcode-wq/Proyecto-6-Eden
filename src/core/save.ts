@@ -57,6 +57,14 @@ const saveSchema = v.object({
   ),
   /** Mundo: cofres de campamento abiertos y jefes derrotados (v4). */
   world: v.optional(v.object({ chestsOpened: v.array(v.string()), bossesDefeated: v.array(v.string()) })),
+  /** Movilidad (Fase 7): monturas domadas, rocas agrietadas rotas y cofres de islas. */
+  mobility: v.optional(
+    v.object({
+      mounts: v.array(v.object({ kind: v.string(), name: v.string(), x: v.number(), z: v.number() })),
+      broken: v.array(v.string()),
+      chests: v.array(v.string()),
+    }),
+  ),
 });
 
 export type SaveData = Infer<typeof saveSchema>;

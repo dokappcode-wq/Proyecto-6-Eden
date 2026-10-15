@@ -30,6 +30,36 @@ const DEATH_TEXT: Record<DamageCause, string> = {
 const DEATH_FADE = 1.1;
 const DEATH_HOLD = 1.6;
 
+/** Pose del personaje cuando lo mueve un conductor externo (montura, garfio, surf, balsa). */
+export type VehiclePose = 'ride' | 'hang' | 'surf' | 'raft';
+
+/** Entrada ya resuelta (relativa a la cámara) que recibe un conductor. */
+export interface DriverInput {
+  moveX: number;
+  moveZ: number;
+  right: number;
+  forward: number;
+  jumpPressed: boolean;
+  jumpHeld: boolean;
+  sprint: boolean;
+  sprintPressed: boolean;
+  crouch: boolean;
+  crouchPressed: boolean;
+  interactPressed: boolean;
+  dodgePressed: boolean;
+}
+
+/**
+ * Sustituye al movimiento normal mientras está activo (lo ponen la movilidad y las monturas).
+ * `cancel` se llama si el jugador muere, reaparece o se teletransporta.
+ */
+export interface MovementDriver {
+  readonly id: string;
+  readonly pose: VehiclePose;
+  step(ctx: GameContext, ch: CharacterState, input: DriverInput, dt: number): void;
+  cancel(ctx: GameContext): void;
+}
+
 export interface Checkpoint {
   x: number;
   y: number;
@@ -51,8 +81,12 @@ export class PlayerSystem implements System {
   private deathTimer = -1;
   private lockReasons = new Set<string>();
   lastEvents: MovementEvents | null = null;
+  /** Última intención de movimiento en mundo (para empujar objetos). */
+  readonly lastMove = { x: 0, z: 0 };
   /** Pose de combate para la animación (la aporta el sistema de combate). */
   combatPose: () => CombatPose | null = () => null;
+  /** Conductor activo (montura, garfio, surf, balsa) o null. */
+  private driverRef: MovementDriver | null = null;
 
   constructor(
     readonly entity: Entity,
@@ -78,6 +112,21 @@ export class PlayerSystem implements System {
       }
     });
     ctx.bus.on('camera:cinematic', ({ id, active }) => this.setLocked(ctx, `cinematic:${id}`, active));
+  }
+
+  get driver(): MovementDriver | null {
+    return this.driverRef;
+  }
+
+  /** Activa un conductor (cancela el anterior si lo hubiera). */
+  setDriver(ctx: GameContext, d: MovementDriver | null): void {
+    if (this.driverRef && this.driverRef !== d) this.driverRef.cancel(ctx);
+    this.driverRef = d;
+  }
+
+  /** Suelta el conductor sin cancelarlo (el propio conductor termina). */
+  clearDriver(d: MovementDriver): void {
+    if (this.driverRef === d) this.driverRef = null;
   }
 
   get bodyRadius(): number {
@@ -110,6 +159,7 @@ export class PlayerSystem implements System {
 
   /** Coloca al jugador libre en un punto (continuar partida / reaparecer / teletransporte). */
   placeFree(ctx: GameContext, x: number, y: number, z: number, yaw: number): void {
+    this.setDriver(ctx, null);
     const p = ctx.world.require(this.entity, 'player');
     p.control = this.lockReasons.size > 0 ? 'locked' : 'free';
     this.capsule.prop.setOpen(1);
@@ -162,8 +212,39 @@ export class PlayerSystem implements System {
     }
     mx *= moveMul;
     mz *= moveMul;
+    this.lastMove.x = mx;
+    this.lastMove.z = mz;
     const pressed = (a: string) => !locked && input.wasPressed(a);
     const down = (a: string) => !locked && input.isDown(a);
+
+    if (this.driverRef) {
+      this.driverRef.step(
+        ctx,
+        ch,
+        {
+          moveX: mx,
+          moveZ: mz,
+          right: ix,
+          forward: iz,
+          jumpPressed: pressed('jump'),
+          jumpHeld: down('jump'),
+          sprint: down('sprint'),
+          sprintPressed: pressed('sprint'),
+          crouch: down('crouch'),
+          crouchPressed: pressed('crouch'),
+          interactPressed: pressed('interact'),
+          dodgePressed: pressed('dodge'),
+        },
+        pdt,
+      );
+      this.lastEvents = null;
+      t.x = ch.x;
+      t.y = ch.y;
+      t.z = ch.z;
+      t.rotY = ch.yaw;
+      if (ch.y < this.killY) this.respawnAtCheckpoint(ctx);
+      return;
+    }
 
     const ev = stepMovement(
       ch,
@@ -220,6 +301,7 @@ export class PlayerSystem implements System {
         glideDeploy: ch.mode === 'glide' ? clamp(1 + ch.glide.deployT / this.params.glider.deploySeconds, 0, 1) : 0,
         underwater: ch.underwater,
         combat: free ? this.combatPose() : null,
+        vehicle: this.driverRef?.pose ?? null,
       },
       ctx.time.frameDt,
     );
@@ -229,6 +311,7 @@ export class PlayerSystem implements System {
   modeLabel(ctx: GameContext): string {
     const p = ctx.world.require(this.entity, 'player');
     if (p.control !== 'free') return p.control;
+    if (this.driverRef) return this.driverRef.id;
     const ch = ctx.world.require(this.entity, 'character');
     if (ch.mode === 'ground' && ch.sliding) return 'deslizando';
     return ch.mode;
@@ -340,6 +423,7 @@ export class PlayerSystem implements System {
   }
 
   private die(ctx: GameContext, cause: DamageCause): void {
+    this.setDriver(ctx, null);
     this.deathTimer = 0;
     ctx.world.require(this.entity, 'player').control = 'locked';
     ctx.bus.emit('player:died', { cause });

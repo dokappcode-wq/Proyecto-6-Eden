@@ -51,6 +51,8 @@ export class StaticColliders {
   private readonly all = new Set<Collider>();
   private stamp = 0;
   private readonly stamps = new WeakMap<Collider, number>();
+  /** Celdas en las que está registrado cada colisionador (para retirarlo o moverlo rápido). */
+  private readonly keys = new Map<Collider, number[]>();
 
   constructor(private readonly cellSize = 16) {}
 
@@ -77,10 +79,39 @@ export class StaticColliders {
 
   remove(c: Collider): void {
     if (!this.all.delete(c)) return;
-    for (const list of this.cells.values()) {
-      const i = list.indexOf(c);
-      if (i >= 0) list.splice(i, 1);
+    for (const key of this.keys.get(c) ?? []) {
+      const list = this.cells.get(key);
+      const i = list ? list.indexOf(c) : -1;
+      if (list && i >= 0) list.splice(i, 1);
     }
+    this.keys.delete(c);
+  }
+
+  /** Mueve un colisionador dinámico (plataformas, cajas): solo reindexa si cambia de celdas. */
+  move(c: Collider, x: number, y: number, z: number): void {
+    const r = c.kind === 'box' ? Math.hypot(c.hx, c.hz) : c.radius;
+    const cs = this.cellSize;
+    const same =
+      Math.floor((c.x - r) / cs) === Math.floor((x - r) / cs) &&
+      Math.floor((c.x + r) / cs) === Math.floor((x + r) / cs) &&
+      Math.floor((c.z - r) / cs) === Math.floor((z - r) / cs) &&
+      Math.floor((c.z + r) / cs) === Math.floor((z + r) / cs);
+    if (c.kind === 'box') {
+      c.y = y;
+    } else {
+      const h = c.yMax - c.yMin;
+      c.yMin = y;
+      c.yMax = y + h;
+    }
+    if (same || !this.all.has(c)) {
+      c.x = x;
+      c.z = z;
+      return;
+    }
+    this.remove(c);
+    c.x = x;
+    c.z = z;
+    this.insert(c);
   }
 
   /** Colisionadores cuyo AABB XZ toca el rectángulo dado (sin duplicados). */
@@ -106,9 +137,10 @@ export class StaticColliders {
    * Superficie superior más alta bajo el pie (centro + margen `footRadius`)
    * que no esté por encima de `maxTop`. -Infinity si no hay ninguna.
    */
-  topAt(x: number, z: number, footRadius: number, maxTop: number): number {
+  topAt(x: number, z: number, footRadius: number, maxTop: number, ignore?: Collider): number {
     let best = -Infinity;
     for (const c of this.query(x - footRadius, z - footRadius, x + footRadius, z + footRadius, this.scratch)) {
+      if (c === ignore) continue;
       let top: number;
       if (c.kind === 'box') {
         const { lx, lz } = toLocal(c, x, z);
@@ -127,11 +159,12 @@ export class StaticColliders {
    * Empuja un cilindro vertical (radio, pies, altura) fuera de los colisionadores.
    * Ignora los que se pueden subir como escalón (techo por debajo de pies + stepHeight).
    */
-  pushOut(pos: { x: number; y: number; z: number }, radius: number, height: number, stepHeight: number): PushResult {
+  pushOut(pos: { x: number; y: number; z: number }, radius: number, height: number, stepHeight: number, ignore?: Collider): PushResult {
     const res: PushResult = { nx: 0, nz: 0, hit: false };
     // Dos iteraciones resuelven bien esquinas entre dos colisionadores.
     for (let iter = 0; iter < 2; iter++) {
       for (const c of this.query(pos.x - radius, pos.z - radius, pos.x + radius, pos.z + radius, this.scratch)) {
+        if (c === ignore) continue;
         const bottom = c.kind === 'box' ? c.y - c.hy : c.yMin;
         const top = c.kind === 'box' ? c.y + c.hy : c.yMax;
         if (pos.y + height <= bottom || pos.y >= top - stepHeight) continue;
@@ -236,9 +269,12 @@ export class StaticColliders {
     this.all.add(c);
     const r = c.kind === 'box' ? Math.hypot(c.hx, c.hz) : c.radius;
     const cs = this.cellSize;
+    const keys: number[] = [];
+    this.keys.set(c, keys);
     for (let cx = Math.floor((c.x - r) / cs); cx <= Math.floor((c.x + r) / cs); cx++) {
       for (let cz = Math.floor((c.z - r) / cs); cz <= Math.floor((c.z + r) / cs); cz++) {
         const key = cellKey(cx, cz);
+        keys.push(key);
         let list = this.cells.get(key);
         if (!list) {
           list = [];
