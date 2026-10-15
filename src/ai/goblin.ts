@@ -56,6 +56,12 @@ export function stepGoblin(b: Brain, c: AIContext): void {
     return;
   }
 
+  // Miedo al fuego: se apartan de las llamas pase lo que pase.
+  if (c.hazard && b.state !== 'sleep') {
+    fleeFrom(b, c.hazard.x, c.hazard.z, def.runSpeed, dt, nav, body);
+    return;
+  }
+
   switch (b.state) {
     case 'sleep':
       standStill(b, dt, nav, body);

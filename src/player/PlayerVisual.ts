@@ -226,6 +226,12 @@ export class PlayerVisual {
     }
   }
 
+  /** Antorcha encendida o apagada (muestra u oculta la llama del arma en mano). */
+  setTorchLit(lit: boolean): void {
+    const flame = this.meleeModel?.group.getObjectByName('flame');
+    if (flame) flame.visible = lit;
+  }
+
   setGliderEquipped(on: boolean): void {
     this.gliderPack.visible = on;
   }

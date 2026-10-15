@@ -80,6 +80,16 @@ export interface CombatState {
   poisonTick: number;
   /** Electrocutado: no puede actuar (s). */
   shockT: number;
+  /** Ardiendo, sangrando (s restantes + temporizador de daño) y congelado (s). */
+  burnT: number;
+  burnTick: number;
+  bleedT: number;
+  bleedTick: number;
+  freezeT: number;
+  /** Tipo de flecha seleccionado (id de objeto de munición). */
+  arrowType: string;
+  /** Enfriamiento del bastón elemental (s). */
+  staffCd: number;
 }
 
 /** Enemigo vivo: definición + cerebro (estado de IA y física propia). */

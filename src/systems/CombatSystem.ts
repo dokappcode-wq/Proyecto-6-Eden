@@ -12,7 +12,7 @@ import type { GameContext, System } from '../core/Game';
 import type { CombatState } from '../core/ecs/components';
 import type { Entity } from '../core/ecs/World';
 import { wrapAngle } from '../core/math';
-import type { AttackDef, CombatConfig, Element, EnemyDef, ShieldDef, StaminaConfig, WeaponDef } from '../data/schemas';
+import type { AttackDef, CombatConfig, Element, ElementsConfig, EnemyDef, ShieldDef, StaminaConfig, WeaponDef } from '../data/schemas';
 import { raymarchTerrain, type CameraController } from '../player/CameraController';
 import { foldGlider } from '../player/movement/glide';
 import { canUse, spend, spendRate } from '../player/movement/Stamina';
@@ -21,6 +21,7 @@ import type { StaticColliders } from '../world/physics/StaticColliders';
 import type { TerrainGenerator } from '../world/terrain/TerrainGenerator';
 import type { EnemySystem } from './EnemySystem';
 import type { PickupSystem } from './PickupSystem';
+import type { ElementSystem } from './ElementSystem';
 import type { PlayerSystem } from './PlayerSystem';
 
 export interface WheelEntry {
@@ -45,6 +46,9 @@ export interface CombatDeps {
   terrain: TerrainGenerator;
   fx: HitFx;
   projectiles: ProjectileManager;
+  elementsCfg: ElementsConfig;
+  /** Lluvia 0..1 donde está el jugador. */
+  rain: () => number;
 }
 
 const WHEEL_SCALE = 0.08;
@@ -75,6 +79,13 @@ export function createCombatState(equipment: CombatState['equipment']): CombatSt
     poisonT: 0,
     poisonTick: 0,
     shockT: 0,
+    burnT: 0,
+    burnTick: 0,
+    bleedT: 0,
+    bleedTick: 0,
+    freezeT: 0,
+    arrowType: 'arrow',
+    staffCd: 0,
   };
 }
 
@@ -93,6 +104,9 @@ export class CombatSystem {
   private lookX = 0;
   private lookY = 0;
   private readonly tmpDir = new THREE.Vector3();
+  /** Sistemas elementales (fuego, hielo, electricidad); se conecta tras crearse. */
+  elements: ElementSystem | null = null;
+  private lastSwing = -1;
 
   constructor(
     private readonly d: CombatDeps,
@@ -187,13 +201,46 @@ export class CombatSystem {
       c.shockT = Math.max(0, c.shockT - dt);
       if (c.shockT === 0) ctx.bus.emit('player:status', { kind: 'shock', active: false });
     }
+    const el = this.d.elementsCfg;
+    if (c.burnT > 0) {
+      // El agua y la lluvia apagan las llamas.
+      const douse = ch.swimming || ch.waterDepth > 0.4 ? 20 : 1 + this.d.rain() * 2;
+      c.burnT = Math.max(0, c.burnT - dt * douse);
+      c.burnTick -= dt;
+      if (Math.random() < 0.5) this.d.fx.burst(ch.x, ch.y + 0.9, ch.z, 'spark', 1);
+      if (c.burnTick <= 0 && c.burnT > 0 && p.control === 'free') {
+        c.burnTick = el.burn.tickSeconds;
+        this.d.player.damagePlayer(ctx, el.burn.damagePerTick, 'fire');
+      }
+      if (c.burnT === 0) ctx.bus.emit('player:status', { kind: 'burn', active: false });
+    }
+    if (c.bleedT > 0) {
+      c.bleedT = Math.max(0, c.bleedT - dt);
+      c.bleedTick -= dt;
+      if (c.bleedTick <= 0 && p.control === 'free') {
+        c.bleedTick = el.bleed.tickSeconds;
+        this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'break', 3);
+        this.d.player.damagePlayer(ctx, el.bleed.damagePerTick, 'bleed');
+      }
+      if (c.bleedT === 0) ctx.bus.emit('player:status', { kind: 'bleed', active: false });
+    }
+    if (c.freezeT > 0) {
+      // Forcejear (moverse) rompe el hielo antes.
+      const struggle = ctx.input.axis('move_left', 'move_right') !== 0 || ctx.input.axis('move_back', 'move_forward') !== 0 ? 1.8 : 1;
+      c.freezeT = Math.max(0, c.freezeT - dt * struggle * (1 + (this.elements?.warmthAt(ctx, ch.x, ch.z) ?? 0) / 10));
+      if (c.freezeT === 0) {
+        ctx.bus.emit('player:status', { kind: 'freeze', active: false });
+        this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'parry', 14);
+      }
+    }
+    c.staffCd = Math.max(0, c.staffCd - dt);
 
-    if (p.control !== 'free' || c.shockT > 0) {
-      // Electrocutado (o sin control): no puede atacar, apuntar ni moverse.
-      if (c.shockT > 0) {
+    if (p.control !== 'free' || c.shockT > 0 || c.freezeT > 0) {
+      // Electrocutado, congelado (o sin control): no puede atacar, apuntar ni moverse.
+      if (c.shockT > 0 || c.freezeT > 0) {
         c.moveMultiplier = 0;
         c.melee = createMelee();
-        if (Math.random() < 0.3) this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'spark', 2);
+        if (c.shockT > 0 && Math.random() < 0.3) this.d.fx.burst(ch.x, ch.y + 1, ch.z, 'spark', 2);
       }
       c.aiming = false;
       c.defense.guarding = false;
@@ -232,7 +279,10 @@ export class CombatSystem {
     if (c.aiming && bow) {
       c.faceYaw = camYaw;
       if (ch.mode === 'ground') c.moveMultiplier = 0.45;
-      const arrows = c.equipment.items.arrow ?? 0;
+      // X cambia de flecha (normal, fuego, hielo, eléctrica) entre las que queden.
+      if (input.wasPressed('cycle_arrow')) this.cycleArrow(ctx, c);
+      if ((c.equipment.items[c.arrowType] ?? 0) <= 0) this.cycleArrow(ctx, c, true);
+      const arrows = c.equipment.items[c.arrowType] ?? 0;
       if (input.isDown('attack') && arrows > 0) {
         const cost = ch.mode === 'glide' ? this.d.stamina.costs.bowChargeGliding : this.d.stamina.costs.bowCharge;
         // Tensar en el aire cuesta stamina (el tiempo bala no es gratis).
@@ -266,6 +316,13 @@ export class CombatSystem {
       ch.vx = 0;
       ch.vz = 0;
       ch.vy = -cfg.plunge.speed;
+    } else if (!c.aiming && !guard && free && melee.staff) {
+      // --- bastón elemental: dispara su elemento hacia la mira (también planeando)
+      if (input.isDown('attack') && c.staffCd <= 0) {
+        c.staffCd = melee.staff.cooldown;
+        c.faceYaw = camYaw;
+        this.fireStaff(ctx, c, melee);
+      }
     } else if (!c.aiming && !guard && ch.mode !== 'glide' && free) {
       // --- cuerpo a cuerpo
       const wasIdle = c.melee.phase === 'idle';
@@ -292,6 +349,12 @@ export class CombatSystem {
       }
       // Ráfaga: el jugador salta hacia el objetivo con cada golpe.
       if (r.started === 'flurry' && c.flurryTarget !== null) this.dashToward(ctx, c.flurryTarget, 1.2);
+      // La antorcha encendida prende la hierba con cada golpe.
+      if (r.window && r.window.swingId !== this.lastSwing && this.elements?.torchActive(ctx)) {
+        this.lastSwing = r.window.swingId;
+        const reach = melee.reach * 0.9;
+        this.elements.igniteAt(ctx, ch.x + Math.sin(this.attackYaw) * reach, ch.y, ch.z + Math.cos(this.attackYaw) * reach, 0);
+      }
     }
 
     // --- lanzar el arma equipada
@@ -361,6 +424,8 @@ export class CombatSystem {
         // Golpear un slime eléctrico cargado con metal (o a puño) electrocuta.
         if (this.d.enemies.isCharged(ctx, e) && (melee.tags.includes('metal') || melee.category === 'fists')) this.applyShock(ctx, c, 2, b.x, b.z);
         this.damageEnemy(ctx, c, e, def, melee, w.kind, w.multiplier, w.knockback, ch.x, ch.z, weak);
+        // Armas con elemento (antorcha encendida = fuego).
+        if (melee.element && (!melee.tags.includes('torch') || this.elements?.torchActive(ctx))) this.applyEnemyElement(ctx, e, melee.element);
       }
       if (hitAny) {
         if (w.kind === 'shockwave') this.d.fx.ring(ch.x, ch.y, ch.z, w.reach, '#e8dcc6');
@@ -452,7 +517,11 @@ export class CombatSystem {
       if (ev.type === 'target') this.onProjectileHit(ctx, c, pr, ev.id, ev.x, ev.y, ev.z);
       else if (ev.type === 'scene' && pr.kind === 'thrown') this.dropThrown(ctx, pr, ev.x, ev.y, ev.z);
       else if (ev.type === 'scene' && pr.kind === 'missile') this.missileImpact(ctx, c, pr, ev.x, ev.y, ev.z);
-      else if (ev.type === 'scene') this.d.fx.burst(ev.x, ev.y, ev.z, 'stone', 4);
+      else if (ev.type === 'scene') {
+        this.d.fx.burst(ev.x, ev.y, ev.z, 'stone', 4);
+        // Flecha elemental: fuego prende la hierba, hielo congela el agua, electricidad se propaga por ella.
+        if (pr.element && pr.owner === 'player') this.elements?.applyAt(ctx, pr.element, ev.x, ev.y, ev.z, pr.element === 'fire' ? 1 : 0);
+      }
     });
 
     // El objetivo fijado sigue siendo válido.
@@ -534,7 +603,46 @@ export class CombatSystem {
       c.poisonTick = cfg.status.poison.tickSeconds;
     }
     if (element === 'shock') this.applyShock(ctx, c, 0, fromX, fromZ);
-    if (damage > 0) this.d.player.damagePlayer(ctx, damage, element === 'poison' ? 'poison' : element === 'shock' ? 'shock' : 'enemy');
+    if (element === 'fire' || element === 'ice' || element === 'bleed') this.applyStatus(ctx, element === 'fire' ? 'burn' : element === 'ice' ? 'freeze' : 'bleed');
+    const cause = element === 'poison' ? 'poison' : element === 'shock' ? 'shock' : element === 'fire' ? 'fire' : element === 'bleed' ? 'bleed' : 'enemy';
+    if (damage > 0) this.d.player.damagePlayer(ctx, damage, cause);
+  }
+
+  /** Daño del entorno (rayo, descarga en el agua) con su elemento. */
+  hurtFromWorld(ctx: GameContext, damage: number, element: Element, fromX: number, fromZ: number, knockback: number): void {
+    const c = ctx.world.require(this.d.playerEntity, 'combat');
+    if (ctx.world.require(this.d.playerEntity, 'player').control !== 'free') return;
+    this.hurtPlayer(ctx, c, damage, element, knockback, fromX, fromZ, knockback >= 6);
+  }
+
+  /** Estados por elemento: ardiendo, congelado o sangrando. */
+  applyStatus(ctx: GameContext, kind: 'burn' | 'freeze' | 'bleed'): void {
+    const c = ctx.world.require(this.d.playerEntity, 'combat');
+    const el = this.d.elementsCfg;
+    if (kind === 'burn') {
+      if (c.burnT <= 0) {
+        ctx.bus.emit('player:status', { kind: 'burn', active: true });
+        c.burnTick = 0.2;
+      }
+      c.burnT = el.burn.seconds;
+      c.freezeT = 0;
+    } else if (kind === 'freeze') {
+      if (c.burnT > 0) {
+        // El hielo apaga las llamas en lugar de congelar.
+        c.burnT = 0;
+        return;
+      }
+      if (c.freezeT <= 0) ctx.bus.emit('player:status', { kind: 'freeze', active: true });
+      c.freezeT = el.freeze.seconds;
+      c.aiming = false;
+      c.drawT = 0;
+    } else {
+      if (c.bleedT <= 0) {
+        ctx.bus.emit('player:status', { kind: 'bleed', active: true });
+        c.bleedTick = el.bleed.tickSeconds;
+      }
+      c.bleedT = el.bleed.seconds;
+    }
   }
 
   /** Descarga eléctrica: queda paralizado un instante y suelta el arma. */
@@ -560,6 +668,12 @@ export class CombatSystem {
 
   /** Roca o gelatina enemiga que estalla contra el suelo (con área si es grande). */
   private missileImpact(ctx: GameContext, c: CombatState, pr: Projectile, x: number, y: number, z: number): void {
+    // Proyectil del bastón (o devuelto): aplica su elemento en el área.
+    if (pr.owner === 'player') {
+      if (pr.element) this.elements?.applyAt(ctx, pr.element, x, y, z, pr.splash ?? 1);
+      else this.d.fx.burst(x, y + 0.1, z, 'stone', 6);
+      return;
+    }
     this.d.fx.burst(x, y + 0.1, z, pr.look === 'goo' ? 'gel' : 'stone', pr.splash ? 16 : 6);
     if (pr.splash) {
       this.d.fx.ring(x, y, z, pr.splash, '#e8dcc6');
@@ -594,6 +708,12 @@ export class CombatSystem {
 
   private fxKind(def: EnemyDef): 'gel' | 'stone' | 'spark' {
     return def.tags.includes('gel') ? 'gel' : def.tags.includes('rock') ? 'stone' : 'spark';
+  }
+
+  /** Muerte por el entorno (fuego, rayo): mismo botín y eventos que en combate. */
+  killFromWorld(ctx: GameContext, e: Entity): void {
+    const en = ctx.world.get(e, 'enemy');
+    if (en) this.onKilled(ctx, e, this.d.enemies.def(en.defId));
   }
 
   private onKilled(ctx: GameContext, e: Entity, def: EnemyDef): void {
@@ -635,8 +755,62 @@ export class CombatSystem {
 
   // ------------------------------------------------------------------ arco y lanzamientos
 
+  /** Siguiente tipo de flecha con munición (o la normal si `fallback`). */
+  private cycleArrow(ctx: GameContext, c: CombatState, fallback = false): void {
+    const types = ['arrow', 'fire_arrow', 'ice_arrow', 'shock_arrow'].filter((id) => (c.equipment.items[id] ?? 0) > 0);
+    if (types.length === 0) return;
+    const i = types.indexOf(c.arrowType);
+    const next = fallback && i < 0 ? types[0] : types[(i + 1) % types.length];
+    if (next === c.arrowType) return;
+    c.arrowType = next;
+    ctx.bus.emit('combat:arrow_type', { name: this.d.catalog.name(next), count: c.equipment.items[next] ?? 0 });
+  }
+
+  /** Bastón elemental: proyectil de su elemento hacia el centro de la mira. */
+  private fireStaff(ctx: GameContext, c: CombatState, staff: WeaponDef): void {
+    const sd = staff.staff;
+    if (!sd) return;
+    const ch = ctx.world.require(this.d.playerEntity, 'character');
+    const cam = this.d.threeCamera;
+    const dir = cam.getWorldDirection(this.tmpDir);
+    const max = 80;
+    const aimDist = Math.min(this.sceneRaycast(cam.position.x, cam.position.y, cam.position.z, dir.x, dir.y, dir.z, max), max, this.enemyRaycast(ctx, cam.position.x, cam.position.y, cam.position.z, dir.x, dir.y, dir.z, max));
+    const tx = cam.position.x + dir.x * aimDist;
+    const ty = cam.position.y + dir.y * aimDist;
+    const tz = cam.position.z + dir.z * aimDist;
+    const yaw = this.d.camera.yaw + Math.PI;
+    const sx = ch.x + Math.sin(yaw) * 0.7;
+    const sy = ch.y + 1.5;
+    const sz = ch.z + Math.cos(yaw) * 0.7;
+    const l = Math.hypot(tx - sx, ty - sy, tz - sz) || 1;
+    this.d.projectiles.spawn({
+      kind: 'missile',
+      owner: 'player',
+      x: sx,
+      y: sy,
+      z: sz,
+      vx: ((tx - sx) / l) * sd.speed,
+      vy: ((ty - sy) / l) * sd.speed,
+      vz: ((tz - sz) / l) * sd.speed,
+      gravity: 0,
+      damage: sd.damage,
+      maxAge: 3,
+      element: sd.element,
+      look: sd.element === 'fire' ? 'fireball' : sd.element === 'ice' ? 'iceshard' : 'spark',
+      size: 0.28,
+      knockback: 3,
+      splash: sd.radius,
+      weaponId: staff.id,
+    });
+    this.d.fx.burst(sx, sy, sz, sd.element === 'ice' ? 'parry' : 'spark', 6);
+    const inst = equipped(c.equipment, 'melee');
+    if (inst) this.reportWear(ctx, inst.uid, wear(c.equipment, this.d.catalog, inst.uid, 1, this.d.cfg.durabilityWarning), ch, inst.id);
+  }
+
   private fireArrows(ctx: GameContext, c: CombatState, bow: WeaponDef): void {
-    if (!takeItem(c.equipment, 'arrow', 1)) return;
+    const ammo = c.arrowType;
+    if (!takeItem(c.equipment, ammo, 1)) return;
+    const element = this.d.catalog.item(ammo)?.element;
     const ch = ctx.world.require(this.d.playerEntity, 'character');
     const cam = this.d.threeCamera;
     const dir = cam.getWorldDirection(this.tmpDir);
@@ -665,6 +839,7 @@ export class CombatSystem {
         gravity: ARROW_GRAVITY,
         damage: bow.damage * (0.4 + 0.6 * drawFraction(bow, c.drawT)),
         maxAge: 8,
+        element,
       });
     }
     const inst = equipped(c.equipment, 'bow');
@@ -747,17 +922,40 @@ export class CombatSystem {
     const en = ctx.world.get(id, 'enemy');
     if (!en || en.deadT >= 0) return;
     const def = this.d.enemies.def(en.defId);
-    if (pr.kind === 'arrow' || pr.kind === 'missile') {
+    if (pr.kind === 'missile' && pr.weaponId) {
+      // Bastón elemental: daño directo + su elemento en el área.
+      const staff = this.d.catalog.weapon(pr.weaponId);
+      this.damageEnemy(ctx, c, id, def, staff, 'arrow', pr.damage / Math.max(1, staff.damage), 3, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, false);
+      if (pr.element) {
+        this.applyEnemyElement(ctx, id, pr.element);
+        this.elements?.applyAt(ctx, pr.element, x, y, z, pr.splash ?? 1);
+      }
+    } else if (pr.kind === 'arrow' || pr.kind === 'missile') {
       // Punto débil: núcleo del slime, cabeza del goblin, cristal del golem.
       const weak = this.d.enemies.weakSpot(ctx, id, x, y, z, true);
       const bow = this.bowDef(c) ?? this.d.catalog.weapon('short_bow');
       const k = pr.damage / bow.damage;
       this.damageEnemy(ctx, c, id, def, bow, 'arrow', k, 2, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, weak);
+      if (pr.element) this.applyEnemyElement(ctx, id, pr.element);
     } else if (pr.weaponId) {
       const w = this.d.catalog.weapon(pr.weaponId);
       this.damageEnemy(ctx, c, id, def, w, 'thrown', 1, 5, pr.x - pr.vx * 0.05, pr.z - pr.vz * 0.05, this.d.enemies.weakSpot(ctx, id, x, y, z, true));
       this.dropThrown(ctx, pr, x, y, z);
     }
+  }
+
+  /** Elemento sobre un enemigo (si sigue vivo); suelta su arma si se electrocuta. */
+  private applyEnemyElement(ctx: GameContext, e: Entity, element: Element): void {
+    const en = ctx.world.get(e, 'enemy');
+    if (!en || en.deadT >= 0) return;
+    const r = this.d.enemies.elementHit(ctx, e, element);
+    if (r.dropWeapon) this.dropWeapon(ctx, r.dropWeapon, en.brain.x, en.brain.y + 1, en.brain.z);
+  }
+
+  /** Deja caer un arma enemiga desgastada en el suelo. */
+  dropWeapon(ctx: GameContext, id: string, x: number, y: number, z: number): void {
+    const max = this.d.catalog.maxDurability(id);
+    this.d.pickups.drop(ctx, id, 1, x + 0.6, y, z, Math.max(1, Math.round(max * (0.35 + Math.random() * 0.4))));
   }
 
   private dropThrown(ctx: GameContext, pr: Projectile, x: number, y: number, z: number): void {
@@ -773,7 +971,7 @@ export class CombatSystem {
 
   private projectileWorld(ctx: GameContext) {
     return {
-      raycastScene: (ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number) => this.sceneRaycast(ox, oy, oz, dx, dy, dz, max),
+      raycastScene: (ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number) => Math.min(this.sceneRaycast(ox, oy, oz, dx, dy, dz, max), this.waterRaycast(ox, oy, oz, dx, dy, dz, max)),
       hitTarget: (p: Projectile, ax: number, ay: number, az: number, bx: number, by: number, bz: number) => {
         let best: { id: number; tHit: number } | null = null;
         if (p.owner === 'player') {
@@ -806,6 +1004,20 @@ export class CombatSystem {
       if (t !== null) best = Math.min(best, t * max);
     }
     return best;
+  }
+
+  /** Distancia a la superficie del agua a lo largo del segmento (las flechas se detienen en ella). */
+  private waterRaycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number): number {
+    if (dy >= 0) return Infinity;
+    const ex = ox + dx * max;
+    const ez = oz + dz * max;
+    const w = this.d.terrain.waterLevelAt(ex, ez) ?? this.d.terrain.waterLevelAt(ox, oz);
+    if (w === null || oy < w) return Infinity;
+    const t = (w - oy) / dy;
+    if (t < 0 || t > max) return Infinity;
+    const hx = ox + dx * t;
+    const hz = oz + dz * t;
+    return this.d.terrain.height(hx, hz) < w - 0.2 ? t : Infinity;
   }
 
   private sceneRaycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, max: number): number {

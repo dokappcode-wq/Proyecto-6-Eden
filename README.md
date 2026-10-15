@@ -29,10 +29,11 @@ npm run build      # typecheck + build de producción
 | Esquivar | Alt izq. o V (justo antes del golpe = esquiva perfecta + ráfaga) |
 | Apuntar arco / escudo | Clic der. (con arco: clic izq. tensa y suelta; en el aire = tiempo bala) · con escudo: subirlo justo a tiempo = parry |
 | Lanzar arma | R |
+| Tipo de flecha | X mientras apuntas (normal, fuego, hielo, eléctrica) |
 | Rueda de armas | Tab o Q (mantener; ratón o A/D para elegir) |
 | Fijar objetivo | Z o clic central |
 | Sigilo | Agachado (Ctrl/C): te ven desde menos lejos y casi no haces ruido; atacar a un enemigo desprevenido o dormido = crítico ×3 (dagas ×4) |
-| Debug | F3 (incluye conos de visión de la IA) · T (mantener) acelera el tiempo · F6 abre la salida del valle · F7 viaja al siguiente encuentro · F8 reaparecer |
+| Debug | F3 (incluye conos de visión de la IA) · T (mantener) acelera el tiempo · F6 abre la salida del valle · F7 viaja al siguiente encuentro · F8 reaparecer · F9 cambia el tiempo |
 
 Remapeo en caliente (modo dev, consola): `eden.ctx.input.rebind('jump', ['KeyJ'])`; se guarda en el navegador.
 
@@ -41,6 +42,14 @@ Remapeo en caliente (modo dev, consola): `eden.ctx.input.rebind('jump', ['KeyJ']
 Fuera del valle (sur): dos campamentos goblin (rutinas de día y noche, cuerno de alarma, refuerzos, cofre al despejarlos),
 slimes tóxicos, eléctricos y gigante, un campo de golems dormidos, un golem grande, el Coloso de Musgo (jefe con 3 fases)
 y halcones cazadores que atacan a quien planea cerca del acantilado este. Todo se define en `enemies.json` y `encounters.json`.
+
+## Elementos y clima (Fase 5)
+
+Fuego que se propaga por la hierba a favor del viento y crea corrientes térmicas para el planeador; hielo que congela
+enemigos y crea plataformas sobre el agua; electricidad que se propaga por el agua; rayos de tormenta que buscan el metal.
+Clima por bioma (lluvia, tormenta, nieve, tormenta de arena, niebla), temperatura (frío de montaña y noche del desierto,
+calor del desierto de día; el fuego calienta). Antorcha, bastones elementales y flechas de fuego/hielo/eléctricas.
+Datos en `biomes.json` y `elements.json`.
 
 ## Estructura
 

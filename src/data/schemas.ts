@@ -260,6 +260,8 @@ export const terrainConfigSchema = v.object({
     duneScale: v.number({ min: 0 }),
   }),
   forest: v.object({ startX: v.number(), fullX: v.number(), height: v.number(), amplitude: v.number({ min: 0 }), scale: v.number({ min: 0 }) }),
+  /** Archipiélago (oeste/suroeste): centro y radio de la zona de islas. */
+  archipelago: v.optional(v.object({ center: vec2, radius: v.number({ min: 1 }) })),
   valley: v.object({
     center: vec2,
     floorHeight: v.number(),
@@ -461,7 +463,9 @@ export const templesConfigSchema = v.object({
 });
 
 // ---------------------------------------------------------------- weapons.json
-export const WEAPON_CATEGORIES = ['fists', 'club', 'sword', 'greatsword', 'daggers', 'spear', 'axe', 'hammer', 'bow'] as const;
+/** Elementos de daño: físico, veneno, electricidad, fuego, hielo y sangrado. */
+export const ELEMENTS = ['physical', 'poison', 'shock', 'fire', 'ice', 'bleed'] as const;
+export const WEAPON_CATEGORIES = ['fists', 'club', 'sword', 'greatsword', 'daggers', 'spear', 'axe', 'hammer', 'bow', 'staff'] as const;
 export const SPECIALS = ['none', 'leap_thrust', 'spin_360', 'backstab_x4', 'line_charge', 'shield_break', 'shockwave', 'triple_arrow'] as const;
 const RARITIES = ['common', 'fine', 'rare', 'legendary'] as const;
 
@@ -489,6 +493,10 @@ const weaponSchema = v.object({
   throwable: v.boolean(),
   tags: v.array(v.string({ minLength: 1 })),
   bow: v.optional(v.object({ drawTime: v.number({ min: 0.05 }), arrowSpeed: v.number({ min: 1 }), minSpeedFraction: v.number({ min: 0, max: 1 }), multishotSpread: v.number({ min: 0 }) })),
+  /** Elemento que aplica cada golpe (antorcha = fuego). */
+  element: v.optional(v.oneOf(ELEMENTS)),
+  /** Bastón elemental: dispara su elemento al atacar. */
+  staff: v.optional(v.object({ element: v.oneOf(ELEMENTS), speed: v.number({ min: 1 }), cooldown: v.number({ min: 0.05 }), damage: v.number({ min: 0 }), radius: v.number({ min: 0 }) })),
   model: v.object({ kind: v.string({ minLength: 1 }), length: v.number({ min: 0 }), color }),
 });
 
@@ -513,8 +521,7 @@ export const weaponsConfigSchema = v.object({ weapons: v.array(weaponSchema, { m
 export const ENEMY_FAMILIES = ['golem', 'goblin', 'slime', 'fauna', 'automaton', 'biome_special'] as const;
 
 export const ATTACK_KINDS = ['lunge', 'swing', 'thrust', 'slam', 'shockwave', 'projectile', 'dive', 'discharge', 'rockfall', 'summon'] as const;
-export const ELEMENTS = ['physical', 'poison', 'shock'] as const;
-export const PROJECTILE_LOOKS = ['arrow', 'rock', 'goo', 'spark'] as const;
+export const PROJECTILE_LOOKS = ['arrow', 'rock', 'goo', 'spark', 'fireball', 'iceshard'] as const;
 
 const attackSchema = v.object({
   id: v.string({ minLength: 1 }),
@@ -650,7 +657,17 @@ export const enemiesConfigSchema = v.object({ enemies: v.array(enemySchema, { mi
 
 // ---------------------------------------------------------------- items.json / loot_tables.json
 export const itemsConfigSchema = v.object({
-  items: v.array(v.object({ id: v.string({ minLength: 1 }), name: v.string({ minLength: 1 }), category: v.oneOf(['ammo', 'material'] as const), stack: v.number({ min: 1, integer: true }), color })),
+  items: v.array(
+    v.object({
+      id: v.string({ minLength: 1 }),
+      name: v.string({ minLength: 1 }),
+      category: v.oneOf(['ammo', 'material'] as const),
+      stack: v.number({ min: 1, integer: true }),
+      color,
+      /** Flechas elementales. */
+      element: v.optional(v.oneOf(ELEMENTS)),
+    }),
+  ),
 });
 
 export const lootTablesConfigSchema = v.object({
@@ -714,8 +731,94 @@ export const encountersConfigSchema = v.object({
     }),
   ),
   roosts: v.array(v.object({ id: v.string({ minLength: 1 }), enemy: v.string({ minLength: 1 }), center: vec2, count: v.number({ min: 1, integer: true }) })),
+  /** Objetos colocados en el mundo (fuera del valle). */
+  pickups: v.array(v.object({ id: v.string({ minLength: 1 }), item: v.string({ minLength: 1 }), count: v.number({ min: 1, integer: true }), position: vec2, yOffset: v.number() })),
   /** Puntos de teletransporte de depuración (F7). */
   teleports: v.array(v.object({ name: v.string({ minLength: 1 }), position: vec2 })),
+});
+
+// ---------------------------------------------------------------- biomes.json
+export const BIOME_IDS = ['archipelago', 'sea', 'desert', 'plains', 'forest', 'mountains', 'sky', 'underground'] as const;
+export const WEATHER_TYPES = ['clear', 'cloudy', 'rain', 'storm', 'snow', 'sandstorm', 'fog'] as const;
+
+export const biomesConfigSchema = v.object({
+  biomes: v.array(
+    v.object({
+      id: v.oneOf(BIOME_IDS),
+      name: v.string({ minLength: 1 }),
+      palette: v.array(color, { minLength: 3 }),
+      /** Temperatura de día y de noche (°C) al nivel de referencia. */
+      temperature: v.object({ day: v.number(), night: v.number() }),
+      /** Pesos de cada tiempo atmosférico. */
+      weather: v.record(v.number({ min: 0 })),
+      /** Viento base (m/s) y racheado. */
+      wind: v.number({ min: 0 }),
+      music: v.string({ minLength: 1 }),
+      ambience: v.string({ minLength: 1 }),
+    }),
+    { minLength: 1 },
+  ),
+});
+
+// ---------------------------------------------------------------- elements.json
+export const elementsConfigSchema = v.object({
+  fire: v.object({
+    cellSize: v.number({ min: 0.5 }),
+    /** Probabilidad por segundo de prender cada vecino (sin viento). */
+    spreadChance: v.number({ min: 0, max: 1 }),
+    /** Sesgo del viento: multiplica la propagación a favor del viento. */
+    windBias: v.number({ min: 0 }),
+    burnSeconds: v.number({ min: 0.5 }),
+    /** Tiempo hasta que la hierba quemada vuelve a crecer. */
+    regrowSeconds: v.number({ min: 1 }),
+    /** Intensidad de lluvia a partir de la cual el fuego se apaga. */
+    rainExtinguish: v.number({ min: 0, max: 1 }),
+    maxCells: v.number({ min: 10, integer: true }),
+    /** Fragmentos de corazón por segundo dentro de las llamas. */
+    damagePerSecond: v.number({ min: 0 }),
+    /** Corriente térmica: ascenso por celda ardiendo (m/s), máximo y altura. */
+    liftPerCell: v.number({ min: 0 }),
+    maxLift: v.number({ min: 0 }),
+    thermalHeight: v.number({ min: 1 }),
+    thermalRadius: v.number({ min: 1 }),
+  }),
+  ice: v.object({
+    platformRadius: v.number({ min: 0.5 }),
+    meltSeconds: v.number({ min: 1 }),
+    freezeSeconds: v.number({ min: 0.1 }),
+    shatterMultiplier: v.number({ min: 1 }),
+  }),
+  shock: v.object({ waterRadius: v.number({ min: 0 }), stunSeconds: v.number({ min: 0 }), damage: v.number({ min: 0, integer: true }) }),
+  burn: v.object({ seconds: v.number({ min: 0 }), tickSeconds: v.number({ min: 0.1 }), damagePerTick: v.number({ min: 0, integer: true }) }),
+  bleed: v.object({ seconds: v.number({ min: 0 }), tickSeconds: v.number({ min: 0.1 }), damagePerTick: v.number({ min: 0, integer: true }) }),
+  freeze: v.object({ seconds: v.number({ min: 0 }) }),
+  lightning: v.object({
+    minInterval: v.number({ min: 1 }),
+    maxInterval: v.number({ min: 1 }),
+    warnSeconds: v.number({ min: 0.1 }),
+    damage: v.number({ min: 0, integer: true }),
+    radius: v.number({ min: 0.5 }),
+    /** Probabilidad de que el rayo busque al jugador si lleva metal. */
+    metalAttraction: v.number({ min: 0, max: 1 }),
+  }),
+  temperature: v.object({
+    /** Rango cómodo (°C): fuera de él, daño periódico. */
+    cold: v.number(),
+    hot: v.number(),
+    /** Umbral extremo: el daño se acelera. */
+    freezing: v.number(),
+    scorching: v.number(),
+    damageInterval: v.number({ min: 0.5 }),
+    /** °C que se pierden por metro de altitud sobre `referenceHeight`. */
+    lapseRate: v.number({ min: 0 }),
+    referenceHeight: v.number(),
+    /** Calor de una hoguera o fuego cercano (°C) y su radio. */
+    fireWarmth: v.number({ min: 0 }),
+    fireRadius: v.number({ min: 0 }),
+    /** Ajuste por tiempo atmosférico (°C). */
+    weather: v.record(v.number()),
+  }),
+  weather: v.object({ minSeconds: v.number({ min: 5 }), maxSeconds: v.number({ min: 5 }), transitionSeconds: v.number({ min: 0.5 }) }),
 });
 
 // ---------------------------------------------------------------- tutorial.json
@@ -786,3 +889,8 @@ export type SensesDef = Infer<typeof sensesSchema>;
 export type EncountersConfig = Infer<typeof encountersConfigSchema>;
 export type CampDef = Infer<typeof campSchema>;
 export type CampRole = (typeof CAMP_ROLES)[number];
+export type BiomesConfig = Infer<typeof biomesConfigSchema>;
+export type BiomeDef = BiomesConfig['biomes'][number];
+export type BiomeId = (typeof BIOME_IDS)[number];
+export type WeatherType = (typeof WEATHER_TYPES)[number];
+export type ElementsConfig = Infer<typeof elementsConfigSchema>;

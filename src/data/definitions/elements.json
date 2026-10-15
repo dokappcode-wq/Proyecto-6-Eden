@@ -1,0 +1,73 @@
+{
+  "fire": {
+    "cellSize": 2,
+    "spreadChance": 0.55,
+    "windBias": 1.6,
+    "burnSeconds": 4.5,
+    "regrowSeconds": 180,
+    "rainExtinguish": 0.35,
+    "maxCells": 600,
+    "damagePerSecond": 1,
+    "liftPerCell": 0.45,
+    "maxLift": 9,
+    "thermalHeight": 45,
+    "thermalRadius": 7
+  },
+  "ice": {
+    "platformRadius": 1.6,
+    "meltSeconds": 60,
+    "freezeSeconds": 4,
+    "shatterMultiplier": 3
+  },
+  "shock": {
+    "waterRadius": 6,
+    "stunSeconds": 1.2,
+    "damage": 3
+  },
+  "burn": {
+    "seconds": 4,
+    "tickSeconds": 1,
+    "damagePerTick": 1
+  },
+  "bleed": {
+    "seconds": 6,
+    "tickSeconds": 2,
+    "damagePerTick": 1
+  },
+  "freeze": {
+    "seconds": 2.5
+  },
+  "lightning": {
+    "minInterval": 7,
+    "maxInterval": 16,
+    "warnSeconds": 1.6,
+    "damage": 6,
+    "radius": 3,
+    "metalAttraction": 0.65
+  },
+  "temperature": {
+    "cold": 2,
+    "hot": 40,
+    "freezing": -12,
+    "scorching": 52,
+    "damageInterval": 4,
+    "lapseRate": 0.018,
+    "referenceHeight": 30,
+    "fireWarmth": 18,
+    "fireRadius": 7,
+    "weather": {
+      "clear": 0,
+      "cloudy": -2,
+      "rain": -4,
+      "storm": -6,
+      "snow": -10,
+      "sandstorm": 3,
+      "fog": -3
+    }
+  },
+  "weather": {
+    "minSeconds": 120,
+    "maxSeconds": 300,
+    "transitionSeconds": 12
+  }
+}

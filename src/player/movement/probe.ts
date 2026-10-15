@@ -10,6 +10,8 @@ export interface WorldQuery {
   terrainMaterial(x: number, z: number, normalY: number): string;
   colliders: StaticColliders;
   materials: MaterialsConfig;
+  /** Lo mojadas que están las superficies (lluvia): 0..1. Hace resbalar al escalar. */
+  wetness?(): number;
   /** Visualización opcional de rayos (debug F3). */
   debugRay?(ax: number, ay: number, az: number, bx: number, by: number, bz: number, hit: boolean): void;
 }

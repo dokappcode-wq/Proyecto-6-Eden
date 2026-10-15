@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { stepProjectile, type Projectile, type ProjectileEvent, type ProjectileWorld } from './projectiles';
+import { stepProjectile, type Projectile, type ProjectileEvent, type ProjectileLook, type ProjectileWorld } from './projectiles';
 import { buildWeaponModel } from './WeaponModels';
 
 /** Proyectiles vivos y su aspecto (flechas en pool, armas lanzadas girando). */
@@ -9,6 +9,12 @@ export class ProjectileManager {
   private readonly views = new Map<number, THREE.Object3D>();
   private readonly arrowPool: THREE.Group[] = [];
   private nextId = 1;
+  /** Brillo en la punta de las flechas elementales. */
+  private readonly glowMats: Record<string, THREE.MeshBasicMaterial> = {
+    fire: new THREE.MeshBasicMaterial({ color: '#ff8a3a', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }),
+    ice: new THREE.MeshBasicMaterial({ color: '#9fefff', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }),
+    shock: new THREE.MeshBasicMaterial({ color: '#fff27a', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }),
+  };
 
   constructor() {
     this.group.name = 'projectiles';
@@ -18,9 +24,13 @@ export class ProjectileManager {
     const wood = new THREE.MeshStandardMaterial({ color: '#c9b48a', roughness: 0.8 });
     const tip = new THREE.MeshStandardMaterial({ color: '#8d8a80', metalness: 0.5 });
     const feather = new THREE.MeshStandardMaterial({ color: '#e8e2d4' });
+    const glowGeo = new THREE.SphereGeometry(0.09, 8, 6).translate(0, 0, 0.42);
     for (let i = 0; i < 40; i++) {
       const g = new THREE.Group();
-      g.add(new THREE.Mesh(shaft, wood), new THREE.Mesh(head, tip), new THREE.Mesh(fletch, feather));
+      const glow = new THREE.Mesh(glowGeo, this.glowMats.fire);
+      glow.name = 'glow';
+      glow.visible = false;
+      g.add(new THREE.Mesh(shaft, wood), new THREE.Mesh(head, tip), new THREE.Mesh(fletch, feather), glow);
       g.visible = false;
       this.group.add(g);
       this.arrowPool.push(g);
@@ -42,7 +52,15 @@ export class ProjectileManager {
           oldest.alive = false;
         }
       }
-      if (view) view.visible = true;
+      if (view) {
+        view.visible = true;
+        const glow = view.getObjectByName('glow') as THREE.Mesh | undefined;
+        if (glow) {
+          const m = proj.element ? this.glowMats[proj.element] : undefined;
+          glow.visible = m !== undefined;
+          if (m) glow.material = m;
+        }
+      }
     } else if (proj.kind === 'missile') {
       view = this.missileView(proj.look ?? 'rock', proj.size ?? 0.2);
       this.group.add(view);
@@ -58,15 +76,19 @@ export class ProjectileManager {
     rock: new THREE.DodecahedronGeometry(1, 0),
     goo: new THREE.SphereGeometry(1, 10, 8),
     spark: new THREE.OctahedronGeometry(1, 0),
+    fireball: new THREE.IcosahedronGeometry(1, 1),
+    iceshard: new THREE.OctahedronGeometry(1, 0),
   };
   private readonly missileMat = {
     rock: new THREE.MeshStandardMaterial({ color: '#7d766b', roughness: 0.95, flatShading: true }),
     goo: new THREE.MeshStandardMaterial({ color: '#a45be0', emissive: '#5a1f8a', emissiveIntensity: 0.6, transparent: true, opacity: 0.85 }),
     spark: new THREE.MeshBasicMaterial({ color: '#fff27a' }),
+    fireball: new THREE.MeshBasicMaterial({ color: '#ff8a3a', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }),
+    iceshard: new THREE.MeshStandardMaterial({ color: '#cff4ff', emissive: '#4ab8e8', emissiveIntensity: 0.8, flatShading: true }),
   };
 
   /** Rocas, gelatina tóxica y chispas (las flechas enemigas usan el pool de flechas). */
-  private missileView(look: 'arrow' | 'rock' | 'goo' | 'spark', size: number): THREE.Object3D {
+  private missileView(look: ProjectileLook, size: number): THREE.Object3D {
     const key = look === 'arrow' ? 'rock' : look;
     const m = new THREE.Mesh(this.missileGeo[key], this.missileMat[key]);
     m.scale.setScalar(size);

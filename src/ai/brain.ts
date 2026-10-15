@@ -71,6 +71,9 @@ export interface Brain {
   cooldowns: Record<string, number>;
   /** Aturdido (no actúa). */
   stunT: number;
+  /** Ardiendo (s restantes) y congelado (s restantes; el siguiente golpe lo hace añicos). */
+  burnT: number;
+  frozenT: number;
   /** De rodillas con el cristal expuesto (golems). */
   kneel: boolean;
   sinceDamage: number;
@@ -98,6 +101,8 @@ export interface Brain {
   token: boolean;
   fleeT: number;
   fleeRolled: boolean;
+  /** Ya ha soltado su arma por una descarga. */
+  disarmed: boolean;
   // --- grupo
   group: string | null;
   role: CampRole | null;
@@ -152,6 +157,8 @@ export function createBrain(def: EnemyDef, x: number, y: number, z: number, yaw:
     attack: null,
     cooldowns: {},
     stunT: 0,
+    burnT: 0,
+    frozenT: 0,
     kneel: false,
     sinceDamage: 999,
     squash: 0,
@@ -169,6 +176,7 @@ export function createBrain(def: EnemyDef, x: number, y: number, z: number, yaw:
     token: false,
     fleeT: 0,
     fleeRolled: false,
+    disarmed: false,
     group: null,
     role: null,
     slot: 0,

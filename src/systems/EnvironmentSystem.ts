@@ -27,6 +27,9 @@ export class EnvironmentSystem implements System {
   private readonly focusVel = new THREE.Vector2();
   private interior: SkyState | null = null;
   private interiorFog = 0;
+  /** Efecto del clima sobre la atmósfera (niebla, luz, tinte, destello de rayo). */
+  private weather = { fogMul: 1, lightMul: 1, tint: [1, 1, 1] as [number, number, number], tintK: 0, flash: 0 };
+  private readonly tintColor = new THREE.Color();
 
   constructor(
     private readonly renderer: Renderer,
@@ -80,6 +83,32 @@ export class EnvironmentSystem implements System {
     this.interiorFog = atm.fogDensity;
   }
 
+  private readonly skyTinted = {} as SkyState;
+
+  /** Cielo nublado: el cenit y el horizonte se acercan al tinte del tiempo y se oscurecen. */
+  private tintedSky(st: SkyState, tint: [number, number, number], k: number, light: number): SkyState {
+    const o = Object.assign(this.skyTinted, st);
+    const mix = (c: [number, number, number]): [number, number, number] => [
+      (c[0] + (tint[0] - c[0]) * k) * (0.6 + 0.4 * light),
+      (c[1] + (tint[1] - c[1]) * k) * (0.6 + 0.4 * light),
+      (c[2] + (tint[2] - c[2]) * k) * (0.6 + 0.4 * light),
+    ];
+    o.zenith = mix(st.zenith);
+    o.horizon = mix(st.horizon);
+    o.stars = st.stars * (1 - k);
+    return o;
+  }
+
+  /** Lo llama el sistema de clima cada frame. */
+  setWeather(fogMul: number, lightMul: number, tint: [number, number, number], tintK: number, flash: number): void {
+    const w = this.weather;
+    w.fogMul = fogMul;
+    w.lightMul = lightMul;
+    w.tint = tint;
+    w.tintK = tintK;
+    w.flash = flash;
+  }
+
   fixedUpdate(ctx: GameContext, dt: number): void {
     this.clock.timeScale = ctx.input.isDown('debug_time_fast') ? ctx.data.game.debug.timeScaleFast : 1;
     this.clock.advance(dt);
@@ -108,14 +137,21 @@ export class EnvironmentSystem implements System {
 
     // Atmósfera.
     const st = this.interior ?? this.clock.sample(this.skyState);
-    this.fog.density = this.interior ? this.interiorFog : this.terrainCfg.fogDensity;
-    this.sky.apply(st, cam.position, time);
+    const w = this.interior ? { fogMul: 1, lightMul: 1, tint: [1, 1, 1] as [number, number, number], tintK: 0, flash: 0 } : this.weather;
+    this.fog.density = (this.interior ? this.interiorFog : this.terrainCfg.fogDensity) * w.fogMul;
+    this.sky.apply(w.tintK > 0 ? this.tintedSky(st, w.tint, w.tintK, w.lightMul) : st, cam.position, time);
     this.hemi.color.setRGB(...st.ambientSky, THREE.SRGBColorSpace);
     this.hemi.groundColor.setRGB(...st.ambientGround, THREE.SRGBColorSpace);
-    this.hemi.intensity = st.ambientIntensity;
+    this.hemi.intensity = st.ambientIntensity * (0.55 + 0.45 * w.lightMul) + w.flash * 2.5;
     this.sun.color.setRGB(...st.light, THREE.SRGBColorSpace);
-    this.sun.intensity = st.lightIntensity;
+    this.sun.intensity = st.lightIntensity * w.lightMul;
     this.fog.color.setRGB(...st.fog, THREE.SRGBColorSpace);
+    if (w.tintK > 0) {
+      // Lluvia/tormenta: gris; nieve: blanco; tormenta de arena: ocre.
+      this.tintColor.setRGB(w.tint[0], w.tint[1], w.tint[2], THREE.SRGBColorSpace);
+      this.fog.color.lerp(this.tintColor, w.tintK);
+    }
+    if (w.flash > 0) this.fog.color.lerp(this.tintColor.setRGB(0.9, 0.93, 1), w.flash * 0.6);
     this.renderer.renderer.setClearColor(this.fog.color);
 
     // La sombra sigue al jugador; el foco se ajusta a la rejilla de texels para evitar parpadeo.

@@ -9,7 +9,11 @@ export interface CombatHudSources {
   boss(): { name: string; title: string; hp: number; maxHp: number; phase: number; phases: number[] } | null;
   /** Agachado: ruido actual relativo (0..1) y si algún enemigo cercano sospecha o le ha visto. */
   stealth(): { level: number; seen: boolean } | null;
+  /** Bioma, tiempo y temperatura donde está el jugador. */
+  climate(): { biome: string; weather: string; celsius: number; band: string };
 }
+
+const WEATHER_LABEL: Record<string, string> = { clear: 'Despejado', cloudy: 'Nublado', rain: 'Lluvia', storm: 'Tormenta', snow: 'Nieve', sandstorm: 'Tormenta de arena', fog: 'Niebla' };
 
 const CSS = /* css */ `
 #chud { position: fixed; inset: 0; pointer-events: none; z-index: 7; font-family: 'Segoe UI', system-ui, sans-serif; color: #eaf7ff; }
@@ -50,10 +54,20 @@ const CSS = /* css */ `
 #chud .stealth .waves i { width: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
 #chud .stealth .waves i.lit { background: #8fe9ff; }
 #chud .stealth.seen .waves i.lit { background: #ff5b4b; }
-#chud .status { position: absolute; left: 18px; top: 64px; display: flex; gap: 6px; }
+#chud .status { position: absolute; left: 18px; top: 72px; display: flex; gap: 6px; }
 #chud .status span { padding: 3px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; }
 #chud .status .poison { background: rgba(140,60,200,.75); }
 #chud .status .shock { background: rgba(230,200,40,.85); color: #201a00; }
+#chud .status .burn { background: rgba(240,110,40,.85); }
+#chud .status .freeze { background: rgba(120,210,255,.85); color: #062030; }
+#chud .status .bleed { background: rgba(190,30,40,.85); }
+#chud .climate { position: absolute; left: 18px; top: 48px; font-size: 12px; display: flex; gap: 8px; align-items: center; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
+#chud .climate .temp { padding: 1px 7px; border-radius: 8px; background: rgba(5,18,28,.5); font-weight: 600; }
+#chud .climate .temp.cold, #chud .climate .temp.freezing { background: rgba(60,140,230,.8); }
+#chud .climate .temp.hot, #chud .climate .temp.scorching { background: rgba(230,110,40,.85); }
+#chud .climate .temp.freezing, #chud .climate .temp.scorching { animation: chud-blink .5s infinite alternate; }
+#chud .tint.burn { opacity: 1; background: radial-gradient(ellipse at center, transparent 50%, rgba(255,110,30,.35)); }
+#chud .tint.freeze { opacity: 1; background: radial-gradient(ellipse at center, rgba(200,240,255,.12) 40%, rgba(140,210,255,.55)); }
 #chud .tint { position: absolute; inset: 0; opacity: 0; transition: opacity .3s; }
 #chud .tint.poison { opacity: 1; background: radial-gradient(ellipse at center, transparent 55%, rgba(130,40,200,.28)); }
 #chud .tint.shock { opacity: 1; background: radial-gradient(ellipse at center, transparent 50%, rgba(255,240,90,.35)); }
@@ -76,6 +90,8 @@ export class CombatHud implements System {
   private readonly stealth: HTMLDivElement;
   private readonly status: HTMLDivElement;
   private readonly tint: HTMLDivElement;
+  private readonly climate: HTMLDivElement;
+  private lastClimate = '';
   private lastBoss = '';
   private lastStealth = '';
   private lastStatus = '';
@@ -112,6 +128,7 @@ export class CombatHud implements System {
     this.boss = mk('boss');
     this.stealth = mk('stealth');
     this.status = mk('status');
+    this.climate = mk('climate');
 
     ctx.bus.on('item:picked', ({ name, count }) => this.note(`+ ${count > 1 ? `${count} ` : ''}${name}`, 'good'));
     ctx.bus.on('item:inventory_full', ({ name }) => this.note(`Inventario lleno: no cabe ${name}`, 'bad'));
@@ -126,8 +143,16 @@ export class CombatHud implements System {
     ctx.bus.on('boss:phase', ({ phase }) => this.note(phase === 3 ? 'El Coloso entra en furia' : 'El Coloso cambia de táctica', 'bad'));
     ctx.bus.on('boss:defeated', ({ name }) => this.note(`¡${name} derrotado!`, 'good'));
     ctx.bus.on('player:status', ({ kind, active }) => {
-      if (active) this.note(kind === 'poison' ? 'Envenenado' : '¡Descarga eléctrica!', 'bad');
+      const label = { poison: 'Envenenado', shock: '¡Descarga eléctrica!', burn: '¡Estás ardiendo!', freeze: '¡Congelado!', bleed: 'Sangrando' }[kind];
+      if (active) this.note(label, 'bad');
     });
+    ctx.bus.on('weather:changed', ({ type }) => this.note(`Tiempo: ${WEATHER_LABEL[type] ?? type}`, 'good'));
+    ctx.bus.on('weather:lightning_warning', () => this.note('¡Tu equipo metálico atrae los rayos! Quítatelo', 'bad'));
+    ctx.bus.on('player:temperature', ({ band }) => {
+      if (band === 'cold' || band === 'freezing') this.note('Tienes frío: busca calor o abrígate', 'bad');
+      if (band === 'hot' || band === 'scorching') this.note('Hace demasiado calor: busca sombra o equipo fresco', 'bad');
+    });
+    ctx.bus.on('combat:arrow_type', ({ name, count }) => this.note(`${name} (${count})`, 'good'));
     ctx.bus.on('debug:teleport', ({ name }) => this.note(`Teletransporte: ${name}`, 'good'));
     ctx.bus.on('combat:defended', ({ result }) => {
       if (result === 'parried') this.note('¡Parry!', 'good');
@@ -172,11 +197,27 @@ export class CombatHud implements System {
     // Estados alterados.
     const poisoned = c.poisonT > 0;
     const shocked = c.shockT > 0;
-    const sk = `${poisoned}|${shocked}`;
+    const burning = c.burnT > 0;
+    const frozen = c.freezeT > 0;
+    const bleeding = c.bleedT > 0;
+    const sk = `${poisoned}|${shocked}|${burning}|${frozen}|${bleeding}`;
     if (sk !== this.lastStatus) {
       this.lastStatus = sk;
-      this.status.innerHTML = (poisoned ? '<span class="poison">Veneno</span>' : '') + (shocked ? '<span class="shock">Electrocutado</span>' : '');
-      this.tint.className = `tint${shocked ? ' shock' : poisoned ? ' poison' : ''}`;
+      this.status.innerHTML =
+        (poisoned ? '<span class="poison">Veneno</span>' : '') +
+        (shocked ? '<span class="shock">Electrocutado</span>' : '') +
+        (burning ? '<span class="burn">Ardiendo</span>' : '') +
+        (frozen ? '<span class="freeze">Congelado</span>' : '') +
+        (bleeding ? '<span class="bleed">Sangrado</span>' : '');
+      this.tint.className = `tint${frozen ? ' freeze' : shocked ? ' shock' : burning ? ' burn' : poisoned ? ' poison' : ''}`;
+    }
+
+    // Clima y temperatura.
+    const cl = this.sources.climate();
+    const ck = `${cl.biome}|${cl.weather}|${cl.celsius}|${cl.band}`;
+    if (ck !== this.lastClimate) {
+      this.lastClimate = ck;
+      this.climate.innerHTML = `<span class="temp ${cl.band}">${cl.celsius}°C</span><span>${WEATHER_LABEL[cl.weather] ?? cl.weather} · ${cl.biome}</span>`;
     }
 
     // Panel de equipo.
@@ -194,7 +235,7 @@ export class CombatHud implements System {
       slot('ARMA', m ? m.id : 'fists', m?.durability ?? 0) +
       slot('ARCO', b?.id ?? null, b?.durability ?? 0) +
       slot('ESCUDO', s?.id ?? null, s?.durability ?? 0) +
-      (b ? `<div class="slot"><span><b>FLECHAS</b>${eq.items.arrow ?? 0}</span></div>` : '');
+      (b ? `<div class="slot"><span><b>FLECHAS</b>${c.arrowType === 'arrow' ? '' : `${this.catalog.name(c.arrowType)} · `}${eq.items[c.arrowType] ?? 0}</span></div>` : '');
     if (html !== this.lastGear) {
       this.lastGear = html;
       this.gear.innerHTML = html;

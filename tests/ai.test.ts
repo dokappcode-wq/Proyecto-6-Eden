@@ -41,7 +41,7 @@ function run(b: Brain, def: EnemyDef, p: PlayerView, steps: number, o: { nav?: N
     const r = sense({ x: b.x, y: b.y, z: b.z, yaw: b.yaw, eye: def.height * 0.85, asleep: b.state === 'sleep' }, def.senses, stim(p.x, p.z, { airborne: p.airborne, ...o.stimulus }), o.env ?? DAY, () => true);
     updateAwareness(b, def, r, p.x, p.y, p.z, DT);
     const events: AIEvent[] = [];
-    const c: AIContext = { dt: DT, def, player: p, dist: Math.hypot(p.x - b.x, p.z - b.z), nav: o.nav ?? flatNav, body: body(def), rng, group: o.group ?? null, events };
+    const c: AIContext = { dt: DT, def, player: p, dist: Math.hypot(p.x - b.x, p.z - b.z), nav: o.nav ?? flatNav, body: body(def), rng, group: o.group ?? null, events, hazard: null };
     if (b.kind === 'slime') stepSlime(b, c);
     else if (b.kind === 'goblin') stepGoblin(b, c);
     else if (b.kind === 'golem') stepGolem(b, c);

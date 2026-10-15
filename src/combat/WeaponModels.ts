@@ -87,6 +87,26 @@ export function buildWeaponModel(kind: string, length: number, color: string): W
       tip.position.y = L - 0.08;
       break;
     }
+    case 'torch': {
+      part(new THREE.CylinderGeometry(0.035, 0.03, L, 6), wood, 0, L / 2 - 0.08, 0, group);
+      part(new THREE.CylinderGeometry(0.055, 0.045, 0.14, 6), mat('#3a2a1c', { rough: 1 }), 0, L - 0.08, 0, group);
+      // Llama (se oculta cuando la antorcha está apagada: objeto llamado "flame").
+      const flame = part(new THREE.ConeGeometry(0.07, 0.26, 6), new THREE.MeshBasicMaterial({ color: '#ffb347' }), 0, L + 0.08, 0, group);
+      flame.name = 'flame';
+      flame.castShadow = false;
+      tip.position.y = L + 0.1;
+      break;
+    }
+    case 'staff': {
+      part(new THREE.CylinderGeometry(0.025, 0.03, L, 7), mat('#4a5560', { metal: 0.3, rough: 0.6 }), 0, L / 2 - 0.2, 0, group);
+      for (const a of [0, 2.1, 4.2]) {
+        const prong = part(new THREE.BoxGeometry(0.02, 0.18, 0.02), mat('#4a5560', { metal: 0.3 }), Math.cos(a) * 0.05, L - 0.15, Math.sin(a) * 0.05, group);
+        prong.rotation.z = Math.cos(a) * 0.3;
+      }
+      part(new THREE.OctahedronGeometry(0.07, 0), mat(color, { emissive: color }), 0, L - 0.08, 0, group);
+      tip.position.y = L - 0.05;
+      break;
+    }
     case 'bow': {
       const arc = part(new THREE.TorusGeometry(L / 2, 0.022, 6, 24, Math.PI * 0.75), wood, 0, 0, 0, group);
       arc.rotation.z = Math.PI / 2 + Math.PI * 0.125;

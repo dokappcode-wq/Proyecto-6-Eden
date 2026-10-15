@@ -19,7 +19,9 @@ import { createHealth } from './player/movement/Stamina';
 import { DustPool, PlayerVisual } from './player/PlayerVisual';
 import { CameraSystem } from './systems/CameraSystem';
 import { CombatSystem, createCombatState } from './systems/CombatSystem';
+import { ElementSystem } from './systems/ElementSystem';
 import { EncounterSystem } from './systems/EncounterSystem';
+import { WeatherSystem } from './systems/WeatherSystem';
 import { EnemySystem } from './systems/EnemySystem';
 import { PickupSystem } from './systems/PickupSystem';
 import { EnvironmentSystem } from './systems/EnvironmentSystem';
@@ -136,6 +138,8 @@ async function boot(): Promise<void> {
     airflowAt: (x, y, z, out) => airflow.sample(x, y, z, out),
     colliders,
     debugRay: (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit),
+    // La lluvia moja las paredes (escalar resbala) y reduce el control del planeador.
+    wetness: () => weather.wetness,
   };
   const camEnv = {
     terrainHeight: (x: number, z: number) => terrain.height(x, z),
@@ -216,6 +220,8 @@ async function boot(): Promise<void> {
       scene: renderer.scene,
       combat: data.player.combat,
       movement: data.player.movement,
+      elements: data.elements,
+      rain: () => weather.rain,
       skyLight: () => {
         environment.clock.sample(sky);
         // Luz por la altura del sol (la luna deja algo de visibilidad).
@@ -229,7 +235,49 @@ async function boot(): Promise<void> {
   const pickups = new PickupSystem(playerEntity, catalog, data.loot, data.player.combat.inventory, terrain, (x, z, y) => enemies.groundAt(x, z, y), renderer.scene, ctx);
   const encounters = new EncounterSystem(data.encounters, encounterProps, enemies, pickups, playerSystem, terrain, () => environment.clock.sample(sky).isNight, renderer.scene, ctx);
   const combat = new CombatSystem(
-    { playerEntity, cfg: data.player.combat, stamina: data.player.stamina, catalog, player: playerSystem, enemies, pickups, camera: cameraCtl, threeCamera: renderer.camera, colliders, terrain, fx, projectiles },
+    { playerEntity, cfg: data.player.combat, stamina: data.player.stamina, catalog, player: playerSystem, enemies, pickups, camera: cameraCtl, threeCamera: renderer.camera, colliders, terrain, fx, projectiles, elementsCfg: data.elements, rain: () => weather.rain },
+    ctx,
+  );
+  // --- elementos y clima
+  const elements = new ElementSystem({
+    cfg: data.elements,
+    playerEntity,
+    terrain,
+    colliders,
+    enemies,
+    catalog,
+    fx,
+    airflow,
+    scene: renderer.scene,
+    rain: () => weather.rain,
+    wind: () => weather.windVector,
+    campfires: data.encounters.camps.map((c) => c.fire),
+  });
+  combat.elements = elements;
+  elements.hooks = {
+    hurt: (c, dmg, el, x, z, kb) => combat.hurtFromWorld(c, dmg, el, x, z, kb),
+    status: (c, kind) => combat.applyStatus(c, kind),
+    dropWeapon: (c, id, x, y, z) => combat.dropWeapon(c, id, x, y, z),
+  };
+  enemies.killHandler = (c, e) => combat.killFromWorld(c, e);
+  const weather = new WeatherSystem(
+    {
+      biomes: data.biomes,
+      cfg: data.elements,
+      terrainCfg: data.terrain,
+      terrain,
+      playerEntity,
+      environment,
+      airflow,
+      elements,
+      player: playerSystem,
+      catalog,
+      camera: renderer.camera,
+      scene: renderer.scene,
+      fx,
+      // La Fase 6 (armaduras y comida) amplía estas resistencias.
+      resist: () => ({ cold: 0, heat: 0, insulated: false }),
+    },
     ctx,
   );
   cameraSystem.lookSink = (dx, dy) => {
@@ -250,6 +298,7 @@ async function boot(): Promise<void> {
         bow: b ? catalog.weapon(b.id).model : null,
         shield: sh ? catalog.shield(sh.id).model : null,
       });
+      visual.setTorchLit(elements.torchLit);
     },
   };
 
@@ -292,6 +341,7 @@ async function boot(): Promise<void> {
         const phases = b ? data.enemies.enemies.find((e) => e.name === b.name)?.boss?.phases ?? [] : [];
         return b ? { ...b, phases } : null;
       },
+      climate: () => ({ biome: weather.biomeName, weather: weather.local.intensity > 0.15 ? weather.local.type : 'clear', celsius: Math.round(weather.temperature), band: weather.band }),
       stealth: () => {
         const ch = world.require(playerEntity, 'character');
         if (!input.isDown('crouch') || !ch.grounded || ch.swimming) return null;
@@ -312,10 +362,12 @@ async function boot(): Promise<void> {
     .addSystem({ name: 'debug-rays', fixedUpdate: () => debug.beginRays() })
     .addSystem(cameraSystem)
     .addSystem(environment)
+    .addSystem(weather)
     .addSystem(interaction)
     .addSystem(combat.pre)
     .addSystem(playerSystem)
     .addSystem(enemies)
+    .addSystem(elements)
     .addSystem({ name: 'ai-debug', fixedUpdate: (c) => debug.isVisible && enemies.debugCones(c, (ax, ay, az, bx, by, bz, hit) => debug.ray(ax, ay, az, bx, by, bz, hit)) })
     .addSystem(combat.post)
     .addSystem(pickups)
@@ -369,6 +421,7 @@ async function boot(): Promise<void> {
     return `${combat.meleeDef(c).name}  ${m.phase}${m.phase !== 'idle' ? ` (${m.kind} ${m.comboIndex + 1})` : ''}  ${c.aiming ? `apuntando ${c.drawT.toFixed(2)}s` : ''}${c.defense.guarding ? 'guardia' : ''}${c.plunging ? 'PICADO' : ''}${c.flurryT > 0 ? ' RÁFAGA' : ''}  fijado ${c.lockTarget ?? '—'}  tiempo ×${ctx.time.worldScale.toFixed(2)}/${ctx.time.playerScale.toFixed(2)}`;
   });
   debug.addProvider('IA', () => `${enemies.debugLabel(ctx)}  proyectiles ${projectiles.list.length}`);
+  debug.addProvider('clima', () => `${weather.biomeName} · ${weather.local.type} ${(weather.local.intensity * 100).toFixed(0)}%  viento ${Math.hypot(weather.windVector.x, weather.windVector.z).toFixed(1)} m/s  lluvia ${weather.rain.toFixed(2)} mojado ${weather.wetness.toFixed(2)}  ${weather.temperature.toFixed(1)}°C (${weather.band})  fuego ${elements.fire.burning} celdas  hielo ${elements.ice.platforms.length}  (F9 cambia el tiempo)`);
   debug.addProvider('tutorial', () => {
     const { done, total } = tutorial.tracker.progress();
     return `${done}/${total}  actual: ${tutorial.tracker.current()?.id ?? 'libre'}`;
@@ -410,7 +463,7 @@ async function boot(): Promise<void> {
     else playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, save.progress, save.gateOpen);
     world.require(playerEntity, 'combat').equipment = restoreEquipment(save.equipment, catalog);
-    pickups.spawnValley(ctx, data.valley.pickups, save.collected);
+    pickups.spawnValley(ctx, [...data.valley.pickups, ...data.encounters.pickups], save.collected);
     const p = world.require(playerEntity, 'player');
     p.health.maxFragments = save.health.maxFragments;
     p.health.fragments = Math.min(save.health.fragments, save.health.maxFragments);
@@ -423,7 +476,7 @@ async function boot(): Promise<void> {
     playerSystem.placeInCapsule(ctx);
     progress.apply(ctx, noProgress, false);
     world.require(playerEntity, 'combat').equipment = createEquipment();
-    pickups.spawnValley(ctx, data.valley.pickups, []);
+    pickups.spawnValley(ctx, [...data.valley.pickups, ...data.encounters.pickups], []);
   }
   const worldSave = choice === 'continue' && save ? save.world : undefined;
   enemies.spawnAll(ctx, data.valley.enemySpawns, worldSave?.bossesDefeated ?? []);
@@ -436,7 +489,7 @@ async function boot(): Promise<void> {
 
   // Acceso desde la consola en desarrollo, p. ej. eden.ctx.input.rebind('jump', ['KeyJ']).
   if (import.meta.env.DEV) {
-    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters } });
+    Object.assign(window, { eden: { game, ctx, renderer, terrain, colliders, chunks, environment, player: playerSystem, tutorial, gate, progress, camera: cameraSystem, combat, enemies, pickups, encounters, elements, weather } });
   }
 }
 

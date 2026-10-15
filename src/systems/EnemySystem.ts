@@ -30,7 +30,7 @@ import type { GameContext, System } from '../core/Game';
 import { createTransform } from '../core/ecs/components';
 import type { Entity } from '../core/ecs/World';
 import { createRng } from '../core/math';
-import type { CampDef, CampRole, CombatConfig, EncountersConfig, EnemyDef, MovementConfig, ValleyConfig } from '../data/schemas';
+import type { CampDef, CampRole, CombatConfig, Element, ElementsConfig, EncountersConfig, EnemyDef, MovementConfig, ValleyConfig } from '../data/schemas';
 import { raymarchTerrain } from '../player/CameraController';
 import type { StaticColliders } from '../world/physics/StaticColliders';
 import type { TerrainGenerator } from '../world/terrain/TerrainGenerator';
@@ -55,6 +55,9 @@ export interface EnemyDeps {
   scene: THREE.Scene;
   combat: CombatConfig;
   movement: MovementConfig;
+  elements: ElementsConfig;
+  /** Lluvia 0..1 en la posición del jugador (vista y oído peores). */
+  rain: () => number;
   /** Luz ambiente 0 (noche) .. 1 (día). */
   skyLight: () => number;
   hour: () => number;
@@ -95,6 +98,10 @@ export class EnemySystem implements System {
   private readonly bosses = new Map<Entity, { id: string; engaged: boolean }>();
   private readonly rng = createRng(1337);
   private readonly nav: NavEnv;
+  /** Llama más cercana (los goblins huyen del fuego); la conecta el sistema de elementos. */
+  fireNear: ((x: number, z: number, r: number) => { x: number; z: number } | null) | null = null;
+  /** Muertes por el entorno (fuego, rayo): las resuelve el combate (botín, eventos). */
+  killHandler: ((ctx: GameContext, e: Entity) => void) | null = null;
   private noiseBump = 0;
   private noiseT = 0;
   private readonly events: AIEvent[] = [];
@@ -234,7 +241,7 @@ export class EnemySystem implements System {
     this.noiseT = Math.max(0, this.noiseT - dt);
     const pv = this.playerView(ctx);
     const stim = this.stimulus(ctx, pv);
-    const env: PerceptionEnv = { light: this.lightAt(pv.x, pv.z), rain: 0, airVisibility: this.d.combat.airVisibility };
+    const env: PerceptionEnv = { light: this.lightAt(pv.x, pv.z), rain: this.d.rain(), airVisibility: this.d.combat.airVisibility };
     const hour = this.d.hour();
     for (const rt of this.camps.values()) this.campUpkeep(ctx, rt, hour, wdt);
 
@@ -250,6 +257,7 @@ export class EnemySystem implements System {
       }
       const dist = Math.hypot(pv.x - b.x, pv.z - b.z);
       if (dist > ACTIVE_RADIUS && isCalm(b.state) && !this.bosses.has(e)) continue;
+      if (this.tickElements(ctx, e, b, def, wdt)) continue;
 
       // Percepción.
       const hawkPrey = b.kind !== 'hawk' || (pv.airborne && pv.y - pv.groundY > (def.hawk?.preyHeight ?? 0) && Math.hypot(pv.x - b.homeX, pv.z - b.homeZ) < (def.hawk?.huntRadius ?? 0));
@@ -312,6 +320,13 @@ export class EnemySystem implements System {
     const def = this.def(en.defId);
     const b = en.brain;
     const wasAware = b.aware;
+    // Golpear a un enemigo congelado lo hace añicos (daño multiplicado).
+    if (b.frozenT > 0 && damage > 0) {
+      damage *= this.d.elements.ice.shatterMultiplier;
+      b.frozenT = 0;
+      b.stunT = Math.min(b.stunT, 0.3);
+      this.d.fx.burst(b.x, b.y + def.height * 0.5, b.z, 'parry', 18);
+    }
     // Los jefes no se tambalean salvo por el cristal.
     const killed = applyHit(b, def, damage, def.boss ? { ...o, stagger: false } : o);
     if (!wasAware && !killed) this.onNoticed(ctx, e, b);
@@ -360,6 +375,80 @@ export class EnemySystem implements System {
       ctx.bus.emit('boss:defeated', { id: boss.id, name: def.name, x: b.x, y: b.y, z: b.z });
       this.bosses.delete(e);
     }
+  }
+
+  /**
+   * Efecto de un elemento sobre un enemigo: arde (los goblins huyen presas del pánico),
+   * se congela (el siguiente golpe lo hace añicos) o queda electrocutado (suelta el arma).
+   * Devuelve el arma que suelta, si alguna.
+   */
+  elementHit(ctx: GameContext, e: Entity, element: Element): { dropWeapon: string | null } {
+    const en = ctx.world.get(e, 'enemy');
+    if (!en || en.deadT >= 0) return { dropWeapon: null };
+    const def = this.def(en.defId);
+    const b = en.brain;
+    const el = this.d.elements;
+    const rock = def.tags.includes('rock');
+    const big = def.knockbackResist >= 0.9;
+    let drop: string | null = null;
+    switch (element) {
+      case 'fire':
+        if (b.frozenT > 0) {
+          b.frozenT = 0;
+          b.stunT = 0;
+          break;
+        }
+        if (rock) break;
+        b.burnT = el.burn.seconds * 1.5;
+        if (b.kind === 'goblin' && b.state !== 'flee') {
+          setState(b, 'flee');
+          b.attack = null;
+          b.fleeT = 2.5;
+        }
+        break;
+      case 'ice':
+        b.burnT = 0;
+        if (big) break;
+        b.frozenT = el.ice.freezeSeconds * (1 - def.knockbackResist * 0.6);
+        b.stunT = Math.max(b.stunT, b.frozenT);
+        b.attack = null;
+        b.vx = b.vz = 0;
+        break;
+      case 'shock':
+        if (def.tags.includes('electric')) break;
+        b.stunT = Math.max(b.stunT, el.shock.stunSeconds * (1 - def.knockbackResist * 0.7));
+        b.attack = null;
+        if (b.kind === 'goblin' && def.goblin?.drop && !b.disarmed) {
+          b.disarmed = true;
+          drop = def.goblin.drop;
+        }
+        break;
+      default:
+        break;
+    }
+    if (!b.aware) this.onNoticed(ctx, e, b);
+    enterCombat(b, b.lastX, b.lastY, b.lastZ);
+    return { dropWeapon: drop };
+  }
+
+  /** Quemaduras y congelación con el paso del tiempo. Devuelve true si ha muerto. */
+  private tickElements(ctx: GameContext, e: Entity, b: Brain, def: EnemyDef, dt: number): boolean {
+    if (b.frozenT > 0) {
+      b.frozenT = Math.max(0, b.frozenT - dt);
+      b.stunT = Math.max(b.stunT, b.frozenT);
+    }
+    if (b.burnT <= 0) return false;
+    const before = b.burnT;
+    b.burnT = Math.max(0, b.burnT - dt * (1 + this.d.rain() * 3 + (this.inWater(b) ? 20 : 0)));
+    // Un tic de daño por segundo.
+    if (Math.floor(before) !== Math.floor(b.burnT)) {
+      this.d.fx.burst(b.x, b.y + def.height * 0.6, b.z, 'spark', 5);
+      if (applyHit(b, def, 3, { fromX: b.x, fromZ: b.z, knockback: 0, stagger: false, stun: 0 })) {
+        this.killHandler?.(ctx, e);
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -569,7 +658,8 @@ export class EnemySystem implements System {
       maxWater: b.kind === 'slime' ? 0.6 : b.kind === 'golem' ? 1.2 : 0.5,
       turnSpeed: def.turnSpeed,
     };
-    return { dt, def, player: pv, dist: Math.hypot(pv.x - b.x, pv.z - b.z), nav: this.nav, body, rng: this.rng, group, events: this.events };
+    const hazard = this.fireNear && b.kind === 'goblin' ? this.fireNear(b.x, b.z, 4) : null;
+    return { dt, def, player: pv, dist: Math.hypot(pv.x - b.x, pv.z - b.z), nav: this.nav, body, rng: this.rng, group, events: this.events, hazard };
   }
 
   private groupView(rt: CampRuntime, e: Entity, b: Brain): GroupView {

@@ -95,7 +95,7 @@ export class DebugOverlay implements System {
 
     const { time, world, input } = ctx;
     const lines = [
-      `EDEN debug (F3) · T acelera el tiempo · F6 abre la salida · F7 viaja a un encuentro · F8 reaparecer`,
+      `EDEN debug (F3) · T acelera el tiempo · F6 abre la salida · F7 viaja a un encuentro · F8 reaparecer · F9 cambia el tiempo`,
       `FPS ${time.fps.toFixed(0).padStart(3)}  frame ${time.frameMs.toFixed(2)} ms  pasos/frame ${time.stepsThisFrame}`,
       `entidades ${world.entityCount}  draw calls ${this.renderer.drawCalls}  tris ${(this.renderer.triangles / 1000).toFixed(0)}k`,
       ...this.providers.map((p) => `${p.label}: ${p.fn(ctx)}`),

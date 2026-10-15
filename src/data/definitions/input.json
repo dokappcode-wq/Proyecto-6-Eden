@@ -76,6 +76,12 @@
     ],
     "debug_teleport": [
       "F7"
+    ],
+    "debug_weather": [
+      "F9"
+    ],
+    "cycle_arrow": [
+      "KeyX"
     ]
   }
 }

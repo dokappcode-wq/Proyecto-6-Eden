@@ -463,5 +463,57 @@
         196
       ]
     }
+  ],
+  "pickups": [
+    {
+      "id": "wp_torch_camp",
+      "item": "torch",
+      "count": 1,
+      "position": [
+        184,
+        512
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "wp_torch_exit",
+      "item": "torch",
+      "count": 1,
+      "position": [
+        6,
+        286
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "wp_fire_arrows",
+      "item": "fire_arrow",
+      "count": 5,
+      "position": [
+        -6,
+        292
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "wp_ice_arrows",
+      "item": "ice_arrow",
+      "count": 5,
+      "position": [
+        -28,
+        372
+      ],
+      "yOffset": 0.3
+    },
+    {
+      "id": "wp_shock_arrows",
+      "item": "shock_arrow",
+      "count": 5,
+      "position": [
+        28,
+        404
+      ],
+      "yOffset": 0.3
+    }
   ]
 }

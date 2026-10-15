@@ -92,7 +92,9 @@ export function stepGlide(
   const g = s.glide;
   g.deployT = Math.min(1, g.deployT + dt);
 
-  g.heading -= input.turn * cfg.turnRate * dt;
+  // La lluvia reduce ligeramente el control.
+  const control = 1 - 0.3 * (env.wetness?.() ?? 0);
+  g.heading -= input.turn * cfg.turnRate * control * dt;
   g.bank = damp(g.bank, input.turn * cfg.bankMaxRad, 6, dt);
   g.dive = damp(g.dive, Math.max(0, input.pitch), 6, dt);
   g.flare = damp(g.flare, Math.max(0, -input.pitch), 8, dt);

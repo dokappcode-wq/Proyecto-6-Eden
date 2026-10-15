@@ -71,7 +71,9 @@ export function stepClimb(
 ): ClimbStepResult {
   const c = s.climb;
   const res: ClimbStepResult = { outcome: 'climbing', jumped: false };
-  const slippery = materialDef(q, c.material).slippery;
+  // La lluvia vuelve resbaladiza cualquier pared (+50 % de gasto y se resbala hacia abajo).
+  const wet = q.wetness?.() ?? 0;
+  const slippery = materialDef(q, c.material).slippery || wet > 0.35;
 
   const fall = (vx: number, vz: number, vy: number, outcome: ClimbOutcome): ClimbStepResult => {
     s.mode = 'air';
@@ -122,7 +124,7 @@ export function stepClimb(
       if (!spendRate(s.stamina, rate, dt, 'climb', staminaCfg)) return fall(c.nx * 0.8, c.nz * 0.8, 0, 'fell');
     }
   }
-  if (slippery) my -= cfg.slipperySlideSpeed * dt;
+  if (slippery) my -= cfg.slipperySlideSpeed * (materialDef(q, c.material).slippery ? 1 : 0.6 * wet) * dt;
 
   const rx = c.nz;
   const rz = -c.nx;

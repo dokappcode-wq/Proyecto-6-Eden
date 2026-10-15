@@ -22,6 +22,10 @@ const DEATH_TEXT: Record<DamageCause, string> = {
   fall: 'Has caído',
   poison: 'El veneno ha podido contigo',
   shock: 'Una descarga te ha derribado',
+  fire: 'Las llamas te han consumido',
+  cold: 'Te has congelado',
+  heat: 'El calor ha podido contigo',
+  bleed: 'Te has desangrado',
 };
 const DEATH_FADE = 1.1;
 const DEATH_HOLD = 1.6;

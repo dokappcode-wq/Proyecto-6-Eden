@@ -55,6 +55,30 @@
       "category": "material",
       "stack": 99,
       "color": "#b98a5a"
+    },
+    {
+      "id": "fire_arrow",
+      "name": "Flecha de fuego",
+      "category": "ammo",
+      "stack": 50,
+      "color": "#ff7a3a",
+      "element": "fire"
+    },
+    {
+      "id": "ice_arrow",
+      "name": "Flecha de hielo",
+      "category": "ammo",
+      "stack": 50,
+      "color": "#8fe9ff",
+      "element": "ice"
+    },
+    {
+      "id": "shock_arrow",
+      "name": "Flecha eléctrica",
+      "category": "ammo",
+      "stack": 50,
+      "color": "#ffe56a",
+      "element": "shock"
     }
   ]
 }

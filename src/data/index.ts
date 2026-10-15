@@ -1,5 +1,7 @@
 import airflowJson from './definitions/airflow.json';
 import dayNightJson from './definitions/daynight.json';
+import biomesJson from './definitions/biomes.json';
+import elementsJson from './definitions/elements.json';
 import enemiesJson from './definitions/enemies.json';
 import encountersJson from './definitions/encounters.json';
 import gameJson from './definitions/game.json';
@@ -21,6 +23,10 @@ import {
   airflowConfigSchema,
   dayNightConfigSchema,
   enemiesConfigSchema,
+  biomesConfigSchema,
+  elementsConfigSchema,
+  WEATHER_TYPES,
+  BIOME_IDS,
   encountersConfigSchema,
   itemsConfigSchema,
   lootTablesConfigSchema,
@@ -39,6 +45,8 @@ import {
   type AirflowConfig,
   type DayNightConfig,
   type EnemiesConfig,
+  type BiomesConfig,
+  type ElementsConfig,
   type EncountersConfig,
   type ItemsConfig,
   type LootTablesConfig,
@@ -73,6 +81,8 @@ export interface GameData {
   weapons: WeaponsConfig;
   enemies: EnemiesConfig;
   encounters: EncountersConfig;
+  biomes: BiomesConfig;
+  elements: ElementsConfig;
   items: ItemsConfig;
   loot: LootTablesConfig;
 }
@@ -95,6 +105,8 @@ export interface RawGameData {
   weapons: unknown;
   enemies: unknown;
   encounters: unknown;
+  biomes: unknown;
+  elements: unknown;
   items: unknown;
   loot: unknown;
 }
@@ -116,6 +128,8 @@ export const BUNDLED_DATA: RawGameData = {
   weapons: weaponsJson,
   enemies: enemiesJson,
   encounters: encountersJson,
+  biomes: biomesJson,
+  elements: elementsJson,
   items: itemsJson,
   loot: lootTablesJson,
 };
@@ -142,6 +156,8 @@ export function loadGameData(raw: RawGameData = BUNDLED_DATA): GameData {
     weapons: parse(weaponsConfigSchema, raw.weapons, 'weapons.json'),
     enemies: parse(enemiesConfigSchema, raw.enemies, 'enemies.json'),
     encounters: parse(encountersConfigSchema, raw.encounters, 'encounters.json'),
+    biomes: parse(biomesConfigSchema, raw.biomes, 'biomes.json'),
+    elements: parse(elementsConfigSchema, raw.elements, 'elements.json'),
     items: parse(itemsConfigSchema, raw.items, 'items.json'),
     loot: parse(lootTablesConfigSchema, raw.loot, 'loot_tables.json'),
   };
@@ -250,6 +266,21 @@ function checkConsistency(d: GameData): void {
     if (c.members.some((m) => m.role === 'patrol') && c.patrol.length < 2) issues.push({ path: `encounters.camps[${i}].patrol`, message: 'una patrulla necesita al menos 2 puntos' });
   });
   en.groups.forEach((g, i) => enemyRef(g.enemy, `encounters.groups[${i}].enemy`));
+  en.pickups.forEach((p, i) => {
+    if (!weaponIds.has(p.item) && !shieldIds.has(p.item) && !itemIds.has(p.item)) issues.push({ path: `encounters.pickups[${i}].item`, message: `"${p.item}" no existe en weapons/items` });
+  });
+  // Biomas: los 8, con pesos de tiempo conocidos.
+  const biomeSeen = new Set(d.biomes.biomes.map((b) => b.id));
+  for (const id of BIOME_IDS) if (!biomeSeen.has(id)) issues.push({ path: 'biomes', message: `falta el bioma "${id}"` });
+  d.biomes.biomes.forEach((b, i) => {
+    for (const w of Object.keys(b.weather)) if (!(WEATHER_TYPES as readonly string[]).includes(w)) issues.push({ path: `biomes[${i}].weather.${w}`, message: 'tiempo desconocido' });
+    if (Object.values(b.weather).reduce((a, x) => a + x, 0) <= 0) issues.push({ path: `biomes[${i}].weather`, message: 'al menos un tiempo con peso > 0' });
+  });
+  for (const w of Object.keys(d.elements.temperature.weather)) if (!(WEATHER_TYPES as readonly string[]).includes(w)) issues.push({ path: `elements.temperature.weather.${w}`, message: 'tiempo desconocido' });
+  if (d.elements.weather.maxSeconds < d.elements.weather.minSeconds) issues.push({ path: 'elements.weather', message: 'maxSeconds < minSeconds' });
+  d.weapons.weapons.forEach((w, i) => {
+    if (w.category === 'staff' && !w.staff) issues.push({ path: `weapons.weapons[${i}].staff`, message: 'un bastón necesita la sección "staff"' });
+  });
   en.bosses.forEach((b, i) => {
     enemyRef(b.enemy, `encounters.bosses[${i}].enemy`);
     if (!d.enemies.enemies.find((e) => e.id === b.enemy)?.boss) issues.push({ path: `encounters.bosses[${i}].enemy`, message: 'el enemigo no tiene sección "boss"' });

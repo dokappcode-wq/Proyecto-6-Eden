@@ -51,6 +51,8 @@ export interface AIContext {
   rng: () => number;
   group: GroupView | null;
   events: AIEvent[];
+  /** Peligro cercano del que huir (llamas). */
+  hazard: { x: number; z: number } | null;
 }
 
 /** Distancia horizontal entre el cerebro y un punto. */

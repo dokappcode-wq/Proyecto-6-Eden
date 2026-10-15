@@ -3,6 +3,10 @@ import type { EnemyDef } from '../../data/schemas';
 import type { Brain } from '../brain';
 
 const glyphCache = new Map<string, THREE.SpriteMaterial>();
+const flameGeo = new THREE.ConeGeometry(1, 1, 7, 1, true).translate(0, 0.5, 0);
+const flameMat = new THREE.MeshBasicMaterial({ color: '#ff8a3a', transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+const frostGeo = new THREE.IcosahedronGeometry(1, 0);
+const frostMat = new THREE.MeshStandardMaterial({ color: '#cff4ff', emissive: '#4ab8e8', emissiveIntensity: 0.3, transparent: true, opacity: 0.55, roughness: 0.05, flatShading: true });
 
 /**
  * Icono sobre la cabeza: "?" que se llena con la alerta, "!" al detectar,
@@ -54,6 +58,9 @@ export class Overhead {
   private readonly barTex: THREE.CanvasTexture;
   private lastFill = -1;
   private t = 0;
+  /** Efectos de estado: llamas (ardiendo) y caparazón de hielo (congelado). */
+  private readonly flame: THREE.Mesh;
+  private readonly frost: THREE.Mesh;
 
   constructor(
     private readonly height: number,
@@ -73,6 +80,15 @@ export class Overhead {
     this.bar.renderOrder = 10;
     this.bar.visible = false;
     this.group.add(this.bar);
+    const r = barWidth * 0.5;
+    this.flame = new THREE.Mesh(flameGeo, flameMat);
+    this.flame.scale.set(r * 1.2, height * 0.9, r * 1.2);
+    this.flame.visible = false;
+    this.frost = new THREE.Mesh(frostGeo, frostMat);
+    this.frost.scale.set(r * 1.4, height * 0.62, r * 1.4);
+    this.frost.position.y = height * 0.5;
+    this.frost.visible = false;
+    this.group.add(this.flame, this.frost);
   }
 
   update(b: Brain, def: EnemyDef, dt: number): void {
@@ -91,6 +107,13 @@ export class Overhead {
       this.icon.scale.set(s, s, 1);
       this.icon.position.y = this.height + 0.85 + (key === 'zz' ? Math.sin(this.t * 1.5) * 0.12 : 0);
     }
+    this.flame.visible = b.burnT > 0 && b.state !== 'dead';
+    if (this.flame.visible) {
+      const k = 0.85 + Math.sin(this.t * 19) * 0.15;
+      this.flame.scale.y = this.height * 0.9 * k;
+      this.flame.rotation.y = this.t * 3;
+    }
+    this.frost.visible = b.frozenT > 0 && b.state !== 'dead';
     const show = this.showBar && b.state !== 'dead' && b.hp < b.maxHp && b.sinceDamage < 8;
     this.bar.visible = show;
     if (show) {

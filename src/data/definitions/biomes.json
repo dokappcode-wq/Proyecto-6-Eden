@@ -1,0 +1,178 @@
+{
+  "biomes": [
+    {
+      "id": "archipelago",
+      "name": "El Archipiélago",
+      "palette": [
+        "#3fd0c9",
+        "#6fbf4a",
+        "#e8d39a",
+        "#f2cf4a"
+      ],
+      "temperature": {
+        "day": 29,
+        "night": 22
+      },
+      "weather": {
+        "clear": 5,
+        "cloudy": 2,
+        "rain": 2,
+        "storm": 1
+      },
+      "wind": 2.5,
+      "music": "archipelago",
+      "ambience": "waves"
+    },
+    {
+      "id": "sea",
+      "name": "El Mar",
+      "palette": [
+        "#14406e",
+        "#1f8fbf",
+        "#36d6e7"
+      ],
+      "temperature": {
+        "day": 22,
+        "night": 17
+      },
+      "weather": {
+        "clear": 4,
+        "cloudy": 3,
+        "rain": 2,
+        "storm": 2,
+        "fog": 1
+      },
+      "wind": 4,
+      "music": "sea",
+      "ambience": "open_sea"
+    },
+    {
+      "id": "desert",
+      "name": "El Desierto",
+      "palette": [
+        "#d9a35f",
+        "#e07a32",
+        "#8a5a32"
+      ],
+      "temperature": {
+        "day": 46,
+        "night": -2
+      },
+      "weather": {
+        "clear": 6,
+        "cloudy": 1,
+        "sandstorm": 2
+      },
+      "wind": 3,
+      "music": "desert",
+      "ambience": "sand_wind"
+    },
+    {
+      "id": "plains",
+      "name": "Las Llanuras",
+      "palette": [
+        "#5f9a3c",
+        "#9ad15a",
+        "#a9d8f0"
+      ],
+      "temperature": {
+        "day": 22,
+        "night": 11
+      },
+      "weather": {
+        "clear": 5,
+        "cloudy": 3,
+        "rain": 2,
+        "storm": 1,
+        "fog": 1
+      },
+      "wind": 1.2,
+      "music": "plains",
+      "ambience": "meadow"
+    },
+    {
+      "id": "forest",
+      "name": "Los Bosques",
+      "palette": [
+        "#2f5f2c",
+        "#c9a64a",
+        "#6a4a32"
+      ],
+      "temperature": {
+        "day": 19,
+        "night": 9
+      },
+      "weather": {
+        "clear": 3,
+        "cloudy": 3,
+        "rain": 3,
+        "storm": 1,
+        "fog": 3
+      },
+      "wind": 0.6,
+      "music": "forest",
+      "ambience": "forest"
+    },
+    {
+      "id": "mountains",
+      "name": "Las Montañas",
+      "palette": [
+        "#8a9bb0",
+        "#eef4fa",
+        "#7d756a"
+      ],
+      "temperature": {
+        "day": 8,
+        "night": -6
+      },
+      "weather": {
+        "clear": 3,
+        "cloudy": 3,
+        "snow": 4,
+        "storm": 1
+      },
+      "wind": 5,
+      "music": "mountains",
+      "ambience": "mountain_wind"
+    },
+    {
+      "id": "sky",
+      "name": "Islas Flotantes",
+      "palette": [
+        "#8fd3ff",
+        "#f4fbff",
+        "#a6e07a"
+      ],
+      "temperature": {
+        "day": 14,
+        "night": 4
+      },
+      "weather": {
+        "clear": 6,
+        "cloudy": 3
+      },
+      "wind": 6,
+      "music": "sky",
+      "ambience": "high_wind"
+    },
+    {
+      "id": "underground",
+      "name": "El Mundo Subterráneo",
+      "palette": [
+        "#1a1f4a",
+        "#6b3fa0",
+        "#1fd6ff"
+      ],
+      "temperature": {
+        "day": 14,
+        "night": 14
+      },
+      "weather": {
+        "clear": 1
+      },
+      "wind": 0,
+      "music": "underground",
+      "ambience": "drips"
+    }
+  ]
+}

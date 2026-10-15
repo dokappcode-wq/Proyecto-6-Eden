@@ -2,7 +2,7 @@ import type { EventBus } from './EventBus';
 import type { InteractableKind } from './ecs/components';
 
 export type ActionPhase = 'pressed' | 'released';
-export type DamageCause = 'fall' | 'drown' | 'enemy' | 'poison' | 'shock';
+export type DamageCause = 'fall' | 'drown' | 'enemy' | 'poison' | 'shock' | 'fire' | 'cold' | 'heat' | 'bleed';
 
 /** Catálogo de eventos del juego. Cada fase añade los suyos aquí. */
 export interface GameEvents {
@@ -43,7 +43,11 @@ export interface GameEvents {
   'boss:engaged': { id: string; name: string; title: string };
   'boss:phase': { id: string; phase: number };
   'boss:defeated': { id: string; name: string; x: number; y: number; z: number };
-  'player:status': { kind: 'poison' | 'shock'; active: boolean };
+  'player:status': { kind: 'poison' | 'shock' | 'burn' | 'freeze' | 'bleed'; active: boolean };
+  'player:temperature': { band: 'freezing' | 'cold' | 'ok' | 'hot' | 'scorching'; celsius: number };
+  'weather:changed': { biome: string; type: string };
+  'weather:lightning_warning': Record<string, never>;
+  'combat:arrow_type': { name: string; count: number };
   'debug:teleport': { name: string };
   'enemy:defeated': { entity: number; enemy: string; family: string; x: number; y: number; z: number };
   'item:picked': { item: string; name: string; count: number };
